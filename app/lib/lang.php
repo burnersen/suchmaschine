@@ -266,5 +266,28 @@ function smEnglish(): array
         'Kostenlos auf <a href="https://api-dashboard.search.brave.com" target="_blank" rel="noopener noreferrer">api-dashboard.search.brave.com</a>: anmelden, den Plan „Search“ wählen (enthält jeden Monat Guthaben für etwa 1.000 Suchen), unter „API Keys“ einen Key erzeugen und hier einfügen. Automatisches Aufladen dort ausgeschaltet lassen.' => 'Free at <a href="https://api-dashboard.search.brave.com" target="_blank" rel="noopener noreferrer">api-dashboard.search.brave.com</a>: sign up, choose the "Search" plan (includes monthly credit for about 1,000 searches), create a key under "API Keys" and paste it here. Leave automatic top-up switched off there.',
         'API-Key' => 'API key',
         'Der Key wird gleich mit einer Testsuche geprüft und bleibt nur auf deinem Server.' => 'The key is checked with a test search right away and stays on your server only.',
+
+        // Name, Aussehen, Endlos-Scrollen
+        'Suchmaschine ohne Werbung' => 'Search engine without ads',
+        'Suchmaschine' => 'Search engine',
+        'ohne Werbung' => 'without ads',
+        'Weitere Treffer' => 'More results',
+        'Seitenweise' => 'Page by page',
+        'Endlos scrollen' => 'Endless scrolling',
+        'Weitere Treffer konnten nicht geladen werden.' => 'More results could not be loaded.',
+        'Mehr Ergebnisse' => 'More results',
+        'Das waren alle Treffer.' => 'That was everything.',
+        'Aussehen' => 'Appearance',
+        'Leer lassen für „Suchmaschine ohne Werbung“ (auf Englisch automatisch übersetzt).' => 'Leave empty for "Search engine without ads" (translated automatically).',
+        'Logo' => 'Logo',
+        'PNG, JPG, WebP, GIF oder SVG, höchstens 1 MB. Am besten quadratisch.' => 'PNG, JPG, WebP, GIF or SVG, at most 1 MB. Square works best.',
+        'Eigenes Logo entfernen' => 'Remove own logo',
+        'Farbe' => 'Color',
+        'Beim Endlos-Scrollen ist jedes Nachladen eine Suche bei Brave (20 Treffer auf einmal).' => 'With endless scrolling, every reload is one search at Brave (20 results at a time).',
+        'Das Logo konnte nicht hochgeladen werden (höchstens 1 MB).' => 'The logo could not be uploaded (at most 1 MB).',
+        'Das Logo darf höchstens 1 MB groß sein.' => 'The logo may be at most 1 MB.',
+        'Dieses SVG enthält Skripte und wird darum nicht angenommen.' => 'This SVG contains scripts and is therefore not accepted.',
+        'Bitte ein Bild im Format PNG, JPG, WebP, GIF oder SVG hochladen.' => 'Please upload an image in PNG, JPG, WebP, GIF or SVG format.',
+        'Blau' => 'Blue', 'Grün' => 'Green', 'Petrol' => 'Teal', 'Orange' => 'Orange', 'Rot' => 'Red', 'Lila' => 'Purple', 'Grau' => 'Gray',
     ];
 }

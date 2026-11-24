@@ -3,10 +3,11 @@
 $me = $me ?? null;
 $home = !empty($home);
 $bare = !empty($bare);
-$site = smHasUsersSafe() ? smSetting('site_name') : 'Suche';
+$site = smSiteName();
+$logo = smLogoUrl();
 $flash = smFlash();
 ?><!DOCTYPE html>
-<html lang="<?= h(smLang()) ?>" data-theme="<?= h(smTheme()) ?>">
+<html lang="<?= h(smLang()) ?>" data-theme="<?= h(smTheme()) ?>" data-accent="<?= h(smAccent()) ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +17,7 @@ $flash = smFlash();
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1f1f1f" media="(prefers-color-scheme: dark)">
 <title><?= h($title ?? $site) ?></title>
-<link rel="icon" href="<?= h(smAsset('icon.svg')) ?>" type="image/svg+xml">
+<link rel="icon" href="<?= h($logo !== '' ? $logo : smAsset('icon.svg')) ?>"<?= $logo === '' ? ' type="image/svg+xml"' : '' ?>>
 <link rel="manifest" href="<?= h(smUrl(['a' => 'manifest'])) ?>">
 <link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?>" href="<?= h(smUrl(['a' => 'opensearch'])) ?>">
 <link rel="stylesheet" href="<?= h(smAsset('app.css')) ?>">
@@ -27,7 +28,7 @@ $flash = smFlash();
 <?php if (!$bare): ?>
 <header class="top<?= isset($q) ? ' top--results' : '' ?>">
 <?php if (!$home): ?>
-    <a class="logo" href="<?= h(smBase()) ?>" aria-label="<?= h(t('Zur Startseite')) ?>"><span class="logo__mark" aria-hidden="true"></span><span class="logo__text"><?= h($site) ?></span></a>
+    <a class="brand" href="<?= h(smBase()) ?>" title="<?= h(t('Zur Startseite')) ?>"><?= smLogoHtml() ?><span class="brand__text"><?= smSiteNameHtml() ?></span></a>
 <?php endif; ?>
 <?php if (isset($q)): ?>
     <?php $big = false; require __DIR__ . '/_searchbox.php'; ?>

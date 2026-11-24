@@ -1,7 +1,7 @@
 <?php defined('SM_VERSION') || exit; ?>
 <main class="auth">
     <div class="auth__card auth__card--wide">
-        <div class="auth__logo"><span class="logo__mark logo__mark--big" aria-hidden="true"></span><span><?= h(t('Willkommen')) ?></span></div>
+        <div class="auth__logo"><?= smLogoHtml(true) ?><span><?= h(t('Willkommen')) ?></span></div>
         <p class="auth__lead"><?= h(t('Noch zwei Schritte, dann hast du deine eigene Suchmaschine ohne Werbung.')) ?></p>
 <?php if ($error !== ''): ?><div class="alert alert--error"><?= h($error) ?></div><?php endif; ?>
         <form method="post" action="<?= h(smUrl(['a' => 'setup'])) ?>" class="form" data-busy>

@@ -82,7 +82,7 @@ function smSearch(string $kind, string $q, array $o): array
         default:
             $kind = 'web';
             $path = 'web/search';
-            $params['count'] = max(5, min(20, (int)smSetting('per_page')));
+            $params['count'] = !empty($o['endless']) ? 20 : max(5, min(20, (int)smSetting('per_page')));
             $params['offset'] = $page - 1;
             if (!empty($o['exact'])) $params['spellcheck'] = '0';
     }

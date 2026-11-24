@@ -11,6 +11,7 @@ function smRun(): void
     if ($a === 'asset') smServeAsset();
     if ($a === 'opensearch') smServeOpenSearch();
     if ($a === 'manifest') smServeManifest();
+    if ($a === 'logo') smServeLogo();
     if ($a === '' && isset($_GET['lang']) && in_array($_GET['lang'], ['de', 'en'], true)) {
         smLangCookie($_GET['lang']);
         smRedirect(smBase());
@@ -108,7 +109,7 @@ function smServeOpenSearch(): void
     smHeaders();
     header('Content-Type: application/opensearchdescription+xml; charset=utf-8');
     header('Cache-Control: no-cache');
-    $name = smHasUsersSafe() ? smSetting('site_name') : 'Suche';
+    $name = smSiteName();
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
        . '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">' . "\n"
        . '  <ShortName>' . h(mb_substr($name, 0, 16)) . "</ShortName>\n"
@@ -125,12 +126,30 @@ function smServeManifest(): void
     smHeaders();
     header('Content-Type: application/manifest+json; charset=utf-8');
     header('Cache-Control: no-cache');
-    $name = smHasUsersSafe() ? smSetting('site_name') : 'Suche';
+    $name = smSiteName();
+    $logo = smLogoUrl();
     echo json_encode([
         'name' => $name, 'short_name' => mb_substr($name, 0, 12), 'start_url' => './', 'scope' => './', 'display' => 'standalone',
         'lang' => smLang(), 'background_color' => '#ffffff', 'theme_color' => '#ffffff',
-        'icons' => [['src' => '?a=asset&f=icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any']],
+        'icons' => [$logo !== '' ? ['src' => $logo, 'sizes' => 'any', 'type' => smSetting('logo_type')] : ['src' => '?a=asset&f=icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any']],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/** Eigenes Logo ausliefern (liegt in data/, darum über diese Datei) */
+function smServeLogo(): void
+{
+    $type = smHasUsersSafe() ? smSetting('logo_type') : '';
+    $file = SM_DATA_DIR . '/logo.bin';
+    if ($type === '' || !is_file($file)) {
+        http_response_code(404);
+        exit;
+    }
+    smHeaders();
+    header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    header('Content-Type: ' . $type);
+    header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
+    readfile($file);
     exit;
 }
 
@@ -155,6 +174,7 @@ function smPrefs(?array $me): array
         'safesearch'  => in_array($p['safesearch'] ?? '', ['off', 'moderate', 'strict'], true) ? $p['safesearch'] : smSetting('safesearch'),
         'newtab'      => !empty($p['newtab']),
         'history'     => !isset($p['history']) || !empty($p['history']),
+        'scroll'      => in_array($p['scroll'] ?? '', ['pages', 'endless'], true) ? $p['scroll'] : (smSetting('scroll') === 'endless' ? 'endless' : 'pages'),
     ];
 }
 
@@ -171,7 +191,7 @@ function smPageSearch(?array $me): void
     $prefs = smPrefs($me);
 
     if ($q === '') {
-        smRender('home', ['me' => $me, 'prefs' => $prefs, 'title' => smSetting('site_name'), 'home' => true, 'tab' => $tab]);
+        smRender('home', ['me' => $me, 'prefs' => $prefs, 'title' => smSiteName(), 'home' => true, 'tab' => $tab]);
         return;
     }
 
@@ -184,7 +204,7 @@ function smPageSearch(?array $me): void
     $error = '';
     try {
         if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
-        $res = smSearch($tab, $q, $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact]);
+        $res = smSearch($tab, $q, $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless']);
     } catch (SmSearchError $e) {
         $error = $e->getMessage();
     } catch (Throwable $e) {
@@ -192,8 +212,15 @@ function smPageSearch(?array $me): void
         $error = t('Da ist intern etwas schiefgelaufen. Die Einzelheiten stehen im Fehlerprotokoll des Servers.');
     }
 
+    $part = ($_GET['part'] ?? '') === '1';
+    if ($part) {
+        // Endlos-Scrollen: nur die nächsten Treffer, ohne Seitengerüst
+        if ($error !== '') http_response_code(502);
+        smRender('part', ['prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact, 'res' => $res, 'error' => $error], false);
+        return;
+    }
     smRender('results', [
-        'me' => $me, 'prefs' => $prefs, 'title' => $q . ' – ' . smSetting('site_name'),
+        'me' => $me, 'prefs' => $prefs, 'title' => $q . ' – ' . smSiteName(),
         'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact, 'res' => $res, 'error' => $error,
     ]);
 }
@@ -206,7 +233,17 @@ function smPageLucky(?array $me): void
     try {
         if ($me || smPublicQuota()) {
             $res = smSearch('web', $q, smPrefs($me));
-            if (!empty($res['results'][0]['url'])) smRedirect($res['results'][0]['url']);
+            if (!empty($res['results'][0]['url'])) {
+                // Kein 303 nach außen: Browser blockieren das nach einem Formular (CSP form-action). Darum eine Zwischenseite.
+                $u = $res['results'][0]['url'];
+                smHeaders();
+                header('Content-Type: text/html; charset=utf-8');
+                header('Cache-Control: no-store');
+                echo '<!DOCTYPE html><meta charset="utf-8"><meta name="referrer" content="no-referrer">'
+                   . '<meta http-equiv="refresh" content="0;url=' . h($u) . '"><title>' . h($q) . '</title>'
+                   . '<p><a href="' . h($u) . '" rel="noopener noreferrer">' . h($u) . '</a></p>';
+                exit;
+            }
         }
     } catch (Throwable $e) {
     }
@@ -229,6 +266,7 @@ function smPageSettings(array $me, bool $post): void
             $p['safesearch'] = in_array($s, ['off', 'moderate', 'strict'], true) ? $s : smSetting('safesearch');
             $p['newtab'] = !empty($_POST['newtab']);
             $p['history'] = !empty($_POST['history']);
+            $p['scroll'] = ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages';
             smUserSavePrefs($me['id'], $p);
             smFlash('ok', t('Gespeichert.'));
         } elseif ($do === 'pass') {
@@ -336,7 +374,18 @@ function smSaveConfig(): string
         smSetSetting('api_key', $key);
     }
     $name = trim(mb_substr((string)($_POST['site_name'] ?? ''), 0, 40));
-    smSetSetting('site_name', $name !== '' ? $name : 'Suche');
+    smSetSetting('site_name', $name);
+    $acc = (string)($_POST['accent'] ?? '');
+    if (isset(smAccents()[$acc])) smSetSetting('accent', $acc);
+    smSetSetting('scroll', ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages');
+    if (!empty($_POST['logo_remove'])) {
+        @unlink(SM_DATA_DIR . '/logo.bin');
+        smSetSetting('logo_type', '');
+    } elseif (!empty($_FILES['logo']['tmp_name']) && is_uploaded_file($_FILES['logo']['tmp_name'])) {
+        if (($e = smSaveLogo($_FILES['logo']['tmp_name'], (int)$_FILES['logo']['size'])) !== '') return $e;
+    } elseif (!empty($_FILES['logo']['error']) && (int)$_FILES['logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+        return t('Das Logo konnte nicht hochgeladen werden (höchstens 1 MB).');
+    }
     smSetSetting('monthly_limit', (string)max(0, min(1000000, (int)($_POST['monthly_limit'] ?? 950))));
     smSetSetting('cache_min', (string)max(0, min(60, (int)($_POST['cache_min'] ?? 15))));
     smSetSetting('per_page', (string)max(5, min(20, (int)($_POST['per_page'] ?? 10))));
@@ -348,5 +397,26 @@ function smSaveConfig(): string
     if (in_array($s, ['off', 'moderate', 'strict'], true)) smSetSetting('safesearch', $s);
     smSetSetting('public', empty($_POST['public']) ? '0' : '1');
     smSetSetting('public_hour', (string)max(1, min(1000, (int)($_POST['public_hour'] ?? 20))));
+    return '';
+}
+
+/** Hochgeladenes Logo prüfen und speichern. Liefert Fehlertext oder ''. */
+function smSaveLogo(string $tmp, int $size): string
+{
+    if ($size <= 0 || $size > 1048576) return t('Das Logo darf höchstens 1 MB groß sein.');
+    $bin = (string)file_get_contents($tmp);
+    $type = '';
+    $info = @getimagesizefromstring($bin);
+    if (is_array($info) && in_array($info['mime'] ?? '', ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], true)) {
+        $type = $info['mime'];
+    } elseif (preg_match('/^\s*(<\?xml[^>]*>\s*)?(<!--.*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/is', $bin)) {
+        // SVG: nichts Ausführbares zulassen
+        if (preg_match('/<script|<foreignObject|\son[a-z]+\s*=|javascript:/i', $bin)) return t('Dieses SVG enthält Skripte und wird darum nicht angenommen.');
+        $type = 'image/svg+xml';
+    }
+    if ($type === '') return t('Bitte ein Bild im Format PNG, JPG, WebP, GIF oder SVG hochladen.');
+    if (@file_put_contents(SM_DATA_DIR . '/logo.bin', $bin, LOCK_EX) === false) return t('In den Ordner data/ kann nicht geschrieben werden. Bitte die Schreibrechte prüfen.');
+    smSetSetting('logo_type', $type);
+    smSetSetting('logo_v', (string)time());
     return '';
 }

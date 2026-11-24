@@ -1,7 +1,5 @@
 <?php defined('SM_VERSION') || exit;
-$target = $prefs['newtab'] ? ' target="_blank"' : '';
-$rel = ' rel="noopener noreferrer"';
-$base = ['q' => $q, 't' => $tab !== 'web' ? $tab : null, 'f' => $fresh ?: null, 'exact' => $exact ? '1' : null];
+require __DIR__ . '/_vars.php';
 ?>
 <nav class="tabs" aria-label="<?= h(t('Art der Suche')) ?>">
     <div class="tabs__inner">
@@ -118,7 +116,7 @@ $base = ['q' => $q, 't' => $tab !== 'web' ? $tab : null, 'f' => $fresh ?: null, 
             </ul>
         </section>
 <?php endif; endforeach; ?>
-<?php require __DIR__ . '/_pager.php'; ?>
+<?php require __DIR__ . ($prefs['scroll'] === 'endless' ? '/_more.php' : '/_pager.php'); ?>
     </div>
 <?php elseif ($tab === 'images'): ?>
     <div class="grid" data-grid>
@@ -149,37 +147,13 @@ $base = ['q' => $q, 't' => $tab !== 'web' ? $tab : null, 'f' => $fresh ?: null, 
     </div>
 <?php elseif ($tab === 'news'): ?>
     <div class="serp__main">
-<?php foreach ($res['results'] as $n): ?>
-        <article class="news">
-            <a class="news__link" href="<?= h($n['url']) ?>"<?= $rel . $target ?>>
-                <span class="news__body">
-                    <span class="news__src"><?php $fav = $n['favicon']; $host = $n['host']; require __DIR__ . '/_fav.php'; ?><?= h($n['source'] ?: $n['host']) ?></span>
-                    <span class="news__title"><?= smHl($n['title']) ?></span>
-                    <span class="news__desc"><?= smHl($n['desc']) ?></span>
-                    <span class="news__age"><?= $n['breaking'] ? '<b class="live">' . h(t('Eilmeldung')) . '</b> ' : '' ?><?= h($n['age']) ?></span>
-                </span>
-<?php if ($n['thumb']): ?><img class="news__img" src="<?= h($n['thumb']) ?>" alt="" loading="lazy" referrerpolicy="no-referrer"><?php endif; ?>
-            </a>
-        </article>
-<?php endforeach; ?>
-<?php require __DIR__ . '/_pager.php'; ?>
+<?php foreach ($res['results'] as $n) require __DIR__ . '/_news.php'; ?>
+<?php require __DIR__ . ($prefs['scroll'] === 'endless' ? '/_more.php' : '/_pager.php'); ?>
     </div>
 <?php elseif ($tab === 'videos'): ?>
     <div class="serp__main">
-<?php foreach ($res['results'] as $v): ?>
-        <article class="video">
-            <a class="video__link" href="<?= h($v['url']) ?>"<?= $rel . $target ?>>
-                <span class="card__thumb video__thumb"><?php if ($v['thumb']): ?><img src="<?= h($v['thumb']) ?>" alt="" loading="lazy" referrerpolicy="no-referrer"><?php endif; ?>
-                    <span class="play" aria-hidden="true"></span><?php if ($v['duration']): ?><span class="dur"><?= h($v['duration']) ?></span><?php endif; ?></span>
-                <span class="video__body">
-                    <span class="video__title"><?= smHl($v['title']) ?></span>
-                    <span class="video__meta"><?php $fav = $v['favicon']; $host = $v['host']; require __DIR__ . '/_fav.php'; ?><?= h(implode(' · ', array_filter([$v['host'], $v['creator'], $v['views'] ? t('%s Aufrufe', smNum($v['views'])) : '', $v['age']]))) ?></span>
-                    <span class="video__desc"><?= smHl($v['desc']) ?></span>
-                </span>
-            </a>
-        </article>
-<?php endforeach; ?>
-<?php require __DIR__ . '/_pager.php'; ?>
+<?php foreach ($res['results'] as $v) require __DIR__ . '/_video.php'; ?>
+<?php require __DIR__ . ($prefs['scroll'] === 'endless' ? '/_more.php' : '/_pager.php'); ?>
     </div>
 <?php endif; ?>
 <?php if ($res['cached']): ?><p class="serp__cached"><?= h(t('Aus dem Zwischenspeicher, kostet keine Suche.')) ?></p><?php endif; ?>

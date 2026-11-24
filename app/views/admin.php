@@ -60,7 +60,7 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
     </section>
 
 <?php elseif ($tab === 'config'): $key = smSetting('api_key'); ?>
-    <form method="post" action="<?= h($aurl('config')) ?>" class="form" data-busy>
+    <form method="post" action="<?= h($aurl('config')) ?>" class="form" data-busy enctype="multipart/form-data">
         <?= smCsrfField($me) ?><input type="hidden" name="do" value="config">
         <section class="panel">
             <h2><?= h(t('Brave API-Key')) ?></h2>
@@ -72,9 +72,32 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
             </div>
         </section>
         <section class="panel">
+            <h2><?= h(t('Aussehen')) ?></h2>
+            <label class="field"><span><?= h(t('Name der Suchmaschine')) ?></span><input type="text" name="site_name" maxlength="40" value="<?= h(smSetting('site_name')) ?>" placeholder="<?= h(t('Suchmaschine ohne Werbung')) ?>">
+                <small class="muted"><?= h(t('Leer lassen für „Suchmaschine ohne Werbung“ (auf Englisch automatisch übersetzt).')) ?></small></label>
+            <div class="field"><span><?= h(t('Logo')) ?></span>
+                <div class="logo-edit">
+                    <span class="logo-edit__preview"><?= smLogoHtml(true) ?></span>
+                    <span class="logo-edit__controls">
+                        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">
+                        <small class="muted"><?= h(t('PNG, JPG, WebP, GIF oder SVG, höchstens 1 MB. Am besten quadratisch.')) ?></small>
+<?php if (smLogoUrl() !== ''): ?>
+                        <label class="check"><input type="checkbox" name="logo_remove" value="1"> <?= h(t('Eigenes Logo entfernen')) ?></label>
+<?php endif; ?>
+                    </span>
+                </div>
+            </div>
+            <fieldset class="field"><legend><?= h(t('Farbe')) ?></legend>
+                <div class="swatches">
+<?php foreach (smAccents() as $k => $v): ?>
+                    <label class="swatch swatch--<?= h($k) ?>" title="<?= h($v) ?>"><input type="radio" name="accent" value="<?= h($k) ?>"<?= $k === smAccent() ? ' checked' : '' ?>><span></span><small><?= h($v) ?></small></label>
+<?php endforeach; ?>
+                </div>
+            </fieldset>
+        </section>
+        <section class="panel">
             <h2><?= h(t('Allgemein')) ?></h2>
             <div class="form__row">
-                <label class="field"><span><?= h(t('Name der Suchmaschine')) ?></span><input type="text" name="site_name" maxlength="40" value="<?= h(smSetting('site_name')) ?>"></label>
                 <label class="field"><span><?= h(t('Treffer pro Seite')) ?></span><input type="number" name="per_page" min="5" max="20" value="<?= (int)smSetting('per_page') ?>"></label>
             </div>
             <div class="form__row">
@@ -99,6 +122,14 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                     <label><input type="radio" name="safesearch" value="<?= $k ?>"<?= $k === smSetting('safesearch') ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
 <?php endforeach; ?>
                 </div>
+            </fieldset>
+            <fieldset class="field"><legend><?= h(t('Weitere Treffer')) ?></legend>
+                <div class="seg">
+<?php foreach (['pages' => t('Seitenweise'), 'endless' => t('Endlos scrollen')] as $k => $v): ?>
+                    <label><input type="radio" name="scroll" value="<?= $k ?>"<?= $k === (smSetting('scroll') === 'endless' ? 'endless' : 'pages') ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
+<?php endforeach; ?>
+                </div>
+                <small class="muted"><?= h(t('Beim Endlos-Scrollen ist jedes Nachladen eine Suche bei Brave (20 Treffer auf einmal).')) ?></small>
             </fieldset>
         </section>
         <section class="panel">

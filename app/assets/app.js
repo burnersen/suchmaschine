@@ -19,7 +19,7 @@
             loading(true);
         });
     });
-    $$('a[data-load], .logo').forEach(function (a) {
+    $$('a[data-load], .brand').forEach(function (a) {
         a.addEventListener('click', function (ev) { if (plainClick(ev)) loading(true); });
     });
 
@@ -127,7 +127,7 @@
         input.addEventListener('keydown', function (ev) {
             if (ev.key === 'ArrowDown') { ev.preventDefault(); if (list.hidden) render(); else move(1); }
             else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
-            else if (ev.key === 'Escape') { if (!list.hidden) { close(); } else { input.blur(); } }
+            else if (ev.key === 'Escape') { if (!list.hidden) { ev.preventDefault(); close(); } else { input.blur(); } }
             else if (ev.key === 'Delete' && ev.shiftKey && active >= 0) { ev.preventDefault(); histDel(items[active]); render(); }
         });
     });
@@ -235,6 +235,39 @@
             });
         });
     });
+
+    /* ---------- Endlos-Scrollen: am Ende der Liste die nächsten Treffer holen ---------- */
+    function initMore(more) {
+        if (!more || !('IntersectionObserver' in window) || !window.fetch) return;
+        more.classList.add('is-auto');
+        var busy = false;
+        var io = new IntersectionObserver(function (entries) {
+            if (!entries[0].isIntersecting || busy) return;
+            busy = true;
+            more.classList.remove('is-error');
+            more.classList.add('is-auto');
+            fetch(more.getAttribute('data-more'), { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+                .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
+                .then(function (html) {
+                    io.disconnect();
+                    var tpl = document.createElement('template');
+                    tpl.innerHTML = html;
+                    var next = tpl.content.querySelector('.more');
+                    $$('.fav img', tpl.content).forEach(function (img) {
+                        img.addEventListener('load', function () { if (img.naturalWidth > 1) img.classList.add('is-loaded'); });
+                    });
+                    more.replaceWith(tpl.content);
+                    if (next) initMore(next);
+                })
+                .catch(function () {
+                    busy = false;
+                    more.classList.remove('is-auto');
+                    more.classList.add('is-error');
+                });
+        }, { rootMargin: '600px 0px' });
+        io.observe(more);
+    }
+    initMore($('.more[data-more]'));
 
     /* ---------- Bilder: Raster mit natürlichen Seitenverhältnissen, Vorschau im Großformat ---------- */
     var grid = $('[data-grid]');

@@ -18,6 +18,13 @@
 <?php endforeach; ?>
                 </div>
             </fieldset>
+            <fieldset class="field"><legend><?= h(t('Weitere Treffer')) ?></legend>
+                <div class="seg">
+<?php foreach (['pages' => t('Seitenweise'), 'endless' => t('Endlos scrollen')] as $k => $v): ?>
+                    <label><input type="radio" name="scroll" value="<?= $k ?>"<?= $k === $prefs['scroll'] ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
+<?php endforeach; ?>
+                </div>
+            </fieldset>
             <label class="switch"><input type="checkbox" name="newtab" value="1"<?= $prefs['newtab'] ? ' checked' : '' ?>><span class="switch__ui"></span><span><?= h(t('Treffer in neuem Tab öffnen')) ?></span></label>
             <label class="switch"><input type="checkbox" name="history" value="1"<?= $prefs['history'] ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Letzte Suchen als Vorschläge zeigen')) ?><br><small class="muted"><?= h(t('Der Verlauf bleibt nur in diesem Browser, der Server merkt sich nichts.')) ?></small></span></label>

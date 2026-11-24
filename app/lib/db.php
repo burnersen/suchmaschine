@@ -110,7 +110,11 @@ function smDefaults(): array
 {
     return [
         'api_key'       => '',
-        'site_name'     => 'Suche',
+        'site_name'     => '',      // leer = „Suchmaschine ohne Werbung“ in der Sprache des Besuchers
+        'accent'        => 'blue',
+        'scroll'        => 'pages', // pages = Seitenweise, endless = endlos scrollen
+        'logo_type'     => '',
+        'logo_v'        => '0',
         'monthly_limit' => '950',
         'cache_min'     => '15',
         'country'       => smLang() === 'de' ? 'DE' : 'ALL',

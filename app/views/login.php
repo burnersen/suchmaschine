@@ -1,7 +1,7 @@
 <?php defined('SM_VERSION') || exit; ?>
 <main class="auth">
     <div class="auth__card">
-        <a class="auth__logo" href="<?= h(smBase()) ?>"><span class="logo__mark logo__mark--big" aria-hidden="true"></span><span><?= h(smSetting('site_name')) ?></span></a>
+        <a class="auth__logo" href="<?= h(smBase()) ?>"><?= smLogoHtml(true) ?><span class="auth__name"><?= smSiteNameHtml() ?></span></a>
         <h1 class="auth__title"><?= h(t('Anmelden')) ?></h1>
 <?php if ($error !== ''): ?><div class="alert alert--error"><?= h($error) ?></div><?php endif; ?>
         <form method="post" action="<?= h(smUrl(['a' => 'login'])) ?>" class="form" data-busy>

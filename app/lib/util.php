@@ -155,6 +155,49 @@ function smInitial(string $s): string
     return mb_strtoupper(mb_substr($s, 0, 1));
 }
 
+/** Name der Suchmaschine: selbst gewählt oder „Suchmaschine ohne Werbung“ in der Sprache des Besuchers */
+function smSiteName(): string
+{
+    $n = smHasUsersSafe() ? trim(smSetting('site_name')) : '';
+    return $n !== '' ? $n : t('Suchmaschine ohne Werbung');
+}
+
+/** Name als HTML fürs Logo: der Standardname in zwei Zeilen, ein eigener in einer */
+function smSiteNameHtml(): string
+{
+    $n = smHasUsersSafe() ? trim(smSetting('site_name')) : '';
+    if ($n !== '') return '<span class="brand__t1">' . h($n) . '</span>';
+    return '<span class="brand__t1">' . h(t('Suchmaschine')) . '</span><span class="brand__t2">' . h(t('ohne Werbung')) . '</span>';
+}
+
+/** Eigenes Logo (Adresse) oder '' */
+function smLogoUrl(): string
+{
+    if (!smHasUsersSafe() || smSetting('logo_type') === '' || !is_file(SM_DATA_DIR . '/logo.bin')) return '';
+    return smUrl(['a' => 'logo', 'v' => smSetting('logo_v')]);
+}
+
+/** Logo-Bild: eigenes oder das eingebaute Symbol */
+function smLogoHtml(bool $big = false): string
+{
+    $u = smLogoUrl();
+    $cls = 'brand__mark' . ($big ? ' brand__mark--big' : '');
+    if ($u !== '') return '<img class="' . $cls . ' brand__mark--img" src="' . h($u) . '" alt="">';
+    return '<span class="' . $cls . '" aria-hidden="true"></span>';
+}
+
+/** Akzentfarben, aus denen der Administrator wählen kann */
+function smAccents(): array
+{
+    return ['blue' => t('Blau'), 'green' => t('Grün'), 'teal' => t('Petrol'), 'orange' => t('Orange'), 'red' => t('Rot'), 'purple' => t('Lila'), 'gray' => t('Grau')];
+}
+
+function smAccent(): string
+{
+    $a = smHasUsersSafe() ? smSetting('accent') : 'blue';
+    return isset(smAccents()[$a]) ? $a : 'blue';
+}
+
 /** Zahl hübsch: 1234567 → 1,2 Mio. */
 function smNum(int $n): string
 {
