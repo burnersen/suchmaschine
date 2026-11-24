@@ -1,5 +1,4 @@
-# Echte Konfiguration (API-Key!) und Laufzeitdaten nie committen
-suche/private/config.php
-suche/private/data/
-suche/private/cache/
-suche/private/sessions/
+# Laufzeitdaten (Konten, API-Key, Datenbank) nie ins Git
+data/
+# Gebaute Release-Dateien
+dist/

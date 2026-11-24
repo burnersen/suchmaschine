@@ -1,0 +1,168 @@
+<?php defined('SM_VERSION') || exit;
+$aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
+?>
+<main class="page">
+    <h1 class="page__title"><?= h(t('Verwaltung')) ?></h1>
+
+<?php if ($protect['ok'] === false): ?>
+    <div class="alert alert--error">
+        <strong><?= h(t('Achtung: %s ist von außen abrufbar!', $protect['leak'])) ?></strong>
+        <?= h(t('Der Webserver beachtet die .htaccess-Dateien nicht. Meist liefert nginx die Dateien direkt aus. Bei Plesk (z. B. Netcup): „Apache & nginx-Einstellungen“ öffnen und „Statische Dateien direkt durch nginx bereitstellen“ bzw. „Intelligente Verarbeitung statischer Dateien“ ausschalten. Danach hier neu prüfen.')) ?>
+    </div>
+<?php endif; ?>
+
+    <nav class="subnav">
+<?php foreach (smAdminTabs() as $k => $v): ?>
+        <a href="<?= h($aurl($k)) ?>"<?= $k === $tab ? ' class="is-active" aria-current="page"' : '' ?>><?= h($v) ?></a>
+<?php endforeach; ?>
+    </nav>
+
+<?php if ($tab === 'users'): ?>
+    <section class="panel">
+        <h2><?= h(t('Konten')) ?></h2>
+        <ul class="users">
+<?php foreach ($users as $u): $self = (int)$u['id'] === $me['id']; ?>
+            <li class="users__row">
+                <span class="avatar"><?= h(mb_strtoupper(mb_substr($u['name'], 0, 1))) ?></span>
+                <span class="users__name"><strong><?= h($u['name']) ?></strong><?= $self ? ' <span class="muted">(' . h(t('du')) . ')</span>' : '' ?><br>
+                    <small class="muted"><?= (int)$u['is_admin'] ? h(t('Administrator')) : h(t('Benutzer')) ?> · <?= h(t('seit %s', date(smLang() === 'de' ? 'd.m.Y' : 'Y-m-d', (int)$u['created_at']))) ?></small></span>
+                <span class="users__actions">
+                    <details class="pop">
+                        <summary class="btn btn--small"><?= h(t('Passwort')) ?></summary>
+                        <form method="post" action="<?= h($aurl('users')) ?>" class="pop__panel">
+                            <?= smCsrfField($me) ?><input type="hidden" name="do" value="pass"><input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                            <input type="password" name="pass" minlength="8" required autocomplete="new-password" placeholder="<?= h(t('Neues Passwort')) ?>">
+                            <button type="submit" class="btn btn--primary btn--small"><?= h(t('Setzen')) ?></button>
+                        </form>
+                    </details>
+                    <form method="post" action="<?= h($aurl('users')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="admin"><input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                        <button type="submit" class="btn btn--small"><?= (int)$u['is_admin'] ? h(t('Admin entziehen')) : h(t('Zum Admin machen')) ?></button></form>
+<?php if (!$self): ?>
+                    <form method="post" action="<?= h($aurl('users')) ?>" data-confirm="<?= h(t('Das Konto „%s“ wirklich löschen?', $u['name'])) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="delete"><input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                        <button type="submit" class="btn btn--small btn--danger"><?= h(t('Löschen')) ?></button></form>
+<?php endif; ?>
+                </span>
+            </li>
+<?php endforeach; ?>
+        </ul>
+    </section>
+    <section class="panel">
+        <h2><?= h(t('Neues Konto')) ?></h2>
+        <form method="post" action="<?= h($aurl('users')) ?>" class="form" data-busy>
+            <?= smCsrfField($me) ?><input type="hidden" name="do" value="create">
+            <div class="form__row">
+                <label class="field"><span><?= h(t('Name')) ?></span><input type="text" name="name" required maxlength="30" autocomplete="off" autocapitalize="off"></label>
+                <label class="field"><span><?= h(t('Passwort')) ?></span><input type="password" name="pass" minlength="8" required autocomplete="new-password" placeholder="<?= h(t('mindestens 8 Zeichen')) ?>"></label>
+            </div>
+            <label class="switch"><input type="checkbox" name="admin" value="1"><span class="switch__ui"></span><span><?= h(t('Administrator (darf Konten und Einstellungen ändern)')) ?></span></label>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Konto anlegen')) ?></button></div>
+        </form>
+    </section>
+
+<?php elseif ($tab === 'config'): $key = smSetting('api_key'); ?>
+    <form method="post" action="<?= h($aurl('config')) ?>" class="form" data-busy>
+        <?= smCsrfField($me) ?><input type="hidden" name="do" value="config">
+        <section class="panel">
+            <h2><?= h(t('Brave API-Key')) ?></h2>
+            <p class="muted small"><?= $key !== '' ? h(t('Hinterlegt: %s', mb_substr($key, 0, 4) . '…' . mb_substr($key, -4))) : h(t('Noch kein Key hinterlegt.')) ?></p>
+            <label class="field"><span><?= h(t('Neuer Key (leer lassen = behalten)')) ?></span><input type="password" name="api_key" autocomplete="off" spellcheck="false" placeholder="BSA…" data-reveal></label>
+            <div class="form__actions">
+                <button type="submit" class="btn" form="testkey"><?= h(t('Key testen')) ?></button>
+                <a class="btn btn--ghost" href="https://api-dashboard.search.brave.com" target="_blank" rel="noopener noreferrer"><?= h(t('Brave-Dashboard öffnen')) ?></a>
+            </div>
+        </section>
+        <section class="panel">
+            <h2><?= h(t('Allgemein')) ?></h2>
+            <div class="form__row">
+                <label class="field"><span><?= h(t('Name der Suchmaschine')) ?></span><input type="text" name="site_name" maxlength="40" value="<?= h(smSetting('site_name')) ?>"></label>
+                <label class="field"><span><?= h(t('Treffer pro Seite')) ?></span><input type="number" name="per_page" min="5" max="20" value="<?= (int)smSetting('per_page') ?>"></label>
+            </div>
+            <div class="form__row">
+                <label class="field"><span><?= h(t('Höchstens Suchen pro Monat')) ?></span><input type="number" name="monthly_limit" min="0" value="<?= (int)smSetting('monthly_limit') ?>">
+                    <small class="muted"><?= h(t('Das Freiguthaben reicht für etwa 1.000. 0 = ohne Grenze.')) ?></small></label>
+                <label class="field"><span><?= h(t('Zwischenspeicher (Minuten)')) ?></span><input type="number" name="cache_min" min="0" max="60" value="<?= (int)smSetting('cache_min') ?>">
+                    <small class="muted"><?= h(t('Gleiche Suche in dieser Zeit kostet nichts. Brave erlaubt nur kurzes Speichern.')) ?></small></label>
+            </div>
+        </section>
+        <section class="panel">
+            <h2><?= h(t('Voreinstellungen für alle')) ?></h2>
+            <p class="muted small"><?= h(t('Jedes Konto kann das unter Einstellungen für sich ändern.')) ?></p>
+            <div class="form__row">
+                <label class="field"><span><?= h(t('Region')) ?></span>
+                    <select name="country"><?php foreach (smCountries() as $k => $v): ?><option value="<?= h($k) ?>"<?= $k === smSetting('country') ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?></select></label>
+                <label class="field"><span><?= h(t('Sprache der Ergebnisse')) ?></span>
+                    <select name="search_lang"><?php foreach (smSearchLangs() as $k => $v): ?><option value="<?= h($k) ?>"<?= $k === smSetting('search_lang') ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?></select></label>
+            </div>
+            <fieldset class="field"><legend><?= h(t('SafeSearch')) ?></legend>
+                <div class="seg">
+<?php foreach (['strict' => t('Streng'), 'moderate' => t('Mittel'), 'off' => t('Aus')] as $k => $v): ?>
+                    <label><input type="radio" name="safesearch" value="<?= $k ?>"<?= $k === smSetting('safesearch') ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
+<?php endforeach; ?>
+                </div>
+            </fieldset>
+        </section>
+        <section class="panel">
+            <h2><?= h(t('Suchen ohne Anmeldung')) ?></h2>
+            <label class="switch"><input type="checkbox" name="public" value="1"<?= smSetting('public') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Jeder mit der Adresse darf suchen')) ?><br><small class="muted"><?= h(t('Vorsicht: Jede Suche geht von deinem Guthaben ab. Das Monatslimit gilt trotzdem.')) ?></small></span></label>
+            <label class="field field--short"><span><?= h(t('Dann höchstens Suchen pro Stunde und Besucher')) ?></span><input type="number" name="public_hour" min="1" max="1000" value="<?= (int)smSetting('public_hour') ?>"></label>
+        </section>
+        <div class="form__actions form__actions--sticky"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
+    </form>
+    <form method="post" action="<?= h($aurl('config')) ?>" id="testkey" hidden><?= smCsrfField($me) ?><input type="hidden" name="do" value="testkey"></form>
+
+<?php elseif ($tab === 'usage'): $limit = (int)smSetting('monthly_limit'); $now = smUsageMonth(); ?>
+    <section class="panel">
+        <h2><?= h(t('Dieser Monat')) ?></h2>
+        <p class="big-num"><?= $now ?> <span class="muted">/ <?= $limit ?: '∞' ?></span></p>
+        <?php if ($limit): ?><progress class="meter" max="<?= $limit ?>" value="<?= min($now, $limit) ?>"></progress><?php endif; ?>
+        <p class="muted small"><?= h(t('Gezählt werden nur echte Anfragen an Brave. Treffer aus dem Zwischenspeicher sind kostenlos. Den genauen Stand deines Guthabens zeigt das Brave-Dashboard.')) ?></p>
+    </section>
+    <section class="panel">
+        <h2><?= h(t('Verlauf')) ?></h2>
+<?php if (!$history): ?>
+        <p class="muted"><?= h(t('Noch keine Suchen.')) ?></p>
+<?php else: ?>
+        <table class="table">
+            <thead><tr><th><?= h(t('Monat')) ?></th><?php foreach (smTabs() as $k => $v): ?><th><?= h($v) ?></th><?php endforeach; ?><th><?= h(t('Gesamt')) ?></th></tr></thead>
+            <tbody>
+<?php foreach ($history as $m => $kinds): ?>
+                <tr><td><?= h($m) ?></td><?php foreach (smTabs() as $k => $v): ?><td><?= (int)($kinds[$k] ?? 0) ?></td><?php endforeach; ?><td><strong><?= array_sum($kinds) ?></strong></td></tr>
+<?php endforeach; ?>
+            </tbody>
+        </table>
+<?php endif; ?>
+    </section>
+
+<?php elseif ($tab === 'update'): $info = smUpdInfo(); $prev = smUpdPrev(); $wr = smUpdWritable(); ?>
+    <section class="panel">
+        <h2><?= h(t('Version')) ?></h2>
+        <p><?= h(t('Installiert: %s', SM_VERSION)) ?><?php if ($info): ?> · <?= h(t('Neueste: %s', $info['v'])) ?><?php endif; ?></p>
+<?php if (smUpdNewer($info)): ?>
+        <div class="alert alert--ok"><?= h(t('Version %s ist verfügbar.', $info['v'])) ?>
+            <?php if ($info['page']): ?><a href="<?= h($info['page']) ?>" target="_blank" rel="noopener noreferrer"><?= h(t('Was ist neu?')) ?></a><?php endif; ?></div>
+<?php endif; ?>
+<?php if ($wr !== ''): ?><div class="alert alert--error"><?= h($wr) ?></div><?php endif; ?>
+        <div class="form__actions">
+            <form method="post" action="<?= h($aurl('update')) ?>" data-busy><?= smCsrfField($me) ?><input type="hidden" name="do" value="check"><button class="btn" type="submit"><?= h(t('Nach Updates suchen')) ?></button></form>
+<?php if (smUpdNewer($info) && $wr === ''): ?>
+            <form method="post" action="<?= h($aurl('update')) ?>" data-busy><?= smCsrfField($me) ?><input type="hidden" name="do" value="install"><button class="btn btn--primary" type="submit"><?= h(t('Jetzt aktualisieren')) ?></button></form>
+<?php endif; ?>
+<?php if ($prev !== ''): ?>
+            <form method="post" action="<?= h($aurl('update')) ?>" data-busy data-confirm="<?= h(t('Zurück zu Version %s?', $prev)) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="rollback"><button class="btn btn--ghost" type="submit"><?= h(t('Zurück zu %s', $prev)) ?></button></form>
+<?php endif; ?>
+        </div>
+        <form method="post" action="<?= h($aurl('update')) ?>" class="form" data-autosubmit><?= smCsrfField($me) ?><input type="hidden" name="do" value="auto">
+            <label class="switch"><input type="checkbox" name="auto_update" value="1"<?= smSetting('auto_update') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Updates automatisch einspielen (höchstens einmal am Tag)')) ?></span></label>
+            <noscript><button class="btn btn--small" type="submit"><?= h(t('Speichern')) ?></button></noscript>
+        </form>
+        <p class="muted small"><?= h(t('Updates kommen von GitHub und werden per Prüfsumme kontrolliert. Deine Daten in data/ bleiben unangetastet.')) ?></p>
+    </section>
+    <section class="panel">
+        <h2><?= h(t('Schutz der Daten')) ?></h2>
+        <p><?php if ($protect['ok'] === true): ?><?= h(t('Alles dicht: data/ und app/ sind von außen gesperrt.')) ?><?php elseif ($protect['ok'] === null): ?><?= h(t('Der Server kann sich selbst nicht erreichen, der Test war nicht möglich. Bitte von Hand prüfen.')) ?><?php else: ?><strong><?= h(t('Achtung: %s ist von außen abrufbar!', $protect['leak'])) ?></strong><?php endif; ?></p>
+        <form method="post" action="<?= h($aurl('update')) ?>" data-busy><?= smCsrfField($me) ?><input type="hidden" name="do" value="protect"><button class="btn" type="submit"><?= h(t('Jetzt prüfen')) ?></button></form>
+    </section>
+<?php endif; ?>
+</main>

@@ -1,0 +1,1 @@
+<?php defined('SM_VERSION') || exit; ?><span class="fav" data-letter="<?= h(smInitial($host)) ?>"><?php if ($fav): ?><img src="<?= h($fav) ?>" alt="" width="16" height="16" loading="lazy" referrerpolicy="no-referrer"><?php endif; ?></span><?php
