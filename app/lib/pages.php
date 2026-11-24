@@ -12,6 +12,7 @@ function smRun(): void
     if ($a === 'opensearch') smServeOpenSearch();
     if ($a === 'manifest') smServeManifest();
     if ($a === 'logo') smServeLogo();
+    if ($a === 'appicon') smServeAppIcon();
     if ($a === '' && isset($_GET['lang']) && in_array($_GET['lang'], ['de', 'en'], true)) {
         smLangCookie($_GET['lang']);
         smRedirect(smBase());
@@ -91,7 +92,8 @@ function smSafeNext(string $next): string
 
 function smServeAsset(): void
 {
-    $types = ['app.css' => 'text/css; charset=utf-8', 'app.js' => 'text/javascript; charset=utf-8', 'icon.svg' => 'image/svg+xml'];
+    $types = ['app.css' => 'text/css; charset=utf-8', 'app.js' => 'text/javascript; charset=utf-8', 'icon.svg' => 'image/svg+xml',
+              'icon-180.png' => 'image/png', 'icon-192.png' => 'image/png', 'icon-512.png' => 'image/png'];
     $f = isset($_GET['f']) && is_string($_GET['f']) ? $_GET['f'] : '';
     if (!isset($types[$f]) || !is_file(SM_APP . '/assets/' . $f)) {
         http_response_code(404);
@@ -127,11 +129,17 @@ function smServeManifest(): void
     header('Content-Type: application/manifest+json; charset=utf-8');
     header('Cache-Control: no-cache');
     $name = smSiteName();
-    $logo = smLogoUrl();
+    $n = smHasUsersSafe() ? trim(smSetting('site_name')) : '';
     echo json_encode([
-        'name' => $name, 'short_name' => mb_substr($name, 0, 12), 'start_url' => './', 'scope' => './', 'display' => 'standalone',
+        'id' => './', 'name' => $name, 'short_name' => $n !== '' ? mb_substr($n, 0, 12) : t('Suchmaschine'),
+        'start_url' => './', 'scope' => './', 'display' => 'standalone',
         'lang' => smLang(), 'background_color' => '#ffffff', 'theme_color' => '#ffffff',
-        'icons' => [$logo !== '' ? ['src' => $logo, 'sizes' => 'any', 'type' => smSetting('logo_type')] : ['src' => '?a=asset&f=icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any']],
+        // PNG-Symbole: Startbildschirme von Android und iPhone nehmen kein SVG
+        'icons' => [
+            ['src' => smAppIconUrl(192), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => smAppIconUrl(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => smAppIconUrl(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -351,6 +359,11 @@ function smPageAdmin(array $me, bool $post): void
             case 'auto':
                 smSetSetting('auto_update', empty($_POST['auto_update']) ? '0' : '1');
                 break;
+            case 'appicon':
+                // Vom Browser aus dem Logo gezeichnet (für SVG-Logos, die PHP nicht in ein Bild umwandeln kann)
+                $err = smLogoUrl() === '' ? '' : smSaveAppIconPng((string)($_POST['png'] ?? ''));
+                $ok = t('App-Symbol aktualisiert.');
+                break;
             default:
                 $err = t('Unbekannte Aktion.');
         }
@@ -360,6 +373,10 @@ function smPageAdmin(array $me, bool $post): void
 
     $vars = ['me' => $me, 'title' => t('Verwaltung'), 'tab' => $tab];
     $vars['protect'] = smProtectionCheck();
+    // Logo ohne App-Symbol (z. B. aus Version 1.0.0): bei Pixelbildern gleich hier nachholen, SVG erledigt der Browser
+    if ($tab === 'config' && smLogoUrl() !== '' && !is_file(smAppIconFile()) && smSetting('logo_type') !== 'image/svg+xml') {
+        smAppIconFromRaster((string)@file_get_contents(SM_DATA_DIR . '/logo.bin'));
+    }
     if ($tab === 'users') $vars['users'] = smUsers();
     if ($tab === 'usage') $vars['history'] = smUsageHistory(12);
     smRender('admin', $vars);
@@ -381,8 +398,15 @@ function smSaveConfig(): string
     if (!empty($_POST['logo_remove'])) {
         @unlink(SM_DATA_DIR . '/logo.bin');
         smSetSetting('logo_type', '');
+        smAppIconClear();
     } elseif (!empty($_FILES['logo']['tmp_name']) && is_uploaded_file($_FILES['logo']['tmp_name'])) {
         if (($e = smSaveLogo($_FILES['logo']['tmp_name'], (int)$_FILES['logo']['size'])) !== '') return $e;
+        // App-Symbol: vom Browser gezeichnet, sonst mit PHP (nur Pixelbilder), sonst bleibt vorerst das Standardsymbol
+        smAppIconClear();
+        $png = (string)($_POST['logo_png'] ?? '');
+        if ($png === '' || smSaveAppIconPng($png) !== '') {
+            smAppIconFromRaster((string)@file_get_contents(SM_DATA_DIR . '/logo.bin'));
+        }
     } elseif (!empty($_FILES['logo']['error']) && (int)$_FILES['logo']['error'] !== UPLOAD_ERR_NO_FILE) {
         return t('Das Logo konnte nicht hochgeladen werden (höchstens 1 MB).');
     }
@@ -419,4 +443,95 @@ function smSaveLogo(string $tmp, int $size): string
     smSetSetting('logo_type', $type);
     smSetSetting('logo_v', (string)time());
     return '';
+}
+
+/* ---------- App-Symbol für den Startbildschirm (PNG, 512 × 512, daraus kleinere Größen) ---------- */
+
+const SM_ICON_SIZES = [180, 192, 512];
+
+function smAppIconFile(): string
+{
+    return SM_DATA_DIR . '/appicon.png';
+}
+
+/** Gibt es ein App-Symbol aus dem eigenen Logo? */
+function smAppIconCustom(): bool
+{
+    return smLogoUrl() !== '' && is_file(smAppIconFile());
+}
+
+/** Adresse des App-Symbols. Ändert sich mit dem Logo, damit Geräte das neue holen. */
+function smAppIconUrl(int $size): string
+{
+    return smUrl(['a' => 'appicon', 's' => $size, 'v' => smAppIconCustom() ? smSetting('appicon_v') : SM_VERSION]);
+}
+
+function smAppIconClear(): void
+{
+    foreach (array_merge([smAppIconFile()], (array)glob(SM_DATA_DIR . '/appicon-*.png')) as $f) {
+        if (is_file($f)) @unlink($f);
+    }
+}
+
+function smWriteAppIcon(string $png): bool
+{
+    smAppIconClear();
+    if (@file_put_contents(smAppIconFile(), $png, LOCK_EX) === false) return false;
+    smSetSetting('appicon_v', (string)time());
+    return true;
+}
+
+/** PNG (512 × 512) speichern, das der Browser aus dem Logo gezeichnet hat. Liefert Fehlertext oder ''. */
+function smSaveAppIconPng(string $data): string
+{
+    $bin = base64_decode((string)preg_replace('~^data:image/png;base64,~', '', trim($data)), true);
+    $i = $bin === false || strlen($bin) > 4000000 ? false : @getimagesizefromstring($bin);
+    if (!is_array($i) || ($i['mime'] ?? '') !== 'image/png' || $i[0] !== 512 || $i[1] !== 512) return t('Das App-Symbol ist ungültig.');
+    return smWriteAppIcon($bin) ? '' : t('In den Ordner data/ kann nicht geschrieben werden. Bitte die Schreibrechte prüfen.');
+}
+
+/** App-Symbol mit PHP (GD) aus einem Pixelbild bauen: weißer Grund, Logo mittig. false = ging nicht. */
+function smAppIconFromRaster(string $bin): bool
+{
+    if ($bin === '' || !function_exists('imagecreatefromstring')) return false;
+    $src = @imagecreatefromstring($bin);
+    if (!$src) return false;
+    $w = imagesx($src);
+    $h = imagesy($src);
+    $dst = imagecreatetruecolor(512, 512);
+    imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+    imagealphablending($dst, true);
+    $scale = min(410 / max(1, $w), 410 / max(1, $h));
+    $nw = max(1, (int)round($w * $scale));
+    $nh = max(1, (int)round($h * $scale));
+    imagecopyresampled($dst, $src, (int)((512 - $nw) / 2), (int)((512 - $nh) / 2), 0, 0, $nw, $nh, $w, $h);
+    ob_start();
+    imagepng($dst, null, 9);
+    $png = (string)ob_get_clean();
+    return $png !== '' && smWriteAppIcon($png);
+}
+
+/** App-Symbol ausliefern: eigenes (verkleinert, falls GD da ist) oder das eingebaute */
+function smServeAppIcon(): void
+{
+    $s = (int)($_GET['s'] ?? 192);
+    if (!in_array($s, SM_ICON_SIZES, true)) $s = 192;
+    $file = SM_APP . '/assets/icon-' . $s . '.png';
+    if (smHasUsersSafe() && smAppIconCustom()) {
+        $file = smAppIconFile();
+        if ($s !== 512 && function_exists('imagecreatefromstring')) {
+            $small = SM_DATA_DIR . '/appicon-' . $s . '.png';
+            if (!is_file($small) && ($src = @imagecreatefromstring((string)file_get_contents($file)))) {
+                $dst = imagecreatetruecolor($s, $s);
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $s, $s, imagesx($src), imagesy($src));
+                @imagepng($dst, $small, 9);
+            }
+            if (is_file($small)) $file = $small;
+        }
+    }
+    smHeaders();
+    header('Content-Type: image/png');
+    header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
+    readfile($file);
+    exit;
 }

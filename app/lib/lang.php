@@ -288,6 +288,9 @@ function smEnglish(): array
         'Das Logo darf höchstens 1 MB groß sein.' => 'The logo may be at most 1 MB.',
         'Dieses SVG enthält Skripte und wird darum nicht angenommen.' => 'This SVG contains scripts and is therefore not accepted.',
         'Bitte ein Bild im Format PNG, JPG, WebP, GIF oder SVG hochladen.' => 'Please upload an image in PNG, JPG, WebP, GIF or SVG format.',
+        'App-Symbol aktualisiert.' => 'App icon updated.',
+        'Das App-Symbol ist ungültig.' => 'The app icon is invalid.',
+        'Daraus entsteht auch das Symbol für den Startbildschirm.' => 'It is also used for the home screen icon.',
         'Blau' => 'Blue', 'Grün' => 'Green', 'Petrol' => 'Teal', 'Orange' => 'Orange', 'Rot' => 'Red', 'Lila' => 'Purple', 'Grau' => 'Gray',
     ];
 }

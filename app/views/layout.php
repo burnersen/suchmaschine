@@ -18,7 +18,10 @@ $flash = smFlash();
 <meta name="theme-color" content="#1f1f1f" media="(prefers-color-scheme: dark)">
 <title><?= h($title ?? $site) ?></title>
 <link rel="icon" href="<?= h($logo !== '' ? $logo : smAsset('icon.svg')) ?>"<?= $logo === '' ? ' type="image/svg+xml"' : '' ?>>
-<link rel="manifest" href="<?= h(smUrl(['a' => 'manifest'])) ?>">
+<link rel="apple-touch-icon" href="<?= h(smAppIconUrl(180)) ?>">
+<link rel="icon" type="image/png" sizes="192x192" href="<?= h(smAppIconUrl(192)) ?>">
+<meta name="apple-mobile-web-app-title" content="<?= h(trim(smHasUsersSafe() ? smSetting('site_name') : '') !== '' ? smSetting('site_name') : t('Suchmaschine')) ?>">
+<link rel="manifest" href="<?= h(smUrl(['a' => 'manifest', 'v' => smAppIconCustom() ? smSetting('appicon_v') : SM_VERSION])) ?>">
 <link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?>" href="<?= h(smUrl(['a' => 'opensearch'])) ?>">
 <link rel="stylesheet" href="<?= h(smAsset('app.css')) ?>">
 <script src="<?= h(smAsset('app.js')) ?>" defer></script>

@@ -76,11 +76,12 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
             <label class="field"><span><?= h(t('Name der Suchmaschine')) ?></span><input type="text" name="site_name" maxlength="40" value="<?= h(smSetting('site_name')) ?>" placeholder="<?= h(t('Suchmaschine ohne Werbung')) ?>">
                 <small class="muted"><?= h(t('Leer lassen für „Suchmaschine ohne Werbung“ (auf Englisch automatisch übersetzt).')) ?></small></label>
             <div class="field"><span><?= h(t('Logo')) ?></span>
-                <div class="logo-edit">
+                <div class="logo-edit"<?php if (smLogoUrl() !== '' && !is_file(smAppIconFile())): ?> data-appicon-missing data-logo-src="<?= h(smLogoUrl()) ?>" data-csrf="<?= h($me['csrf']) ?>" data-post="<?= h($aurl('config')) ?>"<?php endif; ?>>
+                    <input type="hidden" name="logo_png" value="" data-logo-png>
                     <span class="logo-edit__preview"><?= smLogoHtml(true) ?></span>
                     <span class="logo-edit__controls">
                         <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml">
-                        <small class="muted"><?= h(t('PNG, JPG, WebP, GIF oder SVG, höchstens 1 MB. Am besten quadratisch.')) ?></small>
+                        <small class="muted"><?= h(t('PNG, JPG, WebP, GIF oder SVG, höchstens 1 MB. Am besten quadratisch.')) ?> <?= h(t('Daraus entsteht auch das Symbol für den Startbildschirm.')) ?></small>
 <?php if (smLogoUrl() !== ''): ?>
                         <label class="check"><input type="checkbox" name="logo_remove" value="1"> <?= h(t('Eigenes Logo entfernen')) ?></label>
 <?php endif; ?>

@@ -236,6 +236,60 @@
         });
     });
 
+    /* ---------- App-Symbol aus dem Logo zeichnen (512 × 512, weißer Grund) ---------- */
+    function logoToPng(src, cb) {
+        var img = new Image();
+        img.onload = function () {
+            var c = document.createElement('canvas');
+            c.width = c.height = 512;
+            var x = c.getContext('2d');
+            x.fillStyle = '#ffffff';
+            x.fillRect(0, 0, 512, 512);
+            var w = img.naturalWidth || 512, h = img.naturalHeight || 512;
+            var s = Math.min(410 / w, 410 / h);
+            x.drawImage(img, (512 - w * s) / 2, (512 - h * s) / 2, w * s, h * s);
+            try { cb(c.toDataURL('image/png')); } catch (e) { cb(''); }
+        };
+        img.onerror = function () { cb(''); };
+        img.src = src;
+    }
+    var logoFile = $('input[name="logo"]');
+    var logoPng = $('[data-logo-png]');
+    if (logoFile && logoPng) {
+        var pending = false, submitLater = false;
+        logoFile.addEventListener('change', function () {
+            logoPng.value = '';
+            var f = logoFile.files && logoFile.files[0];
+            if (!f || !window.FileReader) return;
+            pending = true;
+            var r = new FileReader();
+            r.onload = function () {
+                logoToPng(r.result, function (png) {
+                    logoPng.value = png;
+                    pending = false;
+                    if (submitLater) { submitLater = false; logoFile.form.submit(); }
+                });
+            };
+            r.onerror = function () { pending = false; };
+            r.readAsDataURL(f);
+        });
+        logoFile.form.addEventListener('submit', function (ev) {
+            if (pending) { ev.preventDefault(); submitLater = true; }
+        });
+    }
+    // Logo aus einer älteren Version ohne App-Symbol: einmal still nachholen
+    var miss = $('[data-appicon-missing]');
+    if (miss && window.fetch && window.FormData) {
+        logoToPng(miss.getAttribute('data-logo-src'), function (png) {
+            if (!png) return;
+            var fd = new FormData();
+            fd.append('csrf', miss.getAttribute('data-csrf'));
+            fd.append('do', 'appicon');
+            fd.append('png', png);
+            fetch(miss.getAttribute('data-post'), { method: 'POST', body: fd, credentials: 'same-origin' });
+        });
+    }
+
     /* ---------- Endlos-Scrollen: am Ende der Liste die nächsten Treffer holen ---------- */
     function initMore(more) {
         if (!more || !('IntersectionObserver' in window) || !window.fetch) return;
