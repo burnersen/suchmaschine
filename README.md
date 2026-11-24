@@ -44,7 +44,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Funktionen](#funktionen) · [Wie bei Kagi, nur kostenlos](#wie-bei-kagi-nur-kostenlos) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Funktionen](#funktionen) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -77,9 +77,9 @@ Zum Vergleich: Wer 10 Mal am Tag sucht, kommt auf rund 300 Suchen im Monat.
 - **Selbsttest:** Die Verwaltung prüft, ob die internen Ordner von außen wirklich gesperrt sind, und warnt sonst.
 - **Ohne Werbung, ohne Tracking, ohne fremde Skripte.** Strenge Sicherheitsregeln (Content Security Policy), Links öffnen ohne Referrer, Vorschaubilder kommen über Braves Bild-Proxy.
 
-## Wie bei Kagi, nur kostenlos
+## Wie bei ..., nur kostenlos
 
-Die bezahlte Suchmaschine Kagi ist für ein paar Ideen bekannt, die es hier für alle gibt, die selbst hosten. Jedes Konto hat dabei **seinen eigenen Bereich**: Was einer einrichtet, sehen die anderen nicht.
+Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle gibt, die selbst hosten. Jedes Konto hat dabei **seinen eigenen Bereich**: Was einer einrichtet, sehen die anderen nicht.
 
 - **Domains blockieren, hochstufen, herabstufen.** Unerwünschte Seiten verschwinden ganz, Lieblingsseiten rücken nach oben und bekommen einen kleinen Stern, andere rutschen nach hinten. Am schnellsten über das Menü ⋮ neben jedem Treffer, oder als Liste unter *Einstellungen → Domains*. Gefiltert wird erst nach dem Abruf, der Zwischenspeicher bleibt also für alle gleich.
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden die wichtigsten, jeder kann sie für sich abschalten und **eigene anlegen** (Adresse mit `{q}` für den Suchbegriff). Funktioniert auch aus der Adressleiste des Browsers.
