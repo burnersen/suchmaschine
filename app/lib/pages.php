@@ -60,11 +60,27 @@ function smRun(): void
     }
 
     $public = smSetting('public') === '1';
-    if (!$me && !($public && in_array($a, ['', 'lucky'], true))) {
+    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img'], true))) {
+        if ($a === 'img') {
+            http_response_code(403);
+            exit;
+        }
         smRedirect(smUrl(['a' => 'login', 'next' => smSelf() !== smBase() ? smSelf() : null]));
     }
 
     switch ($a) {
+        case 'img':
+            smServeImgProxy();
+            return;
+        case 'help':
+            smRender('help', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Hilfe') . ' – ' . smSiteName()]);
+            return;
+        case 'export':
+            smServeExport($me);
+            return;
+        case 'domain':
+            smPageDomain($me, $post);
+            return;
         case 'settings':
             smPageSettings($me, $post);
             return;
@@ -203,6 +219,17 @@ function smPageSearch(?array $me): void
         return;
     }
 
+    // Bangs: vor jeder Anfrage an Brave, kosten also nichts
+    if (($_GET['part'] ?? '') !== '1' && ($bang = smBangTarget($q, $me))) {
+        if ($bang['internal']) smRedirect($bang['to']);
+        smExternalRedirect($bang['to'], $q);
+    }
+
+    $ft = $tab === 'web' ? smCleanFileType($_GET['ft'] ?? '') : '';
+    $lenses = smLenses($me);
+    $lens = (string)($_GET['l'] ?? '');
+    if (!isset($lenses[$lens])) $lens = '';
+
     $page = max(1, min(10, (int)($_GET['p'] ?? 1)));
     $fresh = (string)($_GET['f'] ?? '');
     if (!isset(smFreshness()[$fresh])) $fresh = '';
@@ -212,7 +239,10 @@ function smPageSearch(?array $me): void
     $error = '';
     try {
         if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
-        $res = smSearch($tab, $q, $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless']);
+        $res = smSearch($tab, smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null),
+            $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless']);
+        // Eigene Domain-Listen erst jetzt: der Cache bleibt für alle gleich
+        $res = smApplyDomainLists($res, smDomainLists($me));
     } catch (SmSearchError $e) {
         $error = $e->getMessage();
     } catch (Throwable $e) {
@@ -224,12 +254,14 @@ function smPageSearch(?array $me): void
     if ($part) {
         // Endlos-Scrollen: nur die nächsten Treffer, ohne Seitengerüst
         if ($error !== '') http_response_code(502);
-        smRender('part', ['prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact, 'res' => $res, 'error' => $error], false);
+        smRender('part', ['me' => $me, 'prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact,
+            'ft' => $ft, 'lens' => $lens, 'lenses' => $lenses, 'res' => $res, 'error' => $error], false);
         return;
     }
     smRender('results', [
         'me' => $me, 'prefs' => $prefs, 'title' => $q . ' – ' . smSiteName(),
         'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact, 'res' => $res, 'error' => $error,
+        'ft' => $ft, 'lens' => $lens, 'lenses' => $lenses,
     ]);
 }
 
@@ -238,61 +270,176 @@ function smPageLucky(?array $me): void
 {
     $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 400));
     if ($q === '') smRedirect(smBase());
+    if ($bang = smBangTarget($q, $me)) {
+        if ($bang['internal']) smRedirect($bang['to']);
+        smExternalRedirect($bang['to'], $q);
+    }
+    $u = '';
     try {
         if ($me || smPublicQuota()) {
-            $res = smSearch('web', $q, smPrefs($me));
-            if (!empty($res['results'][0]['url'])) {
-                // Kein 303 nach außen: Browser blockieren das nach einem Formular (CSP form-action). Darum eine Zwischenseite.
-                $u = $res['results'][0]['url'];
-                smHeaders();
-                header('Content-Type: text/html; charset=utf-8');
-                header('Cache-Control: no-store');
-                echo '<!DOCTYPE html><meta charset="utf-8"><meta name="referrer" content="no-referrer">'
-                   . '<meta http-equiv="refresh" content="0;url=' . h($u) . '"><title>' . h($q) . '</title>'
-                   . '<p><a href="' . h($u) . '" rel="noopener noreferrer">' . h($u) . '</a></p>';
-                exit;
-            }
+            $res = smApplyDomainLists(smSearch('web', $q, smPrefs($me)), smDomainLists($me));
+            $u = (string)($res['results'][0]['url'] ?? '');
         }
     } catch (Throwable $e) {
     }
+    if ($u !== '') smExternalRedirect($u, $q);
     smRedirect(smUrl(['q' => $q]));
 }
 
-/* ---------- Eigene Einstellungen ---------- */
+/* ---------- Eigene Einstellungen: jedes Konto hat seinen eigenen Bereich ---------- */
+
+function smSettingsTabs(): array
+{
+    return ['search' => t('Suche'), 'domains' => t('Domains'), 'bangs' => t('Bangs'), 'lenses' => t('Linsen'), 'account' => t('Konto')];
+}
 
 function smPageSettings(array $me, bool $post): void
 {
+    $tab = (string)($_GET['tab'] ?? 'search');
+    if (!isset(smSettingsTabs()[$tab])) $tab = 'search';
+
     if ($post) {
         $do = (string)($_POST['do'] ?? '');
-        if ($do === 'prefs') {
-            $p = $me['prefs'];
-            $c = (string)($_POST['country'] ?? '');
-            $l = (string)($_POST['search_lang'] ?? '');
-            $s = (string)($_POST['safesearch'] ?? '');
-            $p['country'] = isset(smCountries()[$c]) ? $c : smSetting('country');
-            $p['search_lang'] = isset(smSearchLangs()[$l]) ? $l : smSetting('search_lang');
-            $p['safesearch'] = in_array($s, ['off', 'moderate', 'strict'], true) ? $s : smSetting('safesearch');
-            $p['newtab'] = !empty($_POST['newtab']);
-            $p['history'] = !empty($_POST['history']);
-            $p['scroll'] = ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages';
-            smUserSavePrefs($me['id'], $p);
-            smFlash('ok', t('Gespeichert.'));
-        } elseif ($do === 'pass') {
-            $row = smQ('SELECT pass FROM users WHERE id = ?', [$me['id']])->fetch();
-            $new = (string)($_POST['pass'] ?? '');
-            if (!$row || !password_verify((string)($_POST['old'] ?? ''), $row['pass'])) {
-                smFlash('error', t('Das bisherige Passwort stimmt nicht.'));
-            } elseif ($new !== (string)($_POST['pass2'] ?? '')) {
-                smFlash('error', t('Die beiden Passwörter stimmen nicht überein.'));
-            } elseif (($e = smUserSetPass($me['id'], $new, $me['hash'])) !== '') {
-                smFlash('error', $e);
-            } else {
-                smFlash('ok', t('Passwort geändert. Andere Geräte sind jetzt abgemeldet.'));
-            }
+        $p = $me['prefs'];
+        $err = '';
+        $ok = t('Gespeichert.');
+        switch ($do) {
+            case 'prefs':
+                $c = (string)($_POST['country'] ?? '');
+                $l = (string)($_POST['search_lang'] ?? '');
+                $s = (string)($_POST['safesearch'] ?? '');
+                $p['country'] = isset(smCountries()[$c]) ? $c : smSetting('country');
+                $p['search_lang'] = isset(smSearchLangs()[$l]) ? $l : smSetting('search_lang');
+                $p['safesearch'] = in_array($s, ['off', 'moderate', 'strict'], true) ? $s : smSetting('safesearch');
+                $p['newtab'] = !empty($_POST['newtab']);
+                $p['history'] = !empty($_POST['history']);
+                $p['scroll'] = ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages';
+                break;
+            case 'domains':
+                foreach (['block', 'raise', 'lower'] as $k) $p[$k] = smCleanDomains((string)($_POST[$k] ?? ''));
+                // Eine Domain steht nur in einer Liste: Blockieren geht vor Hochstufen geht vor Herabstufen
+                $p['raise'] = array_values(array_diff($p['raise'], $p['block']));
+                $p['lower'] = array_values(array_diff($p['lower'], $p['block'], $p['raise']));
+                break;
+            case 'bang_add':
+                $t = smCleanBangTrigger($_POST['t'] ?? '');
+                $u = smCleanBangUrl($_POST['u'] ?? '');
+                if ($t === '') {
+                    $err = t('Das Kürzel darf nur Buchstaben, Ziffern, Punkt, Minus und Unterstrich enthalten (höchstens 24 Zeichen).');
+                } elseif (isset(smTabBangs()[$t])) {
+                    $err = t('Das Kürzel !%s ist für die Reiter reserviert.', $t);
+                } elseif ($u === '') {
+                    $err = t('Die Adresse muss mit https:// oder http:// beginnen. {q} steht für den Suchbegriff.');
+                } else {
+                    $list = array_values(array_filter(smCleanBangs($p['bangs'] ?? []), function ($b) use ($t) { return $b['t'] !== $t; }));
+                    if (count($list) >= SM_MAX_BANGS) {
+                        $err = t('Es sind schon zu viele eigene Bangs.');
+                    } else {
+                        $list[] = ['t' => $t, 'n' => (string)($_POST['n'] ?? ''), 'u' => $u];
+                        $p['bangs'] = smCleanBangs($list);
+                        $ok = t('Bang !%s gespeichert.', $t);
+                    }
+                }
+                break;
+            case 'bang_del':
+                $t = smCleanBangTrigger($_POST['t'] ?? '');
+                $p['bangs'] = array_values(array_filter(smCleanBangs($p['bangs'] ?? []), function ($b) use ($t) { return $b['t'] !== $t; }));
+                $ok = t('Bang !%s gelöscht.', $t);
+                break;
+            case 'bang_builtin':
+                $on = is_array($_POST['on'] ?? null) ? $_POST['on'] : [];
+                $p['bang_off'] = array_values(array_diff(array_keys(smBuiltinBangs()), $on));
+                break;
+            case 'lens_save':
+                $id = (string)($_POST['id'] ?? '');
+                $lens = ['id' => $id, 'n' => (string)($_POST['n'] ?? ''), 's' => smCleanDomains((string)($_POST['s'] ?? ''), SM_LENS_SITES), 'x' => (string)($_POST['x'] ?? '')];
+                $clean = smCleanLenses([$lens]);
+                if (!$clean) {
+                    $err = t('Eine Linse braucht einen Namen und mindestens eine Domain oder einen Operator.');
+                    break;
+                }
+                $list = smCleanLenses($p['lenses'] ?? []);
+                $found = false;
+                foreach ($list as $i => $l) {
+                    if ($l['id'] === $id) { $list[$i] = $clean[0]; $found = true; }
+                }
+                if (!$found) {
+                    if (count($list) >= SM_MAX_LENSES) { $err = t('Es sind schon zu viele eigene Linsen.'); break; }
+                    $list[] = $clean[0];
+                }
+                $p['lenses'] = $list;
+                $ok = t('Linse „%s“ gespeichert.', $clean[0]['n']);
+                break;
+            case 'lens_del':
+                $id = (string)($_POST['id'] ?? '');
+                $p['lenses'] = array_values(array_filter(smCleanLenses($p['lenses'] ?? []), function ($l) use ($id) { return $l['id'] !== $id; }));
+                $ok = t('Linse gelöscht.');
+                break;
+            case 'lens_builtin':
+                $on = is_array($_POST['on'] ?? null) ? $_POST['on'] : [];
+                $p['lens_off'] = array_values(array_diff(array_keys(smBuiltinLenses()), $on));
+                break;
+            case 'import':
+                [$in, $err] = smReadImport('file', 'suchmaschine-prefs');
+                if ($in !== null) {
+                    $p = smCleanPrefs($in);
+                    $ok = t('Einstellungen wiederhergestellt.');
+                }
+                break;
+            case 'pass':
+                $row = smQ('SELECT pass FROM users WHERE id = ?', [$me['id']])->fetch();
+                $new = (string)($_POST['pass'] ?? '');
+                if (!$row || !password_verify((string)($_POST['old'] ?? ''), $row['pass'])) {
+                    $err = t('Das bisherige Passwort stimmt nicht.');
+                } elseif ($new !== (string)($_POST['pass2'] ?? '')) {
+                    $err = t('Die beiden Passwörter stimmen nicht überein.');
+                } elseif (($e = smUserSetPass($me['id'], $new, $me['hash'])) !== '') {
+                    $err = $e;
+                } else {
+                    $ok = t('Passwort geändert. Andere Geräte sind jetzt abgemeldet.');
+                }
+                break;
+            default:
+                $err = t('Unbekannte Aktion.');
         }
-        smRedirect(smUrl(['a' => 'settings']));
+        if ($err === '' && $do !== 'pass') smUserSavePrefs($me['id'], $p);
+        smFlash($err === '' ? 'ok' : 'error', $err === '' ? $ok : $err);
+        smRedirect(smUrl(['a' => 'settings', 'tab' => $tab !== 'search' ? $tab : null]));
     }
-    smRender('settings', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Einstellungen')]);
+    $edit = null;
+    if ($tab === 'lenses' && isset($_GET['edit'])) {
+        foreach (smCleanLenses($me['prefs']['lenses'] ?? []) as $l) if ($l['id'] === $_GET['edit']) $edit = $l;
+    }
+    smRender('settings', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Einstellungen'), 'tab' => $tab, 'edit' => $edit]);
+}
+
+/** Schnellaktion an einem Treffer: Domain blockieren, hochstufen, herabstufen oder zurücksetzen */
+function smPageDomain(array $me, bool $post): void
+{
+    $back = smSafeNext((string)($_POST['back'] ?? ''));
+    if (!$post) smRedirect($back);
+    $d = smCleanDomain((string)($_POST['d'] ?? ''));
+    $act = (string)($_POST['act'] ?? '');
+    if ($d === '' || !in_array($act, ['block', 'raise', 'lower', 'clear'], true)) {
+        smFlash('error', t('Unbekannte Aktion.'));
+        smRedirect($back);
+    }
+    $p = $me['prefs'];
+    foreach (['block', 'raise', 'lower'] as $k) {
+        $p[$k] = array_values(array_filter(smCleanDomains($p[$k] ?? []), function ($x) use ($d) { return $x !== $d; }));
+    }
+    if ($act !== 'clear') {
+        if (count($p[$act]) >= SM_MAX_DOMAINS) {
+            smFlash('error', t('Die Liste ist voll (höchstens %d Domains).', SM_MAX_DOMAINS));
+            smRedirect($back);
+        }
+        $p[$act][] = $d;
+    }
+    smUserSavePrefs($me['id'], $p);
+    $msg = ['block' => t('%s wird ab jetzt ausgeblendet.', $d), 'raise' => t('%s wird ab jetzt hochgestuft.', $d),
+            'lower' => t('%s wird ab jetzt herabgestuft.', $d), 'clear' => t('%s ist wieder normal.', $d)];
+    smFlash('ok', $msg[$act]);
+    smRedirect($back);
 }
 
 /* ---------- Verwaltung (Administrator) ---------- */
@@ -330,6 +477,13 @@ function smPageAdmin(array $me, bool $post): void
                 break;
             case 'config':
                 $err = smSaveConfig();
+                break;
+            case 'export':
+                smServeConfigExport(!empty($_POST['with_key']));
+                return;
+            case 'import':
+                [$in, $err] = smReadImport('file', 'suchmaschine-config');
+                if ($in !== null) $ok = t('%d Einstellungen wiederhergestellt.', smConfigImport($in));
                 break;
             case 'testkey':
                 $err = smTestKey(smSetting('api_key'));
@@ -420,6 +574,7 @@ function smSaveConfig(): string
     $s = (string)($_POST['safesearch'] ?? '');
     if (in_array($s, ['off', 'moderate', 'strict'], true)) smSetSetting('safesearch', $s);
     smSetSetting('public', empty($_POST['public']) ? '0' : '1');
+    smSetSetting('img_proxy', empty($_POST['img_proxy']) ? '0' : '1');
     smSetSetting('public_hour', (string)max(1, min(1000, (int)($_POST['public_hour'] ?? 20))));
     return '';
 }

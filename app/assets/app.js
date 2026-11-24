@@ -180,7 +180,7 @@
 
     /* ---------- Menüs schließen, wenn man daneben klickt ---------- */
     document.addEventListener('click', function (ev) {
-        $$('details.menu[open], details.tools[open], details.pop[open]').forEach(function (d) {
+        $$('details.menu[open], details.tools[open], details.pop[open], details.resmenu[open]').forEach(function (d) {
             if (!d.contains(ev.target)) d.removeAttribute('open');
         });
     });
@@ -190,11 +190,18 @@
             if (!d.open) return;
             var r = $('summary', d).getBoundingClientRect();
             var p = $('.tools__panel', d);
-            p.style.left = Math.min(r.left, window.innerWidth - 240) + 'px';
+            p.style.left = Math.max(8, Math.min(r.left, window.innerWidth - p.offsetWidth - 8)) + 'px';
             p.style.top = r.bottom + 'px';
+            $$('details.tools[open]').forEach(function (o) { if (o !== d) o.removeAttribute('open'); });
         });
     });
-    window.addEventListener('scroll', function () { $$('details.tools[open]').forEach(function (d) { d.removeAttribute('open'); }); }, { passive: true });
+    // Beim Scrollen zu, außer man tippt gerade im Menü (eigener Dateityp; die Handy-Tastatur scrollt die Seite)
+    window.addEventListener('scroll', function () {
+        $$('details.tools[open]').forEach(function (d) {
+            var f = document.activeElement;
+            if (!(f && f.tagName === 'INPUT' && d.contains(f))) d.removeAttribute('open');
+        });
+    }, { passive: true });
 
     // Sicherheitsfragen
     $$('form[data-confirm]').forEach(function (f) {
@@ -339,6 +346,9 @@
         var lb = $('[data-lightbox]');
         var cur = -1;
         var img = $('[data-lb-img]', lb);
+        var fullBtn = $('[data-lb-full]', lb);
+        var fsApi = lb.requestFullscreen ? 'std' : (lb.webkitRequestFullscreen ? 'webkit' : '');
+
         function show(i) {
             tiles = $$('.grid__item', grid);
             if (i < 0 || i >= tiles.length) return;
@@ -349,6 +359,8 @@
             $('[data-lb-title]', lb).textContent = a.getAttribute('data-title');
             $('[data-lb-host]', lb).textContent = a.getAttribute('data-host');
             $('[data-lb-size]', lb).textContent = a.getAttribute('data-size');
+            $('[data-lb-cap]', lb).textContent = [a.getAttribute('data-host'), a.getAttribute('data-title')].filter(Boolean).join(' · ');
+            $('[data-lb-count]', lb).textContent = (i + 1) + ' / ' + tiles.length;
             $('[data-lb-page]', lb).href = a.href;
             var src = a.getAttribute('data-src');
             var srcA = $('[data-lb-src]', lb);
@@ -356,8 +368,76 @@
             if (src) srcA.href = src;
             lb.hidden = false;
             body.style.overflow = 'hidden';
+            // Volle Auflösung über den eigenen Server nachladen, bis dahin bleibt das Vorschaubild stehen
+            var full = a.getAttribute('data-full');
+            lb.classList.remove('is-sharp');
+            if (full) {
+                var hi = new Image();
+                hi.onload = function () { if (cur === i && hi.naturalWidth > 1) { img.src = full; lb.classList.add('is-sharp'); } };
+                hi.src = full;
+            }
+            wake();
         }
-        function hide() { lb.hidden = true; body.style.overflow = ''; if (tiles[cur]) tiles[cur].focus(); }
+        function hide() {
+            if (isFull()) exitFull();
+            lb.hidden = true;
+            body.style.overflow = '';
+            if (tiles[cur]) tiles[cur].focus();
+        }
+
+        /* Vollbild: Fullscreen-API des Browsers, ohne sie (iPhone) ein randloses Ersatz-Vollbild per CSS */
+        function nativeEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+        function isFull() { return lb.classList.contains('is-full'); }
+        function sync() {
+            var on = nativeEl() === lb || lb.classList.contains('is-pseudo');
+            lb.classList.toggle('is-full', on);
+            fullBtn.setAttribute('aria-label', fullBtn.getAttribute(on ? 'data-label-off' : 'data-label-on'));
+            fullBtn.title = fullBtn.getAttribute('aria-label');
+            wake();
+        }
+        function pseudo(on) { lb.classList.toggle('is-pseudo', on); sync(); }
+        function enterFull() {
+            if (fsApi === 'std') {
+                var pr = lb.requestFullscreen({ navigationUI: 'hide' });
+                if (pr && pr.catch) pr.catch(function () { pseudo(true); });
+            } else if (fsApi === 'webkit') {
+                lb.webkitRequestFullscreen();
+            } else {
+                pseudo(true);
+            }
+        }
+        function exitFull() {
+            if (nativeEl() === lb) {
+                if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            }
+            pseudo(false);
+        }
+        function toggleFull() { if (isFull()) exitFull(); else enterFull(); }
+        document.addEventListener('fullscreenchange', sync);
+        document.addEventListener('webkitfullscreenchange', sync);
+
+        // Im Vollbild verschwinden Knöpfe und Mauszeiger nach kurzer Ruhe und kommen bei Bewegung wieder
+        var idleT = 0;
+        function wake() {
+            lb.classList.remove('is-idle');
+            clearTimeout(idleT);
+            if (isFull()) idleT = setTimeout(function () { lb.classList.add('is-idle'); }, 2200);
+        }
+        lb.addEventListener('mousemove', wake);
+
+        // Wischen zum Blättern
+        var tx = null, ty = 0;
+        lb.addEventListener('touchstart', function (ev) {
+            wake();
+            if (ev.touches.length === 1) { tx = ev.touches[0].clientX; ty = ev.touches[0].clientY; }
+        }, { passive: true });
+        lb.addEventListener('touchend', function (ev) {
+            if (tx === null || !ev.changedTouches.length) return;
+            var dx = ev.changedTouches[0].clientX - tx, dy = ev.changedTouches[0].clientY - ty;
+            tx = null;
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) show(cur + (dx < 0 ? 1 : -1));
+        }, { passive: true });
+
         grid.addEventListener('click', function (ev) {
             var a = ev.target.closest('.grid__item');
             if (!a || !plainClick(ev)) return;
@@ -365,14 +445,17 @@
             show($$('.grid__item', grid).indexOf(a));
         });
         $('[data-lb-close]', lb).addEventListener('click', hide);
+        fullBtn.addEventListener('click', toggleFull);
         $('[data-lb-prev]', lb).addEventListener('click', function () { show(cur - 1); });
         $('[data-lb-next]', lb).addEventListener('click', function () { show(cur + 1); });
         lb.addEventListener('click', function (ev) { if (ev.target === lb) hide(); });
+        img.addEventListener('dblclick', toggleFull);
         document.addEventListener('keydown', function (ev) {
-            if (lb.hidden) return;
-            if (ev.key === 'Escape') hide();
-            else if (ev.key === 'ArrowLeft') show(cur - 1);
-            else if (ev.key === 'ArrowRight') show(cur + 1);
+            if (lb.hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+            if (ev.key === 'Escape') { ev.preventDefault(); if (isFull()) exitFull(); else hide(); }
+            else if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(cur - 1); }
+            else if (ev.key === 'ArrowRight') { ev.preventDefault(); show(cur + 1); }
+            else if (ev.key === 'f' || ev.key === 'F') { ev.preventDefault(); toggleFull(); }
         });
     }
 })();

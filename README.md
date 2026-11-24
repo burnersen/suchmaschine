@@ -44,7 +44,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Funktionen](#funktionen) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Funktionen](#funktionen) · [Wie bei Kagi, nur kostenlos](#wie-bei-kagi-nur-kostenlos) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -63,17 +63,28 @@ Zum Vergleich: Wer 10 Mal am Tag sucht, kommt auf rund 300 Suchen im Monat.
 - **Gemischte Ergebnisse** wie bei den großen Suchmaschinen: Top-Meldungen, Videos, „Ähnliche Fragen“ und Diskussionen aus Foren erscheinen zwischen den Treffern, dazu eine **Kurzinfo** am Rand (z. B. aus Wikipedia). Was Brave zu einer Suche liefert, wird angezeigt.
 - **Seitenweise oder endlos scrollen**, für jedes Konto einstellbar.
 - **Zeitraum-Filter** (24 Stunden, Woche, Monat, Jahr), **Rechtschreibkorrektur** mit „Stattdessen suchen nach …“, **„Auf gut Glück“**.
-- **Bildvorschau** im Großformat mit Pfeiltasten zum Blättern.
+- **Bildvorschau** im Großformat mit Pfeiltasten und Wischen zum Blättern, dazu ein **echter Vollbild-Modus** (Knopf oder Taste `F`) für Fernseher und große Bildschirme: randlos auf Schwarz, Bedienelemente blenden sich aus. Das Bild kommt dabei in **voller Auflösung über den eigenen Server**, ohne die strengen Sicherheitsregeln aufzuweichen und ohne Suche bei Brave.
+- **Dateityp-Filter** (PDF, DOCX, XLSX, PPTX, TXT, EPUB, CSV, ODT und mehr, oder jede andere Endung zum Eintippen). Bleibt beim Blättern und Endlos-Scrollen erhalten.
+- **Hilfeseite** mit allen Suchoperatoren, die Brave kennt (`site:`, `filetype:`, `intitle:`, `"…"`, `OR`, `NOT`, `-` …), mit Beispielen zum Anklicken und der Übersicht über die eigenen Bangs, Linsen und Domain-Listen.
 - **Vorschläge aus den eigenen letzten Suchen.** Die bleiben nur im Browser, der Server merkt sich nichts.
 - **Hell und dunkel**, automatisch nach dem Gerät oder per Knopf.
 - **Deutsch und Englisch**, je nach Browser, umschaltbar unten auf der Seite.
 - **Für Handy und Rechner**, lässt sich auch als App auf den Startbildschirm legen.
 - **Als Standardsuche im Browser** eintragbar (OpenSearch), z. B. in Firefox mit einem Klick.
-- **Konten:** Wer sich als Erster einträgt, wird Administrator und kann weitere Konten anlegen, etwa für die Familie. Jedes Konto hat eigene Einstellungen (Region, Sprache, SafeSearch, neuer Tab, Seiten oder endlos).
-- **Verwaltung** für den Administrator: API-Key mit Test, Name der Suchmaschine, **eigenes Logo**, **Farbe**, Voreinstellungen für alle, Monatslimit, Verbrauch pro Monat, auf Wunsch Suchen ohne Anmeldung (mit Grenze pro Stunde).
+- **Konten:** Wer sich als Erster einträgt, wird Administrator und kann weitere Konten anlegen, etwa für die Familie. Jedes Konto hat eigene Einstellungen (Region, Sprache, SafeSearch, neuer Tab, Seiten oder endlos, Domain-Listen, Bangs, Linsen).
+- **Verwaltung** für den Administrator: API-Key mit Test, Name der Suchmaschine, **eigenes Logo**, **Farbe**, Voreinstellungen für alle, Monatslimit, Verbrauch pro Monat, auf Wunsch Suchen ohne Anmeldung (mit Grenze pro Stunde), Bilder in voller Auflösung an oder aus, Sicherung der Einstellungen.
 - **Updates per Knopfdruck:** Die Suchmaschine schaut beim neuesten Release auf GitHub nach, prüft die Datei per Prüfsumme, sichert die laufende Version und spielt die neue ein. Zurück zur vorigen Version geht mit einem Klick. Auf Wunsch einmal am Tag automatisch.
 - **Selbsttest:** Die Verwaltung prüft, ob die internen Ordner von außen wirklich gesperrt sind, und warnt sonst.
 - **Ohne Werbung, ohne Tracking, ohne fremde Skripte.** Strenge Sicherheitsregeln (Content Security Policy), Links öffnen ohne Referrer, Vorschaubilder kommen über Braves Bild-Proxy.
+
+## Wie bei Kagi, nur kostenlos
+
+Die bezahlte Suchmaschine Kagi ist für ein paar Ideen bekannt, die es hier für alle gibt, die selbst hosten. Jedes Konto hat dabei **seinen eigenen Bereich**: Was einer einrichtet, sehen die anderen nicht.
+
+- **Domains blockieren, hochstufen, herabstufen.** Unerwünschte Seiten verschwinden ganz, Lieblingsseiten rücken nach oben und bekommen einen kleinen Stern, andere rutschen nach hinten. Am schnellsten über das Menü ⋮ neben jedem Treffer, oder als Liste unter *Einstellungen → Domains*. Gefiltert wird erst nach dem Abruf, der Zwischenspeicher bleibt also für alle gleich.
+- **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden die wichtigsten, jeder kann sie für sich abschalten und **eigene anlegen** (Adresse mit `{q}` für den Suchbegriff). Funktioniert auch aus der Adressleiste des Browsers.
+- **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
+- **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
 
 ## Voraussetzungen
 
@@ -136,11 +147,14 @@ Von Hand: den neuen `suchmaschine-install.php` hochladen und aufrufen. Ersetzt w
 
 Alles, was zählt, liegt im Ordner **`data/`**: Konten, Einstellungen, API-Key, eigenes Logo. Diesen Ordner per FTP herunterladen, fertig. Zum Zurückholen den Ordner wieder hochladen.
 
+Ohne FTP geht es auch im Browser: Jedes Konto sichert unter *Einstellungen → Konto* seine persönlichen Einstellungen (Suche, Domain-Listen, Bangs, Linsen) als Datei, der Administrator unter *Verwaltung → Einstellungen* die der Installation (auf Wunsch mit API-Key). Beides lässt sich dort auch wieder einspielen.
+
 ## Aufbau
 
 ```
 index.php      Einstieg und Einstellungen (Version, Pfade)
-app/lib/       Sprache, Datenbank, Konten und Anmeldung, Brave-Anbindung, Seitenablauf, Update
+app/lib/       Sprache, Datenbank, Konten und Anmeldung, Brave-Anbindung, Bangs/Linsen/Domain-Listen (tools.php),
+               Bild-Proxy (imgproxy.php), Seitenablauf, Update
 app/views/     HTML-Vorlagen
 app/assets/    CSS, JavaScript, Symbol (werden über index.php ausgeliefert)
 data/          entsteht beim ersten Aufruf: Datenbank, Einstellungen, Logo (geheim!)
@@ -154,6 +168,8 @@ Release bauen: `php tools/build-release.php` legt in `dist/` den Installer und e
 ## Gut zu wissen
 
 - **Datenschutz:** Brave sieht die Suchbegriffe, aber nicht, wer sucht, denn die Anfrage kommt von deinem Server. Die Suchmaschine selbst speichert keine Suchbegriffe, nur kurz im Zwischenspeicher. Die letzten Suchen für die Vorschläge bleiben im Browser des jeweiligen Geräts. Vorschaubilder und Symbole lädt der Browser über Braves Bild-Proxy.
+- **Bilder in voller Auflösung:** Für die große Vorschau holt der Server das Originalbild und reicht es weiter. Die fremde Seite sieht nur den Server, der Browser lädt weiter nur von der eigenen Adresse. Gegen Missbrauch ist jede Bildadresse signiert, interne Netze sind gesperrt, gespeichert wird nichts. Kostet keine Suche, nur etwas Datenverkehr, und lässt sich in der Verwaltung abschalten.
+- **Suchoperatoren** gibt die Suchmaschine unverändert an Brave weiter. Brave nennt sie noch experimentell, nicht jede Kombination liefert Treffer. Klammern kennt Brave nicht.
 - **Mehrere Personen:** Konten für Familie oder Freunde sind schnell angelegt. Alle Suchen gehen vom selben Guthaben ab, das Monatslimit gilt für alle zusammen.
 - **Suchen ohne Anmeldung** lässt sich einschalten, etwa fürs Heimnetz. Jede Suche kostet dann dein Guthaben. Die Grenze pro Stunde und Besucher bremst Missbrauch, das Monatslimit gilt trotzdem.
 - **Endlos scrollen:** Jedes Nachladen ist eine echte Suche bei Brave. Darum holt die Suchmaschine dabei 20 Treffer auf einmal. Brave liefert pro Suchbegriff höchstens 10 Seiten.

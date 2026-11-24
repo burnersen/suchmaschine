@@ -16,6 +16,8 @@ $big = !empty($big);
     </div>
     <ul class="sbox__list" id="sbox-list" role="listbox" hidden></ul>
     <?php if (!empty($tab) && $tab !== 'web'): ?><input type="hidden" name="t" value="<?= h($tab) ?>"><?php endif; ?>
+    <?php if (!empty($lens)): ?><input type="hidden" name="l" value="<?= h($lens) ?>"><?php endif; ?>
+    <?php if (!empty($ft)): ?><input type="hidden" name="ft" value="<?= h($ft) ?>"><?php endif; ?>
     <?php if ($big): ?>
     <div class="sbox__buttons">
         <button type="submit" class="btn btn--soft"><?= h(t('Suchen')) ?></button>

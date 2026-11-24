@@ -40,6 +40,8 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
+[Cost](#what-does-it-cost) · [Features](#features) · [Like Kagi, but free](#like-kagi-but-free) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+
 ## What does it cost?
 
 Nothing for normal private use. Results come from the [Brave Search API](https://brave.com/search/api/):
@@ -55,7 +57,9 @@ Nothing for normal private use. Results come from the [Brave Search API](https:/
 - **Mixed results** like the big search engines: top stories, videos, "People also ask" and forum discussions between the results, plus an **overview panel** (e.g. from Wikipedia).
 - **Page by page or endless scrolling**, per account.
 - **Time filter**, **spelling correction** with "Search instead for …", **"Feeling lucky"**.
-- **Large image preview** with arrow keys.
+- **Large image preview** with arrow keys and swiping, plus a **real full-screen mode** (button or key `F`) for TVs and big screens: borderless on black, controls fade out. The image is loaded in **full resolution through your own server**, without loosening the strict security rules and without using a Brave search.
+- **File type filter** (PDF, DOCX, XLSX, PPTX, TXT, EPUB, CSV, ODT and more, or type any other extension). Kept while paging and endless scrolling.
+- **Help page** with every search operator Brave supports (`site:`, `filetype:`, `intitle:`, `"…"`, `OR`, `NOT`, `-` …), clickable examples and an overview of your own bangs, lenses and domain lists.
 - **Suggestions from your own recent searches**, stored only in the browser.
 - **Light and dark**, automatic or by button. **German and English.**
 - **Phone and desktop**, can be added to the home screen as an app.
@@ -65,6 +69,15 @@ Nothing for normal private use. Results come from the [Brave Search API](https:/
 - **One-click updates** from GitHub releases, verified by checksum, with one-click rollback. Optionally automatic once a day.
 - **Self-test** that the internal folders are really blocked from outside.
 - **No ads, no tracking, no third-party scripts.** Strict Content Security Policy, links open without referrer.
+
+## Like Kagi, but free
+
+The paid search engine Kagi is known for a few ideas that are available here for everyone who self-hosts. Every account has **its own space**: what one person sets up, the others do not see.
+
+- **Block, raise and lower domains.** Unwanted sites disappear, favorites move up with a small star, others drop to the end. Quickest via the ⋮ menu next to every result, or as lists under *Settings → Domains*. Filtering happens after fetching, so the cache stays the same for everyone.
+- **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. The most important ones are built in; everyone can switch them off and **add their own** (address with `{q}` for the search term). Works from the browser's address bar too.
+- **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
+- **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
 
 ## Requirements
 
@@ -95,11 +108,13 @@ location ^~ /app/  { deny all; return 404; }
 
 Admin → *Update* → "Check for updates" → "Update now". The running version is saved first and can be restored with one click. Or upload a new `suchmaschine-install.php` and open it: only program files are replaced, `data/` is never touched. Set `'update_url' => ''` in `data/config.php` to switch off update checks.
 
-Everything that matters is in the folder **`data/`**: accounts, settings, API key, logo. Download that folder to back up.
+Everything that matters is in the folder **`data/`**: accounts, settings, API key, logo. Download that folder to back up. In the browser, every account can also back up its personal settings under *Settings → Account*, and the administrator the installation settings under *Admin → Settings*.
 
 ## Good to know
 
 - **Privacy:** Brave sees the search terms but not who searches, the request comes from your server. The search engine itself stores no search terms except briefly in the cache. Recent searches for suggestions stay in each device's browser.
+- **Full-resolution images:** for the large preview the server fetches the original image and passes it on. The other site only sees the server, the browser still only loads from your own address. Every image address is signed, internal networks are blocked, nothing is stored. It costs no search, only some traffic, and can be switched off in the admin page.
+- **Search operators** are passed to Brave unchanged. Brave still calls them experimental, not every combination returns results, and parentheses are not supported.
 - **Endless scrolling:** every reload is a real Brave search, so 20 results are fetched at a time. Brave delivers at most 10 pages per query.
 - **Brave's terms:** results may only be cached briefly and not resold. A note about Brave Search is shown at the bottom of every page.
 

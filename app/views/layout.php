@@ -54,6 +54,7 @@ $flash = smFlash();
                 <div class="menu__who"><span class="avatar avatar--big"><?= h(mb_strtoupper(mb_substr($me['name'], 0, 1))) ?></span>
                     <span><strong><?= h($me['name']) ?></strong><?php if ($me['is_admin']): ?><br><small><?= h(t('Administrator')) ?></small><?php endif; ?></span></div>
                 <a href="<?= h(smUrl(['a' => 'settings'])) ?>"><?= h(t('Einstellungen')) ?></a>
+                <a href="<?= h(smUrl(['a' => 'help'])) ?>"><?= h(t('Hilfe')) ?></a>
 <?php if ($me['is_admin']): ?>
                 <a href="<?= h(smUrl(['a' => 'admin'])) ?>"><?= h(t('Verwaltung')) ?></a>
 <?php endif; ?>
@@ -81,6 +82,10 @@ $flash = smFlash();
 <?php if ($me && $me['is_admin']): ?>
     <span class="foot__sep">·</span>
     <a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'usage'])) ?>" title="<?= h(t('Anfragen an Brave in diesem Monat')) ?>"><?= h(t('%d von %d Suchen', smUsageMonth(), (int)smSetting('monthly_limit'))) ?></a>
+<?php endif; ?>
+<?php if (!$bare): ?>
+    <span class="foot__sep">·</span>
+    <a href="<?= h(smUrl(['a' => 'help'])) ?>"><?= h(t('Hilfe')) ?></a>
 <?php endif; ?>
     <span class="foot__sep">·</span>
     <a href="<?= h(smUrl(['lang' => smLang() === 'de' ? 'en' : 'de'])) ?>"><?= smLang() === 'de' ? 'English' : 'Deutsch' ?></a>

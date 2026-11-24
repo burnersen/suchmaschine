@@ -124,6 +124,7 @@ function smDefaults(): array
         'public'        => '0',     // Suchen ohne Anmeldung erlaubt?
         'public_hour'   => '20',    // dann höchstens so viele Suchen pro Stunde und Adresse
         'auto_update'   => '0',
+        'img_proxy'     => '1',     // große Bilder über den eigenen Server laden
     ];
 }
 

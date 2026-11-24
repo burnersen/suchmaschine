@@ -107,6 +107,8 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                 <label class="field"><span><?= h(t('Zwischenspeicher (Minuten)')) ?></span><input type="number" name="cache_min" min="0" max="60" value="<?= (int)smSetting('cache_min') ?>">
                     <small class="muted"><?= h(t('Gleiche Suche in dieser Zeit kostet nichts. Brave erlaubt nur kurzes Speichern.')) ?></small></label>
             </div>
+            <label class="switch"><input type="checkbox" name="img_proxy" value="1"<?= smSetting('img_proxy') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Bilder in voller Auflösung über diesen Server laden')) ?><br><small class="muted"><?= h(t('Für die große Bildvorschau und den Vollbild-Modus holt der Server das Originalbild und reicht es weiter. Kostet keine Suche bei Brave, nur etwas Datenverkehr. Die fremde Seite sieht dabei nur den Server, nicht den Besucher. Aus: nur Braves Vorschaubilder.')) ?></small></span></label>
         </section>
         <section class="panel">
             <h2><?= h(t('Voreinstellungen für alle')) ?></h2>
@@ -142,6 +144,20 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
         <div class="form__actions form__actions--sticky"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
     </form>
     <form method="post" action="<?= h($aurl('config')) ?>" id="testkey" hidden><?= smCsrfField($me) ?><input type="hidden" name="do" value="testkey"></form>
+    <section class="panel">
+        <h2><?= h(t('Einstellungen der Installation sichern')) ?></h2>
+        <p class="muted small"><?= h(t('Name, Farbe, Limits, Voreinstellungen und auf Wunsch den API-Key als Datei. Konten und ihre persönlichen Einstellungen gehören nicht dazu, die sichert jedes Konto selbst unter Einstellungen → Konto. Für eine komplette Sicherung den Ordner data/ herunterladen.')) ?></p>
+        <form method="post" action="<?= h($aurl('config')) ?>" class="form">
+            <?= smCsrfField($me) ?><input type="hidden" name="do" value="export">
+            <label class="check"><input type="checkbox" name="with_key" value="1"> <?= h(t('API-Key mitsichern (Datei dann gut verwahren)')) ?></label>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Sicherung herunterladen')) ?></button></div>
+        </form>
+        <form method="post" action="<?= h($aurl('config')) ?>" class="form" data-busy enctype="multipart/form-data" data-confirm="<?= h(t('Die Einstellungen der Installation werden durch die Sicherung ersetzt. Weiter?')) ?>">
+            <?= smCsrfField($me) ?><input type="hidden" name="do" value="import">
+            <label class="field"><span><?= h(t('Sicherungsdatei (.json)')) ?></span><input type="file" name="file" accept="application/json,.json" required></label>
+            <div class="form__actions"><button type="submit" class="btn"><?= h(t('Einspielen')) ?></button></div>
+        </form>
+    </section>
 
 <?php elseif ($tab === 'usage'): $limit = (int)smSetting('monthly_limit'); $now = smUsageMonth(); ?>
     <section class="panel">
