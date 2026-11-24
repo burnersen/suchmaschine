@@ -40,7 +40,7 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
-[Cost](#what-does-it-cost) · [Features](#features) · [Like Kagi, but free](#like-kagi-but-free) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+[Cost](#what-does-it-cost) · [Features](#features) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
 
 ## What does it cost?
 
@@ -70,9 +70,9 @@ Nothing for normal private use. Results come from the [Brave Search API](https:/
 - **Self-test** that the internal folders are really blocked from outside.
 - **No ads, no tracking, no third-party scripts.** Strict Content Security Policy, links open without referrer.
 
-## Like Kagi, but free
+## Like ..., but free
 
-The paid search engine Kagi is known for a few ideas that are available here for everyone who self-hosts. Every account has **its own space**: what one person sets up, the others do not see.
+Some paid search engine are known for a few ideas that are available here for everyone who self-hosts. Every account has **its own space**: what one person sets up, the others do not see.
 
 - **Block, raise and lower domains.** Unwanted sites disappear, favorites move up with a small star, others drop to the end. Quickest via the ⋮ menu next to every result, or as lists under *Settings → Domains*. Filtering happens after fetching, so the cache stays the same for everyone.
 - **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. The most important ones are built in; everyone can switch them off and **add their own** (address with `{q}` for the search term). Works from the browser's address bar too.
