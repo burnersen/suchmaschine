@@ -125,7 +125,7 @@ code { font: 14px ui-monospace, Menlo, monospace; background: var(--surface-2); 
 .menu__panel form { margin: 0; }
 
 /* ---------- Suchfeld ---------- */
-.sbox { position: relative; flex: 1; max-width: 692px; }
+.sbox { position: relative; flex: 1; max-width: 692px; min-width: 0; }
 .sbox__field {
     position: relative; z-index: 21; display: flex; align-items: center; height: 46px; padding: 0 6px 0 14px;
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); transition: box-shadow .15s, border-color .15s;
@@ -135,7 +135,7 @@ code { font: 14px ui-monospace, Menlo, monospace; background: var(--surface-2); 
 .sbox__icon { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: var(--text-3); stroke-width: 2; stroke-linecap: round; }
 .top--results .sbox__icon { display: none; }
 .sbox input {
-    flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; padding: 0 10px; font-size: 16px; color: var(--text);
+    flex: 1; min-width: 0; width: 100%; height: 100%; border: 0; outline: 0; background: transparent; padding: 0 10px; font-size: 16px; color: var(--text);
 }
 .top--results .sbox input { padding-left: 4px; }
 .sbox input::-webkit-search-cancel-button { display: none; }
@@ -277,14 +277,15 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
 .subnav a:hover { color: var(--text); text-decoration: none; }
 .subnav a.is-active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .users { list-style: none; margin: 0; padding: 0; }
-.users__row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line-2); flex-wrap: wrap; }
+.users__row { position: relative; display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line-2); flex-wrap: wrap; }
 .users__row:first-child { border-top: 0; }
 .users__name { flex: 1; min-width: 140px; line-height: 1.35; }
 .users__actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .users__actions form { margin: 0; }
 .pop { position: relative; }
 .pop__panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; display: flex; gap: 6px; padding: 10px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); width: 300px; }
-.pop__panel input { height: 36px; font-size: 14px; }
+.pop__panel input { height: 40px; font-size: 16px; min-width: 0; flex: 1; }
+.pop__panel .btn { height: 40px; }
 .table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
 .table th { text-align: left; font-size: 13px; color: var(--text-3); font-weight: 600; }
 .table th, .table td { padding: 10px 8px; border-bottom: 1px solid var(--line-2); }
@@ -524,6 +525,13 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
     .home { margin-top: 8vh; }
     .sbox__buttons { margin-top: 20px; }
     .panel { padding: 18px; }
+    /* Passwort-Feld in der Kontenliste: über die ganze Zeile statt am Knopf */
+    .pop[open] { flex-basis: 100%; order: 10; }
+    .pop__panel { position: static; width: 100%; margin-top: 8px; box-shadow: none; border: 1px solid var(--line); }
+    .users__actions { width: 100%; }
+    .subnav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .subnav a { white-space: nowrap; }
+    .menu__panel { max-width: calc(100vw - 24px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
