@@ -124,7 +124,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 **Filters and results:** strict sort by date (newest first, undated last), **max. 3 results per domain** (on by default), **"Reset all filters"**, a large **×** in the search box, and in the **⋮ menu**: search only this domain, archive at web.archive.org and archive.today, show as QR code, copy address.
 
-**Images:** filters like Google for orientation (landscape, portrait, square) and size (large from 2 MP, medium, small below 0.25 MP), **sort by resolution**, and a full screen that always shows the whole image centred on black, never cropped.
+**Images:** filters like Google for orientation (landscape, portrait, square) and size (very large from 1 MP, large from 0.3 MP, medium, small below 0.15 MP), **sort by resolution**, and a full screen that always shows the whole image centred on black, never cropped.
 
 **Complete backup:** under *Admin → Backup* one file with everything (settings, all API keys, accounts with password hashes, login tokens, personal settings, quotas, short links, usage, logo), **optionally encrypted with a password** (AES-256-GCM, key derived with PBKDF2).
 

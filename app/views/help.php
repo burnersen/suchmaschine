@@ -151,7 +151,7 @@ $combos = $de ? [
         <h2><?= h(t('Bilder')) ?></h2>
         <dl class="keys keys--wide">
             <div><dt><?= h(t('Ausrichtung')) ?></dt><dd><?= h(t('Alle, Querformat, Hochformat oder Quadratisch.')) ?></dd></div>
-            <div><dt><?= h(t('Größe')) ?></dt><dd><?= h(t('Groß (ab 2 Megapixel), Mittel, Klein (unter 0,25 Megapixel), nach den Maßen, die Brave liefert.')) ?></dd></div>
+            <div><dt><?= h(t('Größe')) ?></dt><dd><?= h(t('Sehr groß (ab 1 Megapixel), Groß (ab 0,3 Megapixel), Mittel, Klein (unter 0,15 Megapixel), nach den Maßen, die Brave liefert. Brave kennt meist die Größe, in der ein Bild auf der Seite steckt, darum sind die Stufen bewusst niedrig.')) ?></dd></div>
             <div><dt><?= h(t('Sortierung')) ?></dt><dd><?= h(t('„Höchste Auflösung zuerst“ sortiert nach Breite × Höhe.')) ?></dd></div>
             <div><dt><?= h(t('Vorschau')) ?></dt><dd><?= h(t('Klick auf ein Bild öffnet die große Vorschau, F oder Doppelklick das Vollbild. Dort ist das Bild immer ganz zu sehen, zentriert auf Schwarz. Blättern mit ← →, Wischen oder den Pfeilen.')) ?></dd></div>
         </dl>
