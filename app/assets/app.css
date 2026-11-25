@@ -908,3 +908,39 @@ a.lightbox__nav, a.lightbox__close { display: grid; place-items: center; text-de
 html:not(.has-js) .lightbox__full { display: none; }
 .lightbox__media { position: relative; }
 .lightbox__hi { position: absolute; inset: 0; margin: auto; width: 100%; height: 100%; object-fit: contain; }
+
+/* 1.2.3: Bildvorschau auf dem Handy, hochkant und quer: Bild immer ganz, Bedienung immer sichtbar */
+@media (max-width: 760px), (max-height: 560px) {
+    .lightbox { padding: 0; background: #000; place-items: stretch; }
+    .lightbox__box {
+        width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none; background: #000; color: #fff;
+        display: flex; flex-direction: column; align-content: normal;
+    }
+    .lightbox__media { position: relative; flex: 1 1 auto; min-height: 0; max-height: none; background: #000; display: block; }
+    .lightbox__media img, .lightbox__media .lightbox__hi {
+        position: absolute; inset: 0; margin: auto; width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain;
+    }
+    .lightbox__info {
+        flex: 0 0 auto; padding: 10px 14px max(12px, env(safe-area-inset-bottom)); gap: 4px; background: #111; color: #eee; overflow: visible;
+    }
+    .lightbox__host, .lightbox__info .muted { color: #aaa; font-size: 12px; }
+    .lightbox__title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+    .lightbox__actions { flex-direction: row; gap: 8px; margin-top: 6px; }
+    .lightbox__actions .btn { flex: 1; min-height: 42px; padding: 0 10px; font-size: 14px; }
+    .lightbox__actions .btn:not(.btn--primary) { background: transparent; color: #fff; border-color: rgb(255 255 255 / .35); }
+    .lightbox__bar { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); }
+    .lightbox__bar .iconbtn { background: rgb(0 0 0 / .5); color: #fff; }
+    .lightbox__nav { top: 40%; width: 46px; height: 46px; background: rgb(0 0 0 / .5); color: #fff; }
+    .lightbox__nav--prev { left: max(8px, env(safe-area-inset-left)); }
+    .lightbox__nav--next { right: max(8px, env(safe-area-inset-right)); }
+}
+/* Quer auf dem Handy: wenig Höhe, darum Infos in eine Zeile neben die Knöpfe */
+@media (max-height: 560px) {
+    .lightbox__info { flex-direction: row; align-items: center; gap: 12px; padding-top: 6px; padding-bottom: max(6px, env(safe-area-inset-bottom));
+        padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+    .lightbox__host, .lightbox__info .muted { display: none; }
+    .lightbox__title { flex: 1; min-width: 0; }
+    .lightbox__actions { margin-top: 0; flex: 0 0 auto; }
+    .lightbox__actions .btn { flex: none; min-height: 36px; }
+    .lightbox__nav { top: 45%; }
+}
