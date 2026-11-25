@@ -325,7 +325,8 @@ function smPageSearch(?array $me): void
     $flt = smSearchFilters($tab);
     $ft = $flt['ft'];
     $fresh = $flt['fresh'];
-    $vars = ['me' => $me, 'prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact,
+    $view = $tab === 'images' && isset($_GET['view']) && is_string($_GET['view']) && ctype_digit($_GET['view']) ? min(199, (int)$_GET['view']) : -1;
+    $vars = ['me' => $me, 'prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact, 'iview' => $view,
              'ft' => $ft, 'lens' => $lens, 'lenses' => $lenses, 'flt' => $flt, 'res' => null, 'error' => '', 'instant' => null];
 
     // Sofort-Antworten (Rechner, Währungen, Wetter …): ohne Suchdienst, kosten also kein Guthaben

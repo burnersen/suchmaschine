@@ -223,10 +223,17 @@ require __DIR__ . '/_vars.php';
 <?php endif; endforeach; ?>
 <?php require __DIR__ . ($prefs['scroll'] === 'endless' ? '/_more.php' : '/_pager.php'); ?>
     </div>
-<?php elseif ($tab === 'images'): ?>
+<?php elseif ($tab === 'images'):
+    // Großansicht ohne JavaScript: ?view=N öffnet die Vorschau schon auf dem Server (Blättern per Link, Bilder aus dem Zwischenspeicher)
+    $imgs = $res['results'];
+    $vi = isset($iview) && $iview >= 0 && isset($imgs[$iview]) ? (int)$iview : -1;
+    $gridUrl = smUrl($base);
+    $cur = $vi >= 0 ? $imgs[$vi] : null;
+    $curFull = $cur ? smImgProxyUrl($cur['src']) : '';
+?>
     <div class="grid" data-grid>
-<?php foreach ($res['results'] as $i => $im): ?>
-        <a class="grid__item" href="<?= h($im['page']) ?>"<?= $rel . $target ?> data-img="<?= h($im['thumb']) ?>" data-w="<?= (int)($im['tw'] ?: $im['w']) ?>" data-h="<?= (int)($im['th'] ?: $im['h']) ?>"
+<?php foreach ($imgs as $i => $im): ?>
+        <a class="grid__item" href="<?= h(smUrl(['view' => $i] + $base)) ?>#lb" data-i="<?= $i ?>" data-page="<?= h($im['page']) ?>" data-img="<?= h($im['thumb']) ?>" data-w="<?= (int)($im['tw'] ?: $im['w']) ?>" data-h="<?= (int)($im['th'] ?: $im['h']) ?>"
            data-title="<?= h($im['title']) ?>" data-host="<?= h($im['host']) ?>" data-src="<?= h($im['src']) ?>" data-full="<?= h(smImgProxyUrl($im['src'])) ?>" data-size="<?= $im['w'] && $im['h'] ? (int)$im['w'] . ' × ' . (int)$im['h'] . ' px' : '' ?>" data-res>
             <img src="<?= h($im['thumb']) ?>" alt="<?= h($im['title']) ?>" loading="<?= $i < 12 ? 'eager' : 'lazy' ?>" referrerpolicy="no-referrer">
             <span class="grid__cap"><span class="grid__host"><?= h($im['host']) ?></span><span class="grid__title"><?= h($im['title']) ?></span></span>
@@ -234,26 +241,29 @@ require __DIR__ . '/_vars.php';
         </a>
 <?php endforeach; ?>
     </div>
-    <div class="lightbox" data-lightbox hidden role="dialog" aria-modal="true" aria-label="<?= h(t('Bildvorschau')) ?>">
+    <div class="lightbox" id="lb" data-lightbox<?= $vi >= 0 ? ' data-view="' . $vi . '"' : ' hidden' ?> role="dialog" aria-modal="true" aria-label="<?= h(t('Bildvorschau')) ?>" data-grid-url="<?= h($gridUrl) ?>">
         <div class="lightbox__box">
-            <div class="lightbox__media"><img alt="" referrerpolicy="no-referrer" data-lb-img></div>
-            <p class="lightbox__cap"><span data-lb-cap></span> <span class="lightbox__count" data-lb-count></span></p>
+            <div class="lightbox__media">
+                <img alt="" referrerpolicy="no-referrer" data-lb-img<?= $cur ? ' src="' . h($cur['thumb']) . '"' : '' ?>>
+<?php if ($curFull !== ''): ?>                <img class="lightbox__hi" alt="" referrerpolicy="no-referrer" src="<?= h($curFull) ?>" data-lb-hi><?php endif; ?>
+            </div>
+            <p class="lightbox__cap"><span data-lb-cap><?= $cur ? h(implode(' · ', array_filter([$cur['host'], $cur['title']]))) : '' ?></span> <span class="lightbox__count" data-lb-count><?= $cur ? ($vi + 1) . ' / ' . count($imgs) : '' ?></span></p>
             <div class="lightbox__bar">
                 <button type="button" class="iconbtn lightbox__full" data-lb-full aria-label="<?= h(t('Vollbild (Taste F)')) ?>" title="<?= h(t('Vollbild (Taste F)')) ?>"
                         data-label-on="<?= h(t('Vollbild (Taste F)')) ?>" data-label-off="<?= h(t('Vollbild beenden (F oder Esc)')) ?>"><svg viewBox="0 0 24 24" class="ico-enter"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><svg viewBox="0 0 24 24" class="ico-exit"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button>
-                <button type="button" class="iconbtn lightbox__close" data-lb-close aria-label="<?= h(t('Schließen')) ?>" title="<?= h(t('Schließen')) ?>"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+                <a class="iconbtn lightbox__close" href="<?= h($gridUrl) ?>" data-lb-close aria-label="<?= h(t('Schließen')) ?>" title="<?= h(t('Schließen')) ?>"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
             </div>
             <div class="lightbox__info">
-                <span class="lightbox__host" data-lb-host></span>
-                <h2 class="lightbox__title" data-lb-title></h2>
-                <span class="muted" data-lb-size></span>
+                <span class="lightbox__host" data-lb-host><?= $cur ? h($cur['host']) : '' ?></span>
+                <h2 class="lightbox__title" data-lb-title><?= $cur ? h($cur['title']) : '' ?></h2>
+                <span class="muted" data-lb-size><?= $cur && $cur['w'] && $cur['h'] ? (int)$cur['w'] . ' × ' . (int)$cur['h'] . ' px' : '' ?></span>
                 <div class="lightbox__actions">
-                    <a class="btn btn--primary" data-lb-page<?= $rel . $target ?>><?= h(t('Seite besuchen')) ?></a>
-                    <a class="btn" data-lb-src<?= $rel ?> target="_blank"><?= h(t('Bild in Originalgröße')) ?></a>
+                    <a class="btn btn--primary" data-lb-page<?= $cur ? ' href="' . h($cur['page']) . '"' : '' ?><?= $rel . $target ?>><?= h(t('Seite besuchen')) ?></a>
+                    <a class="btn" data-lb-src<?= $rel ?> target="_blank"<?= $cur && $cur['src'] !== '' ? ' href="' . h($cur['src']) . '"' : ($cur ? ' hidden' : '') ?>><?= h(t('Bild in Originalgröße')) ?></a>
                 </div>
             </div>
-            <button type="button" class="iconbtn lightbox__nav lightbox__nav--prev" data-lb-prev aria-label="<?= h(t('Vorheriges Bild')) ?>"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
-            <button type="button" class="iconbtn lightbox__nav lightbox__nav--next" data-lb-next aria-label="<?= h(t('Nächstes Bild')) ?>"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+            <a class="iconbtn lightbox__nav lightbox__nav--prev" data-lb-prev aria-label="<?= h(t('Vorheriges Bild')) ?>"<?= $vi > 0 ? ' href="' . h(smUrl(['view' => $vi - 1] + $base)) . '#lb"' : ($vi === 0 ? ' hidden' : '') ?>><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></a>
+            <a class="iconbtn lightbox__nav lightbox__nav--next" data-lb-next aria-label="<?= h(t('Nächstes Bild')) ?>"<?= $vi >= 0 && $vi < count($imgs) - 1 ? ' href="' . h(smUrl(['view' => $vi + 1] + $base)) . '#lb"' : ($vi >= 0 ? ' hidden' : '') ?>><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></a>
         </div>
     </div>
 <?php elseif ($tab === 'news'): ?>

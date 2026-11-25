@@ -4,6 +4,7 @@
 
     var root = document.documentElement;
     var body = document.body;
+    root.classList.add('has-js');
     var $ = function (sel, el) { return (el || document).querySelector(sel); };
     var $$ = function (sel, el) { return Array.prototype.slice.call((el || document).querySelectorAll(sel)); };
 
@@ -337,6 +338,8 @@
         var cur = -1;
         var img = $('[data-lb-img]', lb);
         var fullBtn = $('[data-lb-full]', lb);
+        var prevBtn = $('[data-lb-prev]', lb);
+        var nextBtn = $('[data-lb-next]', lb);
         var fsApi = lb.requestFullscreen ? 'std' : (lb.webkitRequestFullscreen ? 'webkit' : '');
 
         function show(i) {
@@ -351,7 +354,12 @@
             $('[data-lb-size]', lb).textContent = a.getAttribute('data-size');
             $('[data-lb-cap]', lb).textContent = [a.getAttribute('data-host'), a.getAttribute('data-title')].filter(Boolean).join(' · ');
             $('[data-lb-count]', lb).textContent = (i + 1) + ' / ' + tiles.length;
-            $('[data-lb-page]', lb).href = a.href;
+            $('[data-lb-page]', lb).href = a.getAttribute('data-page') || a.href;
+            // Server-Großansicht (ohne JavaScript geöffnet): deren großes Bild wird hier nicht mehr gebraucht
+            var hiOld = $('[data-lb-hi]', lb);
+            if (hiOld && hiOld.parentNode) hiOld.parentNode.removeChild(hiOld);
+            prevBtn.hidden = i <= 0;
+            nextBtn.hidden = i >= tiles.length - 1;
             var src = a.getAttribute('data-src');
             var srcA = $('[data-lb-src]', lb);
             srcA.hidden = !src;
@@ -372,6 +380,8 @@
             if (isFull()) exitFull();
             lb.hidden = true;
             body.style.overflow = '';
+            // War die Großansicht über die Adresse (?view=…) geöffnet: zurück zur Rasteradresse
+            if (/[?&]view=/.test(location.search) && window.history && history.replaceState) history.replaceState(null, '', lb.getAttribute('data-grid-url'));
             if (tiles[cur]) tiles[cur].focus();
         }
 
@@ -434,12 +444,17 @@
             ev.preventDefault();
             show($$('.grid__item', grid).indexOf(a));
         });
-        $('[data-lb-close]', lb).addEventListener('click', hide);
+        $('[data-lb-close]', lb).addEventListener('click', function (ev) { ev.preventDefault(); hide(); });
         fullBtn.addEventListener('click', toggleFull);
-        $('[data-lb-prev]', lb).addEventListener('click', function () { show(cur - 1); });
-        $('[data-lb-next]', lb).addEventListener('click', function () { show(cur + 1); });
+        prevBtn.addEventListener('click', function (ev) { ev.preventDefault(); show(cur - 1); });
+        nextBtn.addEventListener('click', function (ev) { ev.preventDefault(); show(cur + 1); });
         lb.addEventListener('click', function (ev) { if (ev.target === lb) hide(); });
         img.addEventListener('dblclick', toggleFull);
+        // Schon vom Server geöffnet (?view=N): mit dem passenden Bild weitermachen, Wischen und Pfeiltasten gehen dann auch
+        if (lb.hasAttribute('data-view')) {
+            var vt = $$('.grid__item', grid).filter(function (t) { return t.getAttribute('data-i') === lb.getAttribute('data-view'); })[0];
+            if (vt) show($$('.grid__item', grid).indexOf(vt));
+        }
         document.addEventListener('keydown', function (ev) {
             if (lb.hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
             if (document.querySelector('.overlay:not([hidden])')) return;
