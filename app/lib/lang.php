@@ -442,6 +442,9 @@ function smEnglish(): array
 function smEnglishMore(): array
 {
     return [
+        'Aus Sicherheitsgründen funktioniert die Token-Adresse nur direkt aus der Adressleiste, als Lesezeichen oder als Browser-Suche, nicht über einen Link auf einer anderen Seite.' => 'For security reasons the token address only works directly from the address bar, as a bookmark or as browser search, not via a link on another site.',
+        'Du bist schon als %s angemeldet. Zum Wechseln bitte erst abmelden.' => 'You are already signed in as %s. Please sign out first to switch.',
+        '„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.' => '"All together" needs an account, because it costs a search at every service.',
         'Dein Ort fürs Wetter' => 'Your location for weather',
         'z. B. Berlin' => 'e.g. London',
         'Dann reicht „wetter“ im Suchfeld.' => 'Then "weather" alone is enough in the search box.',
@@ -563,7 +566,7 @@ function smEnglishMore(): array
         'Ausrichtung' => 'Orientation',
         'Alle, Querformat, Hochformat oder Quadratisch.' => 'All, landscape, portrait or square.',
         'Größe' => 'Size',
-        'Groß (ab 2 Megapixel), Mittel, Klein (unter 0,25 Megapixel), nach den Maßen, die Brave liefert.' => 'Large (from 2 megapixels), medium, small (below 0.25 megapixels), by the dimensions Brave provides.',
+        'Sehr groß (ab 1 Megapixel), Groß (ab 0,3 Megapixel), Mittel, Klein (unter 0,15 Megapixel), nach den Maßen, die Brave liefert. Brave kennt meist die Größe, in der ein Bild auf der Seite steckt, darum sind die Stufen bewusst niedrig.' => 'Very large (from 1 megapixel), large (from 0.3 megapixels), medium, small (below 0.15 megapixels), by the dimensions Brave provides. Brave usually knows the size an image has on its page, so the steps are deliberately low.',
         '„Höchste Auflösung zuerst“ sortiert nach Breite × Höhe.' => '"Highest resolution first" sorts by width × height.',
         'Vorschau' => 'Preview',
         'Klick auf ein Bild öffnet die große Vorschau, F oder Doppelklick das Vollbild. Dort ist das Bild immer ganz zu sehen, zentriert auf Schwarz. Blättern mit ← →, Wischen oder den Pfeilen.' => 'Clicking an image opens the large preview, F or a double click the full screen. There the image is always shown completely, centred on black. Browse with ← →, swiping or the arrows.',
@@ -836,8 +839,9 @@ function smEnglishMore(): array
         'Hochformat' => 'Portrait',
         'Quadratisch' => 'Square',
         'Alle Größen' => 'All sizes',
-        'Groß (ab 2 MP)' => 'Large (from 2 MP)',
-        'Klein (unter 0,25 MP)' => 'Small (below 0.25 MP)',
+        'Sehr groß (ab 1 MP, etwa HD)' => 'Very large (from 1 MP, about HD)',
+        'Groß (ab 0,3 MP, etwa 640 × 480)' => 'Large (from 0.3 MP, about 640 × 480)',
+        'Klein (unter 0,15 MP)' => 'Small (below 0.15 MP)',
         'vor %d Minuten' => '%d minutes ago',
         'vor %d Stunden' => '%d hours ago',
         'gestern' => 'yesterday',

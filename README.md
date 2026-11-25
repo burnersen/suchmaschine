@@ -180,7 +180,7 @@ Unter **Werkzeuge** (Menü oben rechts oder Startseite): **Passwort-Generator** 
 
 ### Bilder
 
-- **Filter wie bei Google:** Ausrichtung (Quer, Hoch, Quadratisch) und Größe (Groß ab 2 MP, Mittel, Klein unter 0,25 MP), nach den Maßen, die Brave liefert.
+- **Filter wie bei Google:** Ausrichtung (Quer, Hoch, Quadratisch) und Größe (Sehr groß ab 1 MP, Groß ab 0,3 MP, Mittel, Klein unter 0,15 MP), nach den Maßen, die Brave liefert.
 - **Sortierung nach Auflösung** (Breite × Höhe, höchste zuerst).
 - **Vollbild** zeigt jedes Bild immer ganz: zentriert auf Schwarz, höchstens so groß wie der Bildschirm, nie beschnitten.
 

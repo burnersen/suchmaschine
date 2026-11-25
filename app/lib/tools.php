@@ -188,7 +188,9 @@ function smImageOrientations(): array
 
 function smImageSizes(): array
 {
-    return ['' => t('Alle Größen'), 'large' => t('Groß (ab 2 MP)'), 'medium' => t('Mittel'), 'small' => t('Klein (unter 0,25 MP)')];
+    // Grenzen nach echten Brave-Daten: Brave meldet meist die Maße, in denen das Bild auf der Seite steckt (Median um 0,25 MP)
+    return ['' => t('Alle Größen'), 'xl' => t('Sehr groß (ab 1 MP, etwa HD)'), 'large' => t('Groß (ab 0,3 MP, etwa 640 × 480)'),
+            'medium' => t('Mittel'), 'small' => t('Klein (unter 0,15 MP)')];
 }
 
 function smImageFilter(array $res, string $or, string $size, bool $byRes): array
@@ -202,9 +204,10 @@ function smImageFilter(array $res, string $or, string $size, bool $byRes): array
         if ($or === 'port' && !($h > $w * 1.1)) return false;
         if ($or === 'square' && ($w > $h * 1.1 || $h > $w * 1.1)) return false;
         $px = $w * $h;
-        if ($size === 'large' && $px < 2000000) return false;
-        if ($size === 'medium' && ($px < 250000 || $px >= 2000000)) return false;
-        if ($size === 'small' && $px >= 250000) return false;
+        if ($size === 'xl' && $px < 1000000) return false;
+        if ($size === 'large' && $px < 300000) return false;
+        if ($size === 'medium' && ($px < 150000 || $px >= 300000)) return false;
+        if ($size === 'small' && $px >= 150000) return false;
         return true;
     }));
     if ($byRes) {

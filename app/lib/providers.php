@@ -743,7 +743,7 @@ function smProvNormalize(string $id, array $p, array $d): array
             foreach ((array)($d['results'] ?? []) as $r) {
                 if (!is_array($r)) continue;
                 $ex = is_array($r['excerpts'] ?? null) ? implode(' … ', array_filter($r['excerpts'], 'is_string')) : '';
-                $items[] = [$r['url'] ?? '', $r['title'] ?? '', smStripMarkdown($ex), $r['publish_date'] ?? ''];
+                $items[] = [$r['url'] ?? '', $r['title'] ?? '', $ex, $r['publish_date'] ?? ''];
             }
             break;
         case 'firecrawl':
@@ -781,7 +781,10 @@ function smMkResult(string $id, string $url, string $title, string $desc, string
 {
     $host = smHost((string)parse_url($url, PHP_URL_HOST));
     $title = trim(preg_replace('/\s+/u', ' ', smPlain($title)));
-    $desc = trim(preg_replace('/\s+/u', ' ', smPlain($desc)));
+    $desc = trim(preg_replace('/\s+/u', ' ', smStripMarkdown(smPlain($desc))));
+    // Manche Dienste wiederholen den Titel am Anfang des Textes
+    $tcmp = trim(preg_replace('/\s+/u', ' ', smStripMarkdown($title)));
+    if ($tcmp !== '' && mb_stripos($desc, $tcmp) === 0) $desc = ltrim(mb_substr($desc, mb_strlen($tcmp)), " :·-–|");
     if (mb_strlen($desc) > 300) $desc = rtrim(mb_substr($desc, 0, 300), " ,.;:-") . ' …';
     $path = trim((string)parse_url($url, PHP_URL_PATH), '/');
     $segs = $path === '' ? [] : array_slice(array_map('rawurldecode', explode('/', $path)), 0, 3);
@@ -795,9 +798,12 @@ function smMkResult(string $id, string $url, string $title, string $desc, string
 /** Markdown-Reste (Überschriften, Links, Hervorhebungen) aus Textauszügen entfernen */
 function smStripMarkdown(string $s): string
 {
-    $s = preg_replace('/!\[[^\]]*\]\([^)]*\)/', '', $s);
-    $s = preg_replace('/\[([^\]]*)\]\([^)]*\)/', '$1', $s);
-    $s = preg_replace('/^#{1,6}\s*/m', '', $s);
+    $s = preg_replace('/!\[[^\]]*\]\([^)]*\)/', '', $s);              // Bilder
+    $s = preg_replace('/\[([^\]]*)\]\([^)]*\)/', '$1', $s);           // Links → Text
+    $s = preg_replace('/(^|\s)#{1,6}\s+/m', '$1', (string)$s);          // Überschriften
+    $s = preg_replace('/\|?(\s*:?-{1,}:?\s*\|){1,}/', ' ', (string)$s); // Trennzeilen von Tabellen
+    $s = str_replace('|', ' ', (string)$s);
+    $s = preg_replace('/(^|\s)[*+\-•]\s+/m', '$1', $s);                // Aufzählungen
     return str_replace(['**', '__', '`'], '', (string)$s);
 }
 
