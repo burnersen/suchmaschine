@@ -1,5 +1,6 @@
 <?php
-/* Suchmaschine – Anbindung an die Brave Search API (Web, Bilder, News, Videos) */
+/* Suchmaschine – Brave Search API: Länder, Sprachen, Zeiträume und das Eindampfen der Antworten (Web, Bilder, News, Videos).
+   Die Anfrage selbst baut providers.php, zusammen mit den anderen Suchdiensten. */
 defined('SM_VERSION') || exit;
 
 const SM_API = 'https://api.search.brave.com/res/v1/';
@@ -50,130 +51,10 @@ function smFreshness(): array
     return ['' => t('Beliebige Zeit'), 'pd' => t('Letzte 24 Stunden'), 'pw' => t('Letzte Woche'), 'pm' => t('Letzter Monat'), 'py' => t('Letztes Jahr')];
 }
 
-/**
- * Sucht bei Brave oder im Cache.
- * $kind: web | images | news | videos
- * $o: country, search_lang, safesearch, page, freshness, exact
- */
-function smSearch(string $kind, string $q, array $o): array
-{
-    $page = max(1, min(10, (int)($o['page'] ?? 1)));
-    $safe = (string)($o['safesearch'] ?? 'moderate');
-    $params = [
-        'q'           => $q,
-        'country'     => (string)($o['country'] ?? 'ALL'),
-        'search_lang' => (string)($o['search_lang'] ?? 'en'),
-        'ui_lang'     => smLang() === 'de' ? 'de-DE' : 'en-US',
-        'safesearch'  => $safe,
-    ];
-    switch ($kind) {
-        case 'images':
-            $path = 'images/search';
-            $params['count'] = 100;
-            $params['safesearch'] = $safe === 'off' ? 'off' : 'strict';   // Bilder kennen nur off/strict
-            unset($params['ui_lang']);
-            break;
-        case 'news':
-        case 'videos':
-            $path = $kind . '/search';
-            $params['count'] = 20;
-            $params['offset'] = $page - 1;
-            break;
-        default:
-            $kind = 'web';
-            $path = 'web/search';
-            $params['count'] = !empty($o['endless']) ? 20 : max(5, min(20, (int)smSetting('per_page')));
-            $params['offset'] = $page - 1;
-            if (!empty($o['exact'])) $params['spellcheck'] = '0';
-    }
-    if (!empty($o['freshness']) && $kind !== 'images' && isset(smFreshness()[$o['freshness']])) {
-        $params['freshness'] = $o['freshness'];
-    }
-    if ($params['country'] === '') unset($params['country']);
-
-    $cacheKey = $path . '|' . json_encode($params);
-    if ($hit = smCacheGet($cacheKey)) {
-        $hit['cached'] = true;
-        return $hit;
-    }
-
-    $key = trim(smSetting('api_key'));
-    if ($key === '') {
-        throw new SmSearchError(t('Es ist noch kein Brave API-Key eingetragen. Ein Administrator kann ihn unter Verwaltung → Einstellungen hinterlegen.'));
-    }
-    if (!smUsageReserve($kind)) {
-        throw new SmSearchError(t('Das Monatslimit von %d Suchen ist erreicht. Am Monatsersten geht es weiter, oder ein Administrator erhöht das Limit.', (int)smSetting('monthly_limit')));
-    }
-
-    $data = smBraveGet($key, $path, $params);
-    switch ($kind) {
-        case 'images': $out = smNormImages($data); break;
-        case 'news':   $out = smNormNews($data); break;
-        case 'videos': $out = smNormVideos($data); break;
-        default:       $out = smNormWeb($data);
-    }
-    smCacheSet($cacheKey, $out);
-    $out['cached'] = false;
-    return $out;
-}
-
-/** Eine Anfrage an Brave. Wirft SmSearchError mit verständlicher Meldung. */
-function smBraveGet(string $key, string $path, array $params, int $timeout = 12): array
-{
-    $base = getenv('SM_API_BASE') ?: SM_API;   // nur zum Testen
-    $ch = curl_init($base . $path . '?' . http_build_query($params));
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING       => '',
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT        => $timeout,
-        CURLOPT_HTTPHEADER     => ['Accept: application/json', 'X-Subscription-Token: ' . $key],
-        CURLOPT_USERAGENT      => 'Suchmaschine/' . SM_VERSION . ' (+https://github.com/' . SM_REPO . ')',
-    ]);
-    $body = curl_exec($ch);
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    $errno = curl_errno($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-
-    if ($body === false || $errno) {
-        error_log('Suchmaschine: Brave nicht erreichbar: ' . $error);
-        throw new SmSearchError($errno === CURLE_OPERATION_TIMEDOUT
-            ? t('Brave hat zu lange gebraucht. Bitte gleich noch einmal versuchen.')
-            : t('Brave ist gerade nicht erreichbar. Kann der Server Verbindungen nach außen aufbauen?'));
-    }
-    $data = json_decode((string)$body, true);
-    if ($status === 200 && is_array($data)) return $data;
-
-    error_log('Suchmaschine: Brave HTTP ' . $status . ': ' . substr((string)$body, 0, 500));
-    $detail = is_array($data) ? (string)($data['error']['detail'] ?? '') : '';
-    $code = is_array($data) ? (string)($data['error']['code'] ?? '') : '';
-    if ($status === 401 || $status === 403 || ($status === 422 && stripos($code . $detail, 'token') !== false)) {
-        $msg = t('Brave nimmt den API-Key nicht an. Stimmt der Key, und ist im Brave-Dashboard ein Plan aktiv?');
-    } elseif ($status === 402) {
-        $msg = t('Das Brave-Guthaben ist aufgebraucht.');
-    } elseif ($status === 422 || $status === 400) {
-        $msg = t('Brave hat die Anfrage abgelehnt.');
-    } elseif ($status === 429) {
-        $msg = t('Zu viele Anfragen oder das Kontingent bei Brave ist erschöpft. Kurz warten oder im Brave-Dashboard nachsehen.');
-    } elseif ($status >= 500) {
-        $msg = t('Brave hat gerade technische Probleme. Bitte später noch einmal versuchen.');
-    } else {
-        $msg = t('Unerwartete Antwort von Brave (HTTP %d).', $status);
-    }
-    if ($detail !== '') $msg .= ' (Brave: ' . mb_substr($detail, 0, 200) . ')';
-    throw new SmSearchError($msg);
-}
-
-/** Prüft einen API-Key mit einer echten Suche. Liefert Fehlertext oder ''. */
+/** Prüft einen Brave-Key mit einer echten Suche. Liefert Fehlertext oder ''. */
 function smTestKey(string $key): string
 {
-    try {
-        smBraveGet(trim($key), 'web/search', ['q' => 'test', 'count' => 1], 10);
-        return '';
-    } catch (SmSearchError $e) {
-        return $e->getMessage();
-    }
+    return smProvTest('brave', $key);
 }
 
 /* ---------- Antworten auf das Nötige eindampfen ---------- */
@@ -219,6 +100,7 @@ function smNormWeb(array $d): array
             'path'    => (string)($r['meta_url']['path'] ?? ''),
             'favicon' => smImg($r['meta_url']['favicon'] ?? ''),
             'age'     => (string)($r['age'] ?? ''),
+            'ts'      => smParseTime($r['page_age'] ?? ''),
             'thumb'   => smImg($r['thumbnail']['src'] ?? ''),
             'links'   => array_values($links),
         ];
@@ -347,6 +229,7 @@ function smNormNews(array $d): array
             'source'  => smPlain((string)($r['profile']['name'] ?? $r['source']['name'] ?? '')),
             'favicon' => smImg($r['meta_url']['favicon'] ?? ''),
             'age'     => (string)($r['age'] ?? ''),
+            'ts'      => smParseTime($r['page_age'] ?? ''),
             'thumb'   => smImg($r['thumbnail']['src'] ?? ''),
             'breaking' => !empty($r['breaking']),
         ];
@@ -369,6 +252,7 @@ function smNormVideos(array $d): array
             'host'     => smHostOf($r),
             'favicon'  => smImg($r['meta_url']['favicon'] ?? ''),
             'age'      => (string)($r['age'] ?? ''),
+            'ts'       => smParseTime($r['page_age'] ?? ''),
             'thumb'    => smImg($r['thumbnail']['src'] ?? $v['thumbnail']['src'] ?? ''),
             'duration' => smPlain((string)($v['duration'] ?? '')),
             'creator'  => smPlain((string)($v['creator'] ?? $v['publisher'] ?? '')),

@@ -129,6 +129,108 @@ function smApplyDomainLists(array $res, array $lists): array
     return $res;
 }
 
+/* ---------- Sortieren und Begrenzen (nach dem Zwischenspeicher, kostet also nichts) ---------- */
+
+/** Ersetzt die Webtreffer und besetzt ihre Plätze in der gemischten Reihenfolge der Reihe nach neu */
+function smSetWeb(array $res, array $results): array
+{
+    $res['results'] = array_values($results);
+    if (isset($res['order'])) {
+        $order = [];
+        $n = 0;
+        $total = count($res['results']);
+        foreach ($res['order'] as $o) {
+            if ($o[0] !== 'web') { $order[] = $o; continue; }
+            if ($n < $total) $order[] = ['web', $n++];
+        }
+        while ($n < $total) $order[] = ['web', $n++];
+        $res['order'] = $order;
+    }
+    return $res;
+}
+
+/** Streng chronologisch: neueste zuerst, Treffer ohne Datum ans Ende (sonst Reihenfolge wie geliefert) */
+function smSortByDate(array $res): array
+{
+    $list = $res['results'] ?? [];
+    $idx = array_keys($list);
+    usort($idx, function ($a, $b) use ($list) {
+        $ta = (int)($list[$a]['ts'] ?? 0);
+        $tb = (int)($list[$b]['ts'] ?? 0);
+        if (($ta > 0) !== ($tb > 0)) return $ta > 0 ? -1 : 1;
+        return [$tb, $a] <=> [$ta, $b];
+    });
+    $res = smSetWeb($res, array_map(function ($i) use ($list) { return $list[$i]; }, $idx));
+    $res['sorted'] = true;
+    return $res;
+}
+
+/** Höchstens $max Treffer pro Domain, damit eine Seite nicht alles flutet */
+function smDomainLimit(array $res, int $max = 3): array
+{
+    $seen = [];
+    $keep = [];
+    $res['dl_hidden'] = 0;
+    foreach ($res['results'] ?? [] as $r) {
+        $h = strtolower(smHost((string)($r['host'] ?? '')));
+        $seen[$h] = ($seen[$h] ?? 0) + 1;
+        if ($h !== '' && $seen[$h] > $max) { $res['dl_hidden']++; continue; }
+        $keep[] = $r;
+    }
+    return $res['dl_hidden'] ? smSetWeb($res, $keep) : $res;
+}
+
+/** Bildfilter wie bei Google: Ausrichtung, Größe, Sortierung nach Auflösung (Breite × Höhe) */
+function smImageOrientations(): array
+{
+    return ['' => t('Alle Formate'), 'land' => t('Querformat'), 'port' => t('Hochformat'), 'square' => t('Quadratisch')];
+}
+
+function smImageSizes(): array
+{
+    return ['' => t('Alle Größen'), 'large' => t('Groß (ab 2 MP)'), 'medium' => t('Mittel'), 'small' => t('Klein (unter 0,25 MP)')];
+}
+
+function smImageFilter(array $res, string $or, string $size, bool $byRes): array
+{
+    $before = count($res['results'] ?? []);
+    $list = array_values(array_filter($res['results'] ?? [], function ($im) use ($or, $size) {
+        $w = (int)$im['w'];
+        $h = (int)$im['h'];
+        if (($or !== '' || $size !== '') && ($w <= 0 || $h <= 0)) return false;
+        if ($or === 'land' && !($w > $h * 1.1)) return false;
+        if ($or === 'port' && !($h > $w * 1.1)) return false;
+        if ($or === 'square' && ($w > $h * 1.1 || $h > $w * 1.1)) return false;
+        $px = $w * $h;
+        if ($size === 'large' && $px < 2000000) return false;
+        if ($size === 'medium' && ($px < 250000 || $px >= 2000000)) return false;
+        if ($size === 'small' && $px >= 250000) return false;
+        return true;
+    }));
+    if ($byRes) {
+        $idx = array_keys($list);
+        usort($idx, function ($a, $b) use ($list) {
+            return [(int)$list[$b]['w'] * (int)$list[$b]['h'], $a] <=> [(int)$list[$a]['w'] * (int)$list[$a]['h'], $b];
+        });
+        $list = array_map(function ($i) use ($list) { return $list[$i]; }, $idx);
+    }
+    $res['results'] = $list;
+    $res['img_hidden'] = $before - count($list);
+    return $res;
+}
+
+/** „vor 3 Tagen“ aus einem Zeitstempel, für Dienste, die nur ein Datum liefern */
+function smAgeText(int $ts): string
+{
+    if ($ts <= 0) return '';
+    $d = time() - $ts;
+    if ($d < 3600) return t('vor %d Minuten', max(1, (int)floor($d / 60)));
+    if ($d < 86400) return t('vor %d Stunden', (int)floor($d / 3600));
+    if ($d < 86400 * 2) return t('gestern');
+    if ($d < 86400 * 30) return t('vor %d Tagen', (int)floor($d / 86400));
+    return smDate($ts);
+}
+
 /* ---------- Bangs ---------- */
 
 /** Mitgelieferte Bangs: Kürzel => [Name, Adresse mit {q}] */
@@ -154,6 +256,9 @@ function smBuiltinBangs(): array
         'wa'   => ['Wolfram|Alpha', 'https://www.wolframalpha.com/input?i={q}'],
         'ia'   => ['Internet Archive', 'https://web.archive.org/web/*/{q}'],
         'ddg'  => ['DuckDuckGo', 'https://duckduckgo.com/?q={q}'],
+        'sp'   => ['Startpage', 'https://www.startpage.com/do/search?q={q}'],
+        'mj'   => ['Mojeek', 'https://www.mojeek.com/search?q={q}'],
+        'eco'  => ['Ecosia', 'https://www.ecosia.org/search?q={q}'],
         'b'    => ['Brave Search', 'https://search.brave.com/search?q={q}'],
         'g'    => ['Google', 'https://www.google.com/search?q={q}'],
     ];
@@ -163,6 +268,12 @@ function smBuiltinBangs(): array
 function smTabBangs(): array
 {
     return ['i' => 'images', 'n' => 'news', 'v' => 'videos'];
+}
+
+/** Kürzel, die die Suchmaschine selbst braucht (Reiter und Suchdienste) */
+function smBangReserved(string $t): bool
+{
+    return isset(smTabBangs()[$t]) || isset(smProviderBangs()[$t]);
 }
 
 function smCleanBangTrigger($t): string
@@ -186,7 +297,7 @@ function smCleanBangs($in): array
         if (!is_array($b)) continue;
         $t = smCleanBangTrigger($b['t'] ?? '');
         $u = smCleanBangUrl($b['u'] ?? '');
-        if ($t === '' || $u === '' || isset(smTabBangs()[$t])) continue;
+        if ($t === '' || $u === '' || smBangReserved($t)) continue;
         $n = mb_substr(smPlain((string)($b['n'] ?? '')), 0, 40);
         $out[$t] = ['t' => $t, 'n' => $n !== '' ? $n : $t, 'u' => $u];
         if (count($out) >= SM_MAX_BANGS) break;
@@ -227,6 +338,11 @@ function smBangTarget(string $q, ?array $me): ?array
         $rest = trim(implode(' ', $rest));
         if (isset(smTabBangs()[$t])) {
             return ['to' => smUrl(['q' => $rest !== '' ? $rest : null, 't' => smTabBangs()[$t]]), 'internal' => true];
+        }
+        // Gezielt einen Suchdienst ansteuern: !brave, !tv, !exa, !pa, !fc, !multi
+        if (isset(smProviderBangs()[$t])) {
+            $tab = isset($_GET['t']) && in_array($_GET['t'], ['news', 'images', 'videos'], true) ? $_GET['t'] : null;
+            return ['to' => smUrl(['q' => $rest !== '' ? $rest : null, 't' => $tab, 'src' => smProviderBangs()[$t]]), 'internal' => true];
         }
         $bangs = smBangs($me);
         if (!isset($bangs[$t])) continue;
@@ -312,14 +428,18 @@ function smApiQuery(string $q, string $ft, ?array $lens): string
 /* ---------- Weiterleitung nach außen (Bangs, Auf gut Glück) ---------- */
 
 /** Kein 303 nach außen: Browser blockieren das nach einem Formular (CSP form-action). Darum eine Zwischenseite. */
-function smExternalRedirect(string $url, string $title): void
+function smExternalRedirect(string $url, string $title, string $msg = '', int $delay = 0): void
 {
     smHeaders();
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
     echo '<!DOCTYPE html><meta charset="utf-8"><meta name="referrer" content="no-referrer">'
-       . '<meta http-equiv="refresh" content="0;url=' . h($url) . '"><title>' . h($title) . '</title>'
-       . '<p><a href="' . h($url) . '" rel="noopener noreferrer">' . h($url) . '</a></p>';
+       . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+       . '<meta http-equiv="refresh" content="' . max(0, $delay) . ';url=' . h($url) . '"><title>' . h($title) . '</title>'
+       . '<link rel="stylesheet" href="' . h(smAsset('app.css')) . '">'
+       . '<main class="redir">' . ($msg !== '' ? '<p class="redir__msg">' . h($msg) . '</p>' : '')
+       . '<p><a class="btn btn--primary" href="' . h($url) . '" rel="noopener noreferrer">' . h($msg !== '' ? t('Jetzt weiter') : $url) . '</a>'
+       . ($msg !== '' ? ' <a class="btn" href="' . h(smBase()) . '">' . h(t('Abbrechen')) . '</a>' : '') . '</p></main>';
     exit;
 }
 
@@ -334,6 +454,8 @@ function smCleanPrefs(array $p): array
     if (in_array($p['safesearch'] ?? '', ['off', 'moderate', 'strict'], true)) $out['safesearch'] = $p['safesearch'];
     if (in_array($p['scroll'] ?? '', ['pages', 'endless'], true)) $out['scroll'] = $p['scroll'];
     foreach (['newtab', 'history'] as $k) if (isset($p[$k])) $out[$k] = !empty($p[$k]);
+    if (isset($p['city']) && is_string($p['city'])) $out['city'] = trim(mb_substr(smPlain($p['city']), 0, 60));
+    if (isset($p['weather_src']) && isset(smWeatherSources()[$p['weather_src']])) $out['weather_src'] = $p['weather_src'];
     foreach (['block', 'raise', 'lower'] as $k) $out[$k] = smCleanDomains($p[$k] ?? []);
     $out['bangs'] = smCleanBangs($p['bangs'] ?? []);
     $out['lenses'] = smCleanLenses($p['lenses'] ?? []);
@@ -381,6 +503,7 @@ function smConfigKeys(): array
 {
     $int = function (int $min, int $max) { return function ($v) use ($min, $max) { return is_numeric($v) ? (string)max($min, min($max, (int)$v)) : null; }; };
     $in = function (array $ok) { return function ($v) use ($ok) { return in_array((string)$v, $ok, true) ? (string)$v : null; }; };
+    $key = function ($v) { return is_string($v) && ($v === '' || preg_match('/^[\x21-\x7e]{8,300}$/', trim($v))) ? trim($v) : null; };
     return [
         'site_name'     => function ($v) { return is_string($v) ? trim(mb_substr($v, 0, 40)) : null; },
         'accent'        => $in(array_keys(smAccents())),
@@ -395,15 +518,40 @@ function smConfigKeys(): array
         'public_hour'   => $int(1, 1000),
         'auto_update'   => $in(['0', '1']),
         'img_proxy'     => $in(['0', '1']),
-        'api_key'       => function ($v) { return is_string($v) && preg_match('/^[\x21-\x7e]{8,200}$/', trim($v)) ? trim($v) : null; },
-    ];
+        'shortener'     => $in(['0', '1']),
+        'balance'       => $in(['0', '1']),
+        'answers'       => $in(['0', '1']),
+        'wiki'          => $in(['0', '1']),
+        'fallback_auto' => $in(['0', '1']),
+        'fallback_url'  => function ($v) { return is_string($v) && ($v === '' || (smCleanBangUrl($v) !== '' && strpos($v, '{q}') !== false)) ? $v : null; },
+        'prov_order'    => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
+        'multi_set'     => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
+        'warn_pct'      => $int(10, 100),
+        'weather_src'   => $in(array_keys(smWeatherSources())),
+        'api_key'       => $key,
+    ] + smProvConfigKeys($int, $key);
+}
+
+/** Prüfregeln für die Einstellungen der Suchdienste (p_tavily_key …) */
+function smProvConfigKeys(callable $int, callable $key): array
+{
+    $out = [];
+    foreach (smProvSettingKeys() as $k) {
+        $f = substr($k, strrpos($k, '_') + 1);
+        if ($f === 'key') $out[$k] = $key;
+        elseif ($f === 'start') $out[$k] = function ($v) { return is_string($v) && ($v === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $v)) ? $v : null; };
+        elseif ($f === 'cost') $out[$k] = function ($v) { return is_numeric($v) ? (string)max(0.01, min(1000, (float)$v)) : null; };
+        elseif ($f === 'on') $out[$k] = function ($v) { return in_array((string)$v, ['0', '1'], true) ? (string)$v : null; };
+        else $out[$k] = $int(0, 10000000);
+    }
+    return $out;
 }
 
 function smServeConfigExport(bool $withKey): void
 {
     $s = [];
     foreach (array_keys(smConfigKeys()) as $k) {
-        if ($k === 'api_key' && !$withKey) continue;
+        if (($k === 'api_key' || substr($k, -4) === '_key') && !$withKey) continue;
         $s[$k] = smSetting($k);
     }
     smHeaders();

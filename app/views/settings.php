@@ -37,6 +37,12 @@ $lists = smDomainLists($me);
 <?php endforeach; ?>
                 </div>
             </fieldset>
+            <div class="form__row">
+                <label class="field"><span><?= h(t('Dein Ort fürs Wetter')) ?></span><input type="text" name="city" maxlength="60" value="<?= h($me['prefs']['city'] ?? '') ?>" placeholder="<?= h(t('z. B. Berlin')) ?>">
+                    <small class="muted"><?= h(t('Dann reicht „wetter“ im Suchfeld.')) ?></small></label>
+                <label class="field"><span><?= h(t('Wetterquelle')) ?></span>
+                    <select name="weather_src"><option value=""><?= h(t('Standard der Installation')) ?></option><?php foreach (smWeatherSources() as $k => $v): ?><option value="<?= h($k) ?>"<?= $k === ($me['prefs']['weather_src'] ?? '') ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?></select></label>
+            </div>
             <label class="switch"><input type="checkbox" name="newtab" value="1"<?= $prefs['newtab'] ? ' checked' : '' ?>><span class="switch__ui"></span><span><?= h(t('Treffer in neuem Tab öffnen')) ?></span></label>
             <label class="switch"><input type="checkbox" name="history" value="1"<?= $prefs['history'] ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Letzte Suchen als Vorschläge zeigen')) ?><br><small class="muted"><?= h(t('Der Verlauf bleibt nur in diesem Browser, der Server merkt sich nichts.')) ?></small></span></label>
@@ -49,7 +55,14 @@ $lists = smDomainLists($me);
     <section class="panel">
         <h2><?= h(t('Als Standardsuche im Browser')) ?></h2>
         <p><?= h(t('Firefox: in der Adressleiste auf das Lupen-Symbol mit Plus klicken. Chrome und Edge: Einstellungen → Suchmaschinen → hinzufügen, mit dieser Adresse:')) ?></p>
+<?php if ($token !== ''): ?>
+        <p><code class="copy" data-copy title="<?= h(t('Klicken zum Kopieren')) ?>" data-done="<?= h(t('Kopiert')) ?>" data-secret><?= h(smOrigin()) ?>?token=<?= h(rawurlencode($token)) ?>&amp;q=%s</code></p>
+        <p class="muted small"><?= h(t('Mit deinem Login-Token: Der Browser bleibt so auch in privaten Fenstern oder nach dem Löschen der Cookies angemeldet. Der Token steht dann in den Browser-Einstellungen, also nur auf eigenen Geräten verwenden.')) ?></p>
+        <p class="muted small"><?= h(t('Ohne Token:')) ?> <code class="copy" data-copy data-done="<?= h(t('Kopiert')) ?>"><?= h(smOrigin()) ?>?q=%s</code></p>
+<?php else: ?>
         <p><code class="copy" data-copy title="<?= h(t('Klicken zum Kopieren')) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(smOrigin()) ?>?q=%s</code></p>
+        <p class="muted small"><?= t('Tipp: Mit einem <a href="%s">Login-Token</a> bleibt der Browser dauerhaft angemeldet, auch in privaten Fenstern.', h($surl('account') . '#token')) ?></p>
+<?php endif; ?>
         <p class="muted small"><?= h(t('Bangs funktionieren auch dort, z. B. „!w Berlin“ direkt in der Adressleiste.')) ?></p>
     </section>
 
@@ -160,7 +173,40 @@ $lists = smDomainLists($me);
         </form>
     </section>
 
+<?php else: $loginUrl = $token !== '' ? smOrigin() . '?token=' . rawurlencode($token) : ''; ?>
+    <section class="panel" id="token">
+        <h2><?= h(t('Login-Token')) ?></h2>
+        <p class="muted small"><?= h(t('Ein langer geheimer Schlüssel. Rufst du die Suchmaschine mit ?token=… auf, bist du sofort angemeldet und bleibst es 365 Tage (bis du dich abmeldest oder die Cookies löschst). Praktisch für die Adressleiste und als Standardsuche. Behandle ihn wie ein Passwort.')) ?></p>
+<?php if ($token !== ''): ?>
+        <label class="field"><span><?= h(t('Dein Token')) ?></span>
+            <span class="copyfield"><input type="password" value="<?= h($token) ?>" readonly data-reveal spellcheck="false" aria-label="<?= h(t('Dein Token')) ?>"><button type="button" class="btn btn--small" data-copy-text="<?= h($token) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span></label>
+        <label class="field"><span><?= h(t('Login-Adresse (z. B. als Lesezeichen)')) ?></span>
+            <span class="copyfield"><input type="password" value="<?= h($loginUrl) ?>" readonly data-reveal spellcheck="false"><button type="button" class="btn btn--small" data-copy-text="<?= h($loginUrl) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span></label>
+        <label class="field"><span><?= h(t('Such-Adresse für den Browser (%s = Suchbegriff)', '%s')) ?></span>
+            <span class="copyfield"><input type="password" value="<?= h($loginUrl . '&q=%s') ?>" readonly data-reveal spellcheck="false"><button type="button" class="btn btn--small" data-copy-text="<?= h($loginUrl . '&q=%s') ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span></label>
+        <p class="muted small"><?= h(t('Firefox: Auf dieser Seite in der Adressleiste auf das Lupen-Symbol mit Plus klicken, dann wird die Suchmaschine mit deinem Token hinzugefügt (OpenSearch).')) ?></p>
+        <div class="form__actions">
+            <form method="post" action="<?= h($surl('account')) ?>#token" data-confirm="<?= h(t('Neuen Token erzeugen? Der alte funktioniert dann nicht mehr, auch nicht in Lesezeichen und Browser-Suchen.')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="token_gen"><button type="submit" class="btn"><?= h(t('Neu erzeugen')) ?></button></form>
+            <form method="post" action="<?= h($surl('account')) ?>#token" data-confirm="<?= h(t('Token löschen?')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="token_del"><button type="submit" class="btn btn--danger"><?= h(t('Token löschen')) ?></button></form>
+        </div>
 <?php else: ?>
+        <form method="post" action="<?= h($surl('account')) ?>#token" class="form__actions"><?= smCsrfField($me) ?><input type="hidden" name="do" value="token_gen"><button type="submit" class="btn btn--primary"><?= h(t('Zufälligen Token erzeugen')) ?></button></form>
+<?php endif; ?>
+        <details class="token__own">
+            <summary><?= h(t('Eigenen Token festlegen')) ?></summary>
+            <form method="post" action="<?= h($surl('account')) ?>#token" class="form" data-busy>
+                <?= smCsrfField($me) ?><input type="hidden" name="do" value="token_set">
+                <label class="field"><span><?= h(t('Token (mindestens 32 Zeichen)')) ?></span><input type="text" name="token" minlength="32" maxlength="200" required pattern="[A-Za-z0-9._~\-]{32,200}" autocomplete="off" spellcheck="false" autocapitalize="off">
+                    <small class="muted"><?= h(t('Buchstaben ohne Umlaute, Ziffern und . _ ~ -, mindestens drei Zeichenarten und 12 verschiedene Zeichen.')) ?></small></label>
+                <div class="form__actions"><button type="submit" class="btn"><?= h(t('Token speichern')) ?></button></div>
+            </form>
+        </details>
+    </section>
+    <section class="panel">
+        <h2><?= h(t('Angemeldete Geräte')) ?></h2>
+        <p class="muted small"><?= h(t('Hast du einen Token weitergegeben oder ein Gerät verloren? Hier meldest du alle anderen Geräte ab. Danach am besten auch einen neuen Token erzeugen.')) ?></p>
+        <form method="post" action="<?= h($surl('account')) ?>" data-confirm="<?= h(t('Alle anderen Geräte abmelden?')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="logout_others"><button type="submit" class="btn"><?= h(t('Alle anderen Geräte abmelden')) ?></button></form>
+    </section>
     <section class="panel">
         <h2><?= h(t('Einstellungen sichern')) ?></h2>
         <p class="muted small"><?= h(t('Lädt alle deine Einstellungen als Datei herunter: Suche, Domain-Listen, Bangs und Linsen. Damit holst du alles nach einem Umzug oder Absturz wieder zurück, auch auf einer anderen Installation.')) ?></p>

@@ -32,12 +32,14 @@ function smCookie(string $value, int $expires): void
     setcookie(SM_COOKIE, $value, ['expires' => $expires, 'path' => smBase(), 'secure' => smIsHttps(), 'httponly' => true, 'samesite' => 'Lax']);
 }
 
-function smStartSession(int $userId): void
+/** Neue Sitzung. Nach dem Login per Token bleibt das Gerät 365 Tage angemeldet (verlängert sich bei Benutzung). */
+function smStartSession(int $userId, int $days = SM_SESSION_DAYS): void
 {
     $token = bin2hex(random_bytes(32));
-    $exp = time() + SM_SESSION_DAYS * 86400;
-    smQ('INSERT INTO sessions (hash, user_id, csrf, expires, touched) VALUES (?, ?, ?, ?, ?)',
-        [hash('sha256', $token), $userId, bin2hex(random_bytes(24)), $exp, time()]);
+    $days = max(1, min(400, $days));
+    $exp = time() + $days * 86400;
+    smQ('INSERT INTO sessions (hash, user_id, csrf, expires, touched, days) VALUES (?, ?, ?, ?, ?, ?)',
+        [hash('sha256', $token), $userId, bin2hex(random_bytes(24)), $exp, time(), $days]);
     smCookie($token, $exp);
 }
 
@@ -50,12 +52,12 @@ function smUser(): ?array
     $token = $_COOKIE[SM_COOKIE] ?? '';
     if (!is_string($token) || !preg_match('/^[0-9a-f]{64}$/', $token)) return null;
     $hash = hash('sha256', $token);
-    $row = smQ('SELECT s.csrf, s.touched, u.id, u.name, u.is_admin, u.prefs FROM sessions s JOIN users u ON u.id = s.user_id
+    $row = smQ('SELECT s.csrf, s.touched, s.days, u.id, u.name, u.is_admin, u.prefs FROM sessions s JOIN users u ON u.id = s.user_id
                 WHERE s.hash = ? AND s.expires > ?', [$hash, time()])->fetch();
     if (!$row) return null;
     // Höchstens einmal am Tag verlängern
     if (time() - (int)$row['touched'] > 86400) {
-        $exp = time() + SM_SESSION_DAYS * 86400;
+        $exp = time() + max(1, (int)$row['days']) * 86400;
         smQ('UPDATE sessions SET expires = ?, touched = ? WHERE hash = ?', [$exp, time(), $hash]);
         smCookie($token, $exp);
     }
@@ -71,6 +73,107 @@ function smLogout(array $me): void
 {
     smQ('DELETE FROM sessions WHERE hash = ?', [$me['hash']]);
     smCookie('', time() - 3600);
+}
+
+/** Alle anderen Geräte dieses Kontos abmelden */
+function smLogoutOthers(array $me): int
+{
+    return smQ('DELETE FROM sessions WHERE user_id = ? AND hash != ?', [$me['id'], $me['hash']])->rowCount();
+}
+
+/* ---------- Geheimer Login-Token: einmal mit ?token=… aufrufen, dann bleibt das Gerät angemeldet ---------- */
+
+const SM_TOKEN_DAYS = 365;
+
+/** Schlüssel zum Verschlüsseln gespeicherter Geheimnisse. Liegt in data/config.php, nicht in der Datenbank. */
+function smSecretKey(): string
+{
+    $cfg = smConfig();
+    if (empty($cfg['secret']) || strlen((string)$cfg['secret']) < 64) {
+        $cfg['secret'] = bin2hex(random_bytes(32));
+        smConfigWrite($cfg);
+        smConfig(true);
+    }
+    return hex2bin(substr((string)$cfg['secret'], 0, 64));
+}
+
+/** Verschlüsselt mit AES-256-GCM (OpenSSL). Ohne OpenSSL bleibt es lesbar, die Datenbank ist ja trotzdem geschützt. */
+function smSeal(string $plain): string
+{
+    if (!function_exists('openssl_encrypt')) return 'p:' . base64_encode($plain);
+    $iv = random_bytes(12);
+    $tag = '';
+    $ct = openssl_encrypt($plain, 'aes-256-gcm', smSecretKey(), OPENSSL_RAW_DATA, $iv, $tag);
+    return 'g1:' . base64_encode($iv . $tag . $ct);
+}
+
+function smUnseal(string $blob): string
+{
+    if (strpos($blob, 'p:') === 0) return (string)base64_decode(substr($blob, 2), true);
+    if (strpos($blob, 'g1:') !== 0 || !function_exists('openssl_decrypt')) return '';
+    $raw = (string)base64_decode(substr($blob, 3), true);
+    if (strlen($raw) < 29) return '';
+    $out = openssl_decrypt(substr($raw, 28), 'aes-256-gcm', smSecretKey(), OPENSSL_RAW_DATA, substr($raw, 0, 12), substr($raw, 12, 16));
+    return is_string($out) ? $out : '';
+}
+
+/** Zufälliger Token: 48 Zeichen aus Buchstaben und Ziffern (rund 285 Bit) */
+function smTokenGenerate(): string
+{
+    $abc = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $t = '';
+    for ($i = 0; $i < 48; $i++) $t .= $abc[random_int(0, 61)];
+    return $t;
+}
+
+/** Prüft einen selbst gewählten Token. Liefert Fehlertext oder ''. */
+function smTokenCheck(string $t): string
+{
+    if (strlen($t) < 32) return t('Der Token muss mindestens 32 Zeichen lang sein.');
+    if (strlen($t) > 200) return t('Der Token darf höchstens 200 Zeichen lang sein.');
+    if (!preg_match('/^[A-Za-z0-9._~-]+$/', $t)) return t('Erlaubt sind nur Buchstaben (ohne Umlaute), Ziffern und . _ ~ - (damit der Token in jeder Adresse funktioniert).');
+    if (count(array_unique(str_split($t))) < 12) return t('Der Token ist zu eintönig. Bitte mindestens 12 verschiedene Zeichen verwenden.');
+    $classes = (int)preg_match('/[a-z]/', $t) + (int)preg_match('/[A-Z]/', $t) + (int)preg_match('/[0-9]/', $t) + (int)preg_match('/[._~-]/', $t);
+    if ($classes < 3) return t('Bitte mindestens drei Zeichenarten mischen: Kleinbuchstaben, Großbuchstaben, Ziffern, Sonderzeichen.');
+    if (preg_match('/(.)\1{5,}|0123456|1234567|abcdefg|qwertz|qwerty|passwort|password/i', $t)) return t('Der Token enthält ein leicht zu erratendes Muster.');
+    return '';
+}
+
+/** Token setzen ('' = löschen). In der Datenbank steht nur die Prüfsumme zum Suchen und eine verschlüsselte Kopie zum Anzeigen. */
+function smTokenSet(int $uid, string $token): string
+{
+    if ($token === '') {
+        smQ("UPDATE users SET token_hash = NULL, token_enc = '' WHERE id = ?", [$uid]);
+        return '';
+    }
+    if (($e = smTokenCheck($token)) !== '') return $e;
+    $hash = hash('sha256', $token);
+    $other = smQ('SELECT id FROM users WHERE token_hash = ? AND id != ?', [$hash, $uid])->fetchColumn();
+    if ($other) return t('Dieser Token ist schon vergeben. Bitte einen anderen wählen.');
+    smQ('UPDATE users SET token_hash = ?, token_enc = ? WHERE id = ?', [$hash, smSeal($token), $uid]);
+    return '';
+}
+
+/** Token des Kontos zum Anzeigen ('' = keiner) */
+function smTokenGet(int $uid): string
+{
+    $enc = (string)smQ('SELECT token_enc FROM users WHERE id = ?', [$uid])->fetchColumn();
+    return $enc !== '' ? smUnseal($enc) : '';
+}
+
+/** Konto zu einem Token oder 0. Vergleich in konstanter Zeit, Bremse gegen Durchprobieren. */
+function smTokenLogin(string $token): array
+{
+    $wait = smThrottleWait('#token');
+    if ($wait > 0) return [0, t('Zu viele Fehlversuche. Bitte in %s noch einmal versuchen.', $wait > 90 ? t('%d Minuten', (int)ceil($wait / 60)) : t('%d Sekunden', $wait))];
+    $hash = hash('sha256', $token);
+    $row = strlen($token) >= 32 && strlen($token) <= 200 ? smQ('SELECT id, token_hash FROM users WHERE token_hash = ?', [$hash])->fetch() : false;
+    if (!$row || !hash_equals((string)$row['token_hash'], $hash)) {
+        smThrottleFail('#token');
+        return [0, t('Dieser Login-Token ist ungültig.')];
+    }
+    smThrottleClear('#token');
+    return [(int)$row['id'], ''];
 }
 
 /** Formular-Schutz: Token der Sitzung muss passen, und die Anfrage muss von hier kommen */

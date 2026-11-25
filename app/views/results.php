@@ -4,8 +4,42 @@ require __DIR__ . '/_vars.php';
 <nav class="tabs" aria-label="<?= h(t('Art der Suche')) ?>">
     <div class="tabs__inner">
 <?php foreach (smTabs() as $k => $label): ?>
-        <a class="tabs__tab<?= $k === $tab ? ' is-active' : '' ?>" href="<?= h(smUrl(['q' => $q, 't' => $k !== 'web' ? $k : null, 'l' => $lens ?: null])) ?>"<?= $k === $tab ? ' aria-current="page"' : '' ?> data-load><?= h($label) ?></a>
+        <a class="tabs__tab<?= $k === $tab ? ' is-active' : '' ?>" href="<?= h(smUrl(['q' => $q, 't' => $k !== 'web' ? $k : null, 'l' => $lens ?: null, 'src' => $flt['src'] !== '' && in_array($k, ['web', 'news'], true) ? $flt['src'] : null])) ?>"<?= $k === $tab ? ' aria-current="page"' : '' ?> data-load><?= h($label) ?></a>
 <?php endforeach; ?>
+<?php if (in_array($tab, ['web', 'news'], true)): ?>
+        <details class="tools">
+            <summary class="tabs__tab<?= $flt['sort'] ? ' is-set' : '' ?>"><?= h($flt['sort'] ? t('Neueste zuerst') : t('Sortierung')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="tools__panel">
+                <a href="<?= h(smUrl(['sort' => null] + $base)) ?>"<?= $flt['sort'] === '' ? ' class="is-active"' : '' ?> data-load><?= h(t('Relevanz')) ?></a>
+                <a href="<?= h(smUrl(['sort' => 'date'] + $base)) ?>"<?= $flt['sort'] === 'date' ? ' class="is-active"' : '' ?> data-load><?= h(t('Nach Datum (neueste zuerst)')) ?></a>
+            </div>
+        </details>
+<?php endif; ?>
+<?php if ($tab === 'images'): ?>
+        <details class="tools">
+            <summary class="tabs__tab<?= $flt['io'] ? ' is-set' : '' ?>"><?= h(smImageOrientations()[$flt['io']] === smImageOrientations()[''] ? t('Ausrichtung') : smImageOrientations()[$flt['io']]) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="tools__panel">
+<?php foreach (smImageOrientations() as $k => $label): ?>
+                <a href="<?= h(smUrl(['io' => $k ?: null] + $base)) ?>"<?= $k === $flt['io'] ? ' class="is-active"' : '' ?> data-load><?= h($label) ?></a>
+<?php endforeach; ?>
+            </div>
+        </details>
+        <details class="tools">
+            <summary class="tabs__tab<?= $flt['is'] ? ' is-set' : '' ?>"><?= h($flt['is'] ? smImageSizes()[$flt['is']] : t('Größe')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="tools__panel">
+<?php foreach (smImageSizes() as $k => $label): ?>
+                <a href="<?= h(smUrl(['is' => $k ?: null] + $base)) ?>"<?= $k === $flt['is'] ? ' class="is-active"' : '' ?> data-load><?= h($label) ?></a>
+<?php endforeach; ?>
+            </div>
+        </details>
+        <details class="tools">
+            <summary class="tabs__tab<?= $flt['isort'] ? ' is-set' : '' ?>"><?= h($flt['isort'] ? t('Höchste Auflösung') : t('Sortierung')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="tools__panel">
+                <a href="<?= h(smUrl(['isort' => null] + $base)) ?>"<?= $flt['isort'] === '' ? ' class="is-active"' : '' ?> data-load><?= h(t('Relevanz')) ?></a>
+                <a href="<?= h(smUrl(['isort' => 'res'] + $base)) ?>"<?= $flt['isort'] === 'res' ? ' class="is-active"' : '' ?> data-load><?= h(t('Höchste Auflösung zuerst')) ?></a>
+            </div>
+        </details>
+<?php endif; ?>
 <?php if ($tab !== 'images'): ?>
         <details class="tools">
             <summary class="tabs__tab<?= $fresh ? ' is-set' : '' ?>"><?= h($fresh ? smFreshness()[$fresh] : t('Zeitraum')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
@@ -49,17 +83,39 @@ require __DIR__ . '/_vars.php';
             </div>
         </details>
 <?php endif; ?>
+<?php if ($tab === 'web'): ?>
+        <a class="tabs__tab tabs__toggle<?= $flt['dl'] === '' ? ' is-on' : ' is-set' ?>" href="<?= h(smUrl(['dl' => $flt['dl'] === '' ? '0' : null] + $base)) ?>" role="switch" aria-checked="<?= $flt['dl'] === '' ? 'true' : 'false' ?>" title="<?= h(t('Damit eine einzelne Seite nicht die ganze Trefferliste füllt')) ?>" data-load><span class="tabs__check" aria-hidden="true"></span><?= h(t('Max. 3 pro Domain')) ?></a>
+<?php endif; ?>
+<?php if ($fresh || $ft || $lens || array_filter($flt, function ($v) { return $v !== ''; }) || $exact): ?>
+        <a class="tabs__tab tabs__reset" href="<?= h(smUrl(['q' => $q, 't' => $tab !== 'web' ? $tab : null])) ?>" data-load><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><?= h(t('Alle Filter zurücksetzen')) ?></a>
+<?php endif; ?>
         <a class="tabs__tab tabs__help" href="<?= h(smUrl(['a' => 'help'])) ?>" title="<?= h(t('Hilfe zu Suchoperatoren, Bangs und Linsen')) ?>"><?= h(t('Hilfe')) ?></a>
     </div>
 </nav>
 
 <main class="serp serp--<?= h($tab) ?>">
-<?php if ($error !== ''): ?>
+<?php if (!empty($instant)): require __DIR__ . '/_instant.php'; ?>
+<?php elseif ($error !== ''): $fb = smFallbackUrl($q); ?>
     <div class="alert alert--error serp__error">
         <strong><?= h(t('Die Suche hat nicht geklappt.')) ?></strong> <?= h($error) ?>
-        <p><a class="btn btn--small" href="<?= h(smSelf()) ?>"><?= h(t('Noch einmal versuchen')) ?></a></p>
+        <p><a class="btn btn--small" href="<?= h(smSelf()) ?>"><?= h(t('Noch einmal versuchen')) ?></a>
+<?php if ($fb !== ''): ?> <a class="btn btn--small btn--primary" href="<?= h($fb) ?>" rel="noopener noreferrer"><?= h(t('Bei %s suchen', smFallbackName())) ?></a><?php endif; ?>
+<?php if ($flt['src'] !== ''): ?> <a class="btn btn--small" href="<?= h(smUrl(['src' => null] + $base)) ?>" data-load><?= h(t('Automatisch einen anderen Dienst nehmen')) ?></a><?php endif; ?></p>
     </div>
+<?php require __DIR__ . '/_srcbar.php'; ?>
 <?php elseif ($res): ?>
+<?php require __DIR__ . '/_srcbar.php'; ?>
+<?php if (!empty($res['notice']) && empty($res['cached'])): ?>
+    <p class="serp__notice"><strong><?= h($res['source'] === 'multi' ? t('Ergebnisse von %s', implode(' + ', array_map(function ($i) { return smProviders()[$i]['name']; }, $res['sources']))) : t('Ergebnisse von %s', smProviders()[$res['source']]['name'])) ?>.</strong>
+        <?= h(implode(' · ', $res['notice'])) ?></p>
+<?php endif; ?>
+<?php if (!empty($res['dl_hidden'])): ?>
+    <p class="serp__note"><?= h(t('%d weitere Treffer von schon gezeigten Domains ausgeblendet (max. 3 pro Domain).', $res['dl_hidden'])) ?>
+        <a href="<?= h(smUrl(['dl' => '0'] + $base)) ?>" data-load><?= h(t('Alle zeigen')) ?></a></p>
+<?php endif; ?>
+<?php if (!empty($res['img_hidden']) && ($flt['io'] || $flt['is'])): ?>
+    <p class="serp__note"><?= h(t('%d Bilder passen nicht zum Filter.', $res['img_hidden'])) ?> <a href="<?= h(smUrl(['io' => null, 'is' => null] + $base)) ?>" data-load><?= h(t('Filter aufheben')) ?></a></p>
+<?php endif; ?>
 <?php if (!empty($res['hidden'])): ?>
     <p class="serp__note"><?= h($res['hidden'] === 1 ? t('1 Treffer ausgeblendet (deine Blockliste).') : t('%d Treffer ausgeblendet (deine Blockliste).', $res['hidden'])) ?>
         <a href="<?= h(smUrl(['a' => 'settings', 'tab' => 'domains'])) ?>"><?= h(t('Listen bearbeiten')) ?></a></p>
@@ -75,16 +131,25 @@ require __DIR__ . '/_vars.php';
         <ul><li><?= h(t('Stimmt die Schreibweise?')) ?></li><li><?= h(t('Andere oder allgemeinere Begriffe probieren.')) ?></li>
 <?php if ($fresh): ?><li><a href="<?= h(smUrl(['f' => null] + $base)) ?>"><?= h(t('Ohne Zeitraum suchen')) ?></a></li><?php endif; ?>
 <?php if ($ft): ?><li><a href="<?= h(smUrl(['ft' => null] + $base)) ?>"><?= h(t('Ohne Dateityp suchen')) ?></a></li><?php endif; ?>
-<?php if ($lens): ?><li><a href="<?= h(smUrl(['l' => null] + $base)) ?>"><?= h(t('Ohne Linse suchen')) ?></a></li><?php endif; ?></ul>
+<?php if ($lens): ?><li><a href="<?= h(smUrl(['l' => null] + $base)) ?>"><?= h(t('Ohne Linse suchen')) ?></a></li><?php endif; ?>
+<?php if ($flt['io'] || $flt['is']): ?><li><a href="<?= h(smUrl(['io' => null, 'is' => null] + $base)) ?>"><?= h(t('Ohne Bildfilter suchen')) ?></a></li><?php endif; ?>
+<?php if ($flt['src'] !== ''): ?><li><a href="<?= h(smUrl(['src' => null] + $base)) ?>"><?= h(t('Mit einem anderen Suchdienst suchen')) ?></a></li><?php endif; ?></ul>
     </div>
 <?php elseif ($tab === 'web'): ?>
+<?php if ($page === 1 && !empty($res['answer'])): ?>
+    <section class="answer" aria-label="<?= h(t('Kurzantwort')) ?>">
+        <h2 class="answer__title"><?= h(t('Kurzantwort')) ?> <span class="answer__src"><?= h(t('KI-generiert von Tavily, bitte nachprüfen')) ?></span></h2>
+        <p class="answer__text" data-clamp><?= h($res['answer']) ?></p>
+    </section>
+<?php endif; ?>
 <?php if ($page === 1 && !empty($res['infobox'])): $ib = $res['infobox']; ?>
     <aside class="kp" aria-label="<?= h(t('Kurzinfo')) ?>">
 <?php if ($ib['thumb']): ?><img class="kp__img" src="<?= h($ib['thumb']) ?>" alt="" loading="lazy" referrerpolicy="no-referrer"><?php endif; ?>
         <h2 class="kp__title"><?= h($ib['title']) ?></h2>
 <?php if ($ib['subtitle']): ?><p class="kp__sub"><?= h($ib['subtitle']) ?></p><?php endif; ?>
 <?php if ($ib['desc']): ?><p class="kp__desc" data-clamp><?= h($ib['desc']) ?>
-<?php if ($ib['url']): ?> <a href="<?= h($ib['url']) ?>"<?= $rel . $target ?>><?= h($ib['source'] ?: smHost((string)parse_url($ib['url'], PHP_URL_HOST))) ?></a><?php endif; ?></p><?php endif; ?>
+<?php if ($ib['url']): ?> <a href="<?= h($ib['url']) ?>"<?= $rel . $target ?>><?= h($ib['source'] ?: smHost((string)parse_url($ib['url'], PHP_URL_HOST))) ?></a><?php endif; ?>
+<?php if (!empty($ib['license'])): ?> <small class="muted"><?= h($ib['license']) ?></small><?php endif; ?></p><?php endif; ?>
 <?php if ($ib['attrs']): ?>
         <dl class="kp__attrs">
 <?php foreach ($ib['attrs'] as $at): ?><div><dt><?= h($at[0]) ?>:</dt> <dd><?= h($at[1]) ?></dd></div><?php endforeach; ?>
@@ -110,7 +175,7 @@ require __DIR__ . '/_vars.php';
                     <span class="card__src"><?php $fav = $n['favicon']; $host = $n['host']; require __DIR__ . '/_fav.php'; ?><?= h($n['source'] ?: $n['host']) ?></span>
                     <span class="card__title"><?= smHl($n['title']) ?></span>
 <?php if ($n['thumb']): ?><img class="card__img" src="<?= h($n['thumb']) ?>" alt="" loading="lazy" referrerpolicy="no-referrer"><?php endif; ?>
-                    <span class="card__meta"><?= h($n['age']) ?></span>
+                    <span class="card__meta"><?= h($n['age'] !== '' ? $n['age'] : smAgeText((int)($n['ts'] ?? 0))) ?></span>
                 </a>
 <?php endforeach; ?>
             </div>
@@ -162,9 +227,10 @@ require __DIR__ . '/_vars.php';
     <div class="grid" data-grid>
 <?php foreach ($res['results'] as $i => $im): ?>
         <a class="grid__item" href="<?= h($im['page']) ?>"<?= $rel . $target ?> data-img="<?= h($im['thumb']) ?>" data-w="<?= (int)($im['tw'] ?: $im['w']) ?>" data-h="<?= (int)($im['th'] ?: $im['h']) ?>"
-           data-title="<?= h($im['title']) ?>" data-host="<?= h($im['host']) ?>" data-src="<?= h($im['src']) ?>" data-full="<?= h(smImgProxyUrl($im['src'])) ?>" data-size="<?= $im['w'] && $im['h'] ? (int)$im['w'] . ' × ' . (int)$im['h'] : '' ?>">
+           data-title="<?= h($im['title']) ?>" data-host="<?= h($im['host']) ?>" data-src="<?= h($im['src']) ?>" data-full="<?= h(smImgProxyUrl($im['src'])) ?>" data-size="<?= $im['w'] && $im['h'] ? (int)$im['w'] . ' × ' . (int)$im['h'] . ' px' : '' ?>" data-res>
             <img src="<?= h($im['thumb']) ?>" alt="<?= h($im['title']) ?>" loading="<?= $i < 12 ? 'eager' : 'lazy' ?>" referrerpolicy="no-referrer">
             <span class="grid__cap"><span class="grid__host"><?= h($im['host']) ?></span><span class="grid__title"><?= h($im['title']) ?></span></span>
+<?php if ($im['w'] && $im['h']): ?>            <span class="grid__px"><?= (int)$im['w'] ?> × <?= (int)$im['h'] ?></span><?php endif; ?>
         </a>
 <?php endforeach; ?>
     </div>
@@ -202,5 +268,6 @@ require __DIR__ . '/_vars.php';
     </div>
 <?php endif; ?>
 <?php if ($res['cached']): ?><p class="serp__cached"><?= h(t('Aus dem Zwischenspeicher, kostet keine Suche.')) ?></p><?php endif; ?>
+<?php if (!empty($res['source']) && $res['source'] !== 'multi' && !$res['cached']): ?><p class="serp__cached"><?= h(t('Geliefert von %s.', smProviders()[$res['source']]['name'])) ?></p><?php endif; ?>
 <?php endif; ?>
 </main>

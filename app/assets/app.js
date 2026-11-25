@@ -132,16 +132,6 @@
         });
     });
 
-    // "/" springt ins Suchfeld
-    document.addEventListener('keydown', function (ev) {
-        var t = ev.target;
-        var typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
-        if (ev.key === '/' && !typing && !ev.ctrlKey && !ev.metaKey) {
-            var input = $('form[data-search] input[name="q"]');
-            if (input) { ev.preventDefault(); input.focus(); input.select(); }
-        }
-    });
-
     // Verlauf löschen (Einstellungen)
     $$('[data-clear-history]').forEach(function (b) {
         b.addEventListener('click', function () {
@@ -452,10 +442,280 @@
         img.addEventListener('dblclick', toggleFull);
         document.addEventListener('keydown', function (ev) {
             if (lb.hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+            if (document.querySelector('.overlay:not([hidden])')) return;
             if (ev.key === 'Escape') { ev.preventDefault(); if (isFull()) exitFull(); else hide(); }
             else if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(cur - 1); }
             else if (ev.key === 'ArrowRight') { ev.preventDefault(); show(cur + 1); }
             else if (ev.key === 'f' || ev.key === 'F') { ev.preventDefault(); toggleFull(); }
+        });
+    }
+
+    /* ==================== 1.2: Kopieren, Overlays, Tastatur, Werkzeuge ==================== */
+
+    function isTyping(t) {
+        return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+    }
+    function copyText(text, btn) {
+        function done() {
+            if (!btn) return;
+            var old = btn.textContent;
+            btn.textContent = btn.getAttribute('data-done') || '✓';
+            setTimeout(function () { btn.textContent = old; }, 1400);
+        }
+        if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); }); }
+        else { fallbackCopy(text); done(); }
+    }
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+        body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        ta.remove();
+    }
+    // Kopier-Knöpfe (auch in nachgeladenen Treffern)
+    document.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-copy-text]');
+        if (b) { ev.preventDefault(); copyText(b.getAttribute('data-copy-text'), b); }
+    });
+
+    // Warnhinweis „Guthaben knapp“: für heute ausblenden
+    $$('[data-warn-off]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var end = new Date(); end.setHours(23, 59, 59, 0);
+            document.cookie = 'sm_warn_off=1; path=/; max-age=' + Math.max(60, Math.round((end - new Date()) / 1000)) + '; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+            var bar = b.closest('[data-warnbar]');
+            if (bar) bar.remove();
+        });
+    });
+
+    /* ---------- Overlays: Tastenkürzel, QR-Code ---------- */
+    var lastFocus = null;
+    function openOverlay(o) {
+        if (!o) return;
+        lastFocus = document.activeElement;
+        o.hidden = false;
+        body.classList.add('has-overlay');
+        var c = $('[data-overlay-close]', o);
+        if (c) c.focus();
+    }
+    function closeOverlays() {
+        var any = false;
+        $$('.overlay:not([hidden])').forEach(function (o) { o.hidden = true; any = true; });
+        body.classList.remove('has-overlay');
+        if (any && lastFocus && lastFocus.focus) lastFocus.focus();
+        return any;
+    }
+    $$('.overlay').forEach(function (o) {
+        o.addEventListener('click', function (ev) { if (ev.target === o || ev.target.closest('[data-overlay-close]')) closeOverlays(); });
+    });
+    $$('[data-keys-open]').forEach(function (b) { b.addEventListener('click', function () { openOverlay($('[data-keys]')); }); });
+    var qrDlg = $('[data-qr-dialog]');
+    document.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-qr]');
+        if (!b || !qrDlg) return;
+        ev.preventDefault();
+        $('[data-qr-img]', qrDlg).src = b.getAttribute('data-qr-src');
+        $('[data-qr-img]', qrDlg).alt = b.getAttribute('data-qr');
+        $('[data-qr-text]', qrDlg).textContent = b.getAttribute('data-qr');
+        var d = b.closest('details'); if (d) d.removeAttribute('open');
+        openOverlay(qrDlg);
+    });
+
+    /* ---------- Tastatur: Treffer mit ↑↓ / J K wählen, Enter öffnet, / sucht, ? hilft, Esc schließt ---------- */
+    var cursor = -1;
+    function results() { return $$('[data-res]').filter(function (el) { return el.offsetParent !== null; }); }
+    function mark(i) {
+        var list = results();
+        if (!list.length) return;
+        cursor = Math.max(0, Math.min(list.length - 1, i));
+        list.forEach(function (el, n) { el.classList.toggle('is-kbd', n === cursor); });
+        var el = list[cursor];
+        var r = el.getBoundingClientRect();
+        if (r.top < 90 || r.bottom > window.innerHeight - 20) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    function linkOf(el) { return el.matches('a') ? el : $('[data-res-link]', el) || $('a', el); }
+    document.addEventListener('keydown', function (ev) {
+        if (ev.defaultPrevented || ev.altKey) return;
+        var k = ev.key;
+        if (k === 'Escape') {
+            var acted = closeOverlays();
+            $$('details[open]').forEach(function (d) { if (d.matches('.menu, .tools, .pop, .resmenu')) { d.removeAttribute('open'); acted = true; } });
+            if (!acted && cursor >= 0 && !isTyping(ev.target)) { results().forEach(function (el) { el.classList.remove('is-kbd'); }); cursor = -1; }
+            return;
+        }
+        if (isTyping(ev.target)) return;
+        var lbOpen = document.querySelector('[data-lightbox]:not([hidden])');
+        var ovOpen = document.querySelector('.overlay:not([hidden])');
+        if (k === '?' ) { ev.preventDefault(); if (ovOpen) closeOverlays(); else openOverlay($('[data-keys]')); return; }
+        if (ovOpen || lbOpen || ev.ctrlKey && k !== 'Enter' || ev.metaKey && k !== 'Enter') return;
+        if (k === '/') {
+            var input = $('form[data-search] input[name="q"]');
+            if (input) { ev.preventDefault(); input.focus(); input.select(); }
+            return;
+        }
+        if (!results().length) return;
+        if (k === 'ArrowDown' || k === 'j' || k === 'J') { ev.preventDefault(); mark(cursor + 1); }
+        else if (k === 'ArrowUp' || k === 'k' || k === 'K') { ev.preventDefault(); mark(cursor - 1); }
+        else if (k === 'Enter' && cursor >= 0) {
+            var el = results()[cursor];
+            if (!el) return;
+            ev.preventDefault();
+            if (el.classList.contains('grid__item') && !(ev.ctrlKey || ev.metaKey)) { el.click(); return; }
+            var a = linkOf(el);
+            if (!a) return;
+            if (ev.ctrlKey || ev.metaKey) window.open(a.href, '_blank', 'noopener,noreferrer');
+            else { loading(a.target !== '_blank'); a.click(); }
+        }
+        else if (k === 'ArrowRight' || k === 'ArrowLeft') {
+            var p = $(k === 'ArrowRight' ? '.pager a[rel="next"]' : '.pager a[rel="prev"]');
+            if (p) { ev.preventDefault(); loading(true); location.href = p.href; }
+        }
+    });
+    // Mit der Maus gewählt: dort weitermachen
+    document.addEventListener('focusin', function (ev) {
+        var r = ev.target.closest && ev.target.closest('[data-res]');
+        if (r) { var i = results().indexOf(r); if (i >= 0) { cursor = i; results().forEach(function (el, n) { el.classList.toggle('is-kbd', n === i); }); } }
+    });
+
+    /* ---------- Zufall im Browser (Web Crypto) ---------- */
+    function rnd(n) {
+        if (n <= 1) return 0;
+        var max = Math.floor(4294967296 / n) * n, buf = new Uint32Array(1), x;
+        do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= max);
+        return x % n;
+    }
+    $$('[data-reroll]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var box = b.closest('.ia');
+            var kind = b.getAttribute('data-reroll');
+            if (kind === 'coin') { var c = $('[data-coin]', box); c.textContent = rnd(2) ? c.getAttribute('data-heads') : c.getAttribute('data-tails'); c.classList.remove('is-anim'); void c.offsetWidth; c.classList.add('is-anim'); }
+            if (kind === 'random') { var r = $('[data-random]', box), mi = parseInt(r.getAttribute('data-min'), 10), ma = parseInt(r.getAttribute('data-max'), 10); r.textContent = mi + rnd(ma - mi + 1); }
+            if (kind === 'dice') {
+                var d = $('[data-dice]', box), n = parseInt(d.getAttribute('data-n'), 10), f = parseInt(d.getAttribute('data-faces'), 10), sum = 0;
+                d.innerHTML = '';
+                for (var i = 0; i < n; i++) { var v = 1 + rnd(f); sum += v; var s = document.createElement('span'); s.className = 'die is-anim'; s.textContent = v; d.appendChild(s); }
+                var sm = $('[data-dice-sum]', box); if (sm) sm.textContent = sum;
+            }
+        });
+    });
+
+    /* ---------- Passwort-Generator ---------- */
+    var WORDS = root.lang === 'de' ? 'apfel abend acker adler ampel anker arena asche atlas auge bach bahn balkon ball band bank bart bauer baum beere berg besen biene birne blatt blitz blume boden boot brett brief brille brot bruder brunnen buch burg busch butter dach dame dampf decke delfin dorf drache dusche ecke eiche eimer eisen elch engel ente erbse erde esel eule fabel fackel faden falke farbe feder fee feld felsen fenster ferne fest feuer figur filz fisch flagge flasche fluss flur flut fohlen forelle frosch frucht fuchs funke gabel gans garten gast geige geld gipfel glas glocke gold gras gurke hafen hagel hahn hammer hand harfe hase haus hecke heft held hemd herbst herd herz heu himmel hirsch hof honig horn hose hund hut igel insel jacke jagd juwel kaffee kahn kakao kamel kamm kanal kanne kapelle karte kater katze kegel keller kerze kessel kiefer kino kirsche kiste klee knopf koch koffer kohle komet korb kraut krone kuchen kugel kurve lager lampe land laterne laub leder leiter lerche licht linde loewe luft mantel marmor maus meer mehl melone milch mond moos motor muehle muschel nadel nagel nebel nest netz nudel ofen oliven onkel orgel paket palme panda papier park pfeil pferd pflaume pilot pinsel pirat planet platz pony post puppe quelle rabe rad rahmen rakete rasen regen reh reise rinde ring rose rubin ruder saal sack saft salz sand sattel schaf schal schatz schiff schild schloss schnee schrank schuh schwan see segel seife seil sonne spiegel spinne stadt stall stein stern stiefel strand strauss stuhl sturm tafel tal tanne tasse taube teich teller tiger tisch tomate topf traum treppe tulpe turm ufer uhr vase vogel wagen wald wal wand wasser welle wiese wind winter wolke wolle wurm zange zaun zebra zelt ziege zimmer zitrone zucker zug zwerg'.split(' ') : 'acorn anchor apple arrow autumn badge bakery balloon bamboo banjo barrel basket beacon beaver bench berry bicycle biscuit blanket blossom bonfire bottle breeze brick bridge brook bubble bucket buffalo butter cabin cactus camel candle canoe canyon carpet carrot castle cedar cello chalk cherry chimney cinnamon circus cliff clover coconut comet copper coral cotton cradle crayon cricket crystal cupboard dagger daisy desert dolphin donkey dragon drum eagle easel ember engine falcon feather fern ferry fiddle finch flame flute forest fossil fountain fox galaxy garden garlic gazelle geyser ginger glacier globe goose granite grape gravel guitar hammer harbor harvest hazel hedge helmet heron hill honey horizon hornet iceberg igloo island ivory jacket jaguar jelly jungle kayak kettle kitten koala ladder lagoon lantern lemon lettuce library lily lizard lobster locket magnet mango maple marble meadow melon meteor mirror mitten monkey moose mountain muffin mushroom napkin needle nest nickel noodle novel oak oasis ocean olive onion orange orchard otter owl paddle palace panda paper parrot peach pebble pencil pepper piano pickle pigeon pillow pine planet plum pocket pony poppy potato prism puddle pumpkin puzzle quarry quill rabbit raccoon radish rainbow raven reef ribbon river robin rocket saddle salmon satchel saucer scarf seashell shadow sheep shelter shovel silver sketch sled snail spider sponge spruce squirrel stable stamp statue stone storm stream sunset swallow table tablet teapot thimble thunder tiger timber toast tomato tower trail tulip tunnel turtle umbrella valley velvet violin volcano wagon walnut walrus wander whale wheat willow window winter wizard yarn zebra zipper'.split(' ');
+    $$('[data-pwgen]').forEach(function (g) {
+        if (!window.crypto || !crypto.getRandomValues) return;
+        var out = $('[data-pw-out]', g), info = $('[data-pw-info]', g), bar = $('[data-pw-bar]', g);
+        var len = $('[data-pw-len]', g), lenOut = $('[data-pw-len-out]', g), words = $('[data-pw-words]', g), wordsOut = $('[data-pw-words-out]', g);
+        var SETS = { lower: 'abcdefghijklmnopqrstuvwxyz', upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', digits: '0123456789', symbols: '!#$%&*+-=?@^_~.,:;()[]{}' };
+        function mode() { var m = $('[data-pw-mode]:checked', g); return m ? m.value : 'pw'; }
+        function gen() {
+            var pw = '', bits = 0;
+            $('[data-pw-opts-pw]', g).hidden = mode() !== 'pw';
+            $('[data-pw-opts-phrase]', g).hidden = mode() === 'pw';
+            if (mode() === 'pw') {
+                var noAmb = $('[data-pw-noambig]', g).checked, pools = [];
+                $$('[data-pw-set]', g).forEach(function (c) {
+                    if (!c.checked) return;
+                    var set = SETS[c.getAttribute('data-pw-set')];
+                    if (noAmb) set = set.replace(/[lI1O0o|]/g, '');
+                    pools.push(set);
+                });
+                if (!pools.length) { pools = [SETS.lower]; $('[data-pw-set="lower"]', g).checked = true; }
+                var all = pools.join(''), n = parseInt(len.value, 10), chars = [];
+                lenOut.textContent = n;
+                // Aus jeder gewählten Gruppe mindestens ein Zeichen, dann mischen
+                pools.forEach(function (p) { if (chars.length < n) chars.push(p[rnd(p.length)]); });
+                while (chars.length < n) chars.push(all[rnd(all.length)]);
+                for (var i = chars.length - 1; i > 0; i--) { var j = rnd(i + 1), t = chars[i]; chars[i] = chars[j]; chars[j] = t; }
+                pw = chars.join('');
+                bits = n * Math.log2(all.length);
+            } else {
+                var w = parseInt(words.value, 10), cap = $('[data-pw-cap]', g).checked, num = $('[data-pw-num]', g).checked, sep = $('[data-pw-sep]', g).value, parts = [];
+                wordsOut.textContent = w;
+                for (var k = 0; k < w; k++) { var word = WORDS[rnd(WORDS.length)]; parts.push(cap ? word.charAt(0).toUpperCase() + word.slice(1) : word); }
+                if (num) parts.splice(rnd(parts.length + 1), 0, String(rnd(100)));
+                pw = parts.join(sep);
+                bits = w * Math.log2(WORDS.length) + (num ? Math.log2(100) + Math.log2(w + 1) : 0);
+            }
+            out.value = pw;
+            var b = Math.round(bits);
+            var lvl = b < 50 ? 'weak' : (b < 80 ? 'ok' : 'strong');
+            info.textContent = '≈ ' + b + ' ' + info.getAttribute('data-l-bits') + ' · ' + info.getAttribute('data-l-' + lvl);
+            bar.style.width = Math.min(100, b / 1.28) + '%';
+            bar.className = 'is-' + lvl;
+        }
+        g.addEventListener('input', gen);
+        g.addEventListener('change', gen);
+        $('[data-pw-new]', g).addEventListener('click', gen);
+        $('[data-pw-copy]', g).addEventListener('click', function (ev) { copyText(out.value, ev.currentTarget); });
+        out.addEventListener('focus', function () { out.select(); });
+        gen();
+    });
+
+    /* ---------- Uhr, Countdown, Timer, Stoppuhr ---------- */
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    $$('[data-clock]').forEach(function (c) {
+        setInterval(function () { var d = new Date(); c.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }, 1000);
+    });
+    $$('[data-countdown]').forEach(function (c) {
+        var ts = parseInt(c.getAttribute('data-ts'), 10) * 1000;
+        function tick() {
+            var s = Math.max(0, Math.floor((ts - Date.now()) / 1000));
+            if (!s) { c.textContent = c.getAttribute('data-l-done'); return; }
+            c.textContent = Math.floor(s / 86400) + ' ' + c.getAttribute('data-l-days') + ' ' + pad(Math.floor(s % 86400 / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+        }
+        tick(); setInterval(tick, 1000);
+    });
+    function beep() {
+        try {
+            var A = window.AudioContext || window.webkitAudioContext, ctx = new A();
+            [0, 0.35, 0.7].forEach(function (t) {
+                var o = ctx.createOscillator(), gn = ctx.createGain();
+                o.frequency.value = 880; o.connect(gn); gn.connect(ctx.destination);
+                gn.gain.setValueAtTime(0.25, ctx.currentTime + t); gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+                o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.3);
+            });
+        } catch (e) {}
+    }
+    $$('[data-timer]').forEach(function (tm) {
+        var total = parseInt(tm.getAttribute('data-sec'), 10) || 0, watch = total === 0;
+        var show = $('[data-timer-show]', tm), go = $('[data-timer-start]', tm), reset = $('[data-timer-reset]', tm);
+        var left = total * 1000, run = false, last = 0, iv = 0, title = document.title;
+        function fmt(ms) {
+            var s = Math.round(ms / 1000), h = Math.floor(s / 3600);
+            return (h ? h + ':' : '') + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60) + (watch ? '.' + Math.floor(ms % 1000 / 100) : '');
+        }
+        function draw() { show.textContent = fmt(watch ? left : Math.max(0, left)); if (run) document.title = fmt(left) + ' · ' + title; }
+        function step() {
+            var now = Date.now(); left += watch ? now - last : -(now - last); last = now;
+            if (!watch && left <= 0) {
+                left = 0; stop(); draw(); tm.classList.add('is-done'); show.textContent = tm.getAttribute('data-done'); document.title = '⏰ ' + title; beep();
+                if ('vibrate' in navigator) navigator.vibrate([300, 150, 300]);
+                return;
+            }
+            draw();
+        }
+        function stop() { run = false; clearInterval(iv); go.textContent = go.getAttribute('data-label-go'); }
+        go.addEventListener('click', function () {
+            if (run) { stop(); document.title = title; return; }
+            if (!watch && left <= 0) left = total * 1000;
+            tm.classList.remove('is-done');
+            run = true; last = Date.now(); iv = setInterval(step, watch ? 100 : 250); go.textContent = go.getAttribute('data-label-pause');
+        });
+        reset.addEventListener('click', function () { stop(); left = watch ? 0 : total * 1000; tm.classList.remove('is-done'); document.title = title; draw(); });
+    });
+
+    /* ---------- QR-Generator unter Werkzeuge: Vorschau beim Tippen ---------- */
+    var qrIn = $('[data-qr-input]');
+    if (qrIn) {
+        var qrT = 0;
+        qrIn.addEventListener('input', function () {
+            clearTimeout(qrT);
+            qrT = setTimeout(function () {
+                var v = qrIn.value.trim(), form = qrIn.form, prev = $('[data-qr-preview]');
+                if (!v) return;
+                if (!prev) { prev = document.createElement('div'); prev.className = 'ia__qr'; prev.setAttribute('data-qr-preview', ''); prev.innerHTML = '<img alt="" width="240" height="240">'; form.after(prev); }
+                $('img', prev).src = form.getAttribute('action') + '?a=qr&d=' + encodeURIComponent(v);
+            }, 350);
         });
     }
 })();

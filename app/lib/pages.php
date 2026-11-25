@@ -24,19 +24,55 @@ function smRun(): void
     if (!smHasUsers()) {
         $err = '';
         if ($post && $a === 'setup' && smSameOrigin()) {
+            // Der Brave-Key ist freiwillig: andere Suchdienste lassen sich auch später in der Verwaltung eintragen
             $key = trim((string)($_POST['key'] ?? ''));
-            $err = $key === '' ? t('Bitte den Brave API-Key eintragen.') : smTestKey($key);
+            $err = $key === '' ? '' : smTestKey($key);
             if ($err === '') $err = smSetup((string)($_POST['name'] ?? ''), (string)($_POST['pass'] ?? ''), (string)($_POST['pass2'] ?? ''), $key);
             if ($err === '') {
                 smFlash('ok', t('Fertig! Die Suchmaschine ist eingerichtet und du bist Administrator.'));
-                smRedirect(smBase());
+                smRedirect($key === '' ? smUrl(['a' => 'admin', 'tab' => 'providers']) : smBase());
             }
         }
         smRender('setup', ['title' => t('Einrichten'), 'error' => $err, 'bare' => true]);
         return;
     }
 
+    // Kurzlinks: …/?s=abc123 führt ohne Anmeldung direkt zum Ziel
+    if ($a === '' && isset($_GET['s']) && is_string($_GET['s'])) smServeShort($_GET['s']);
+
     $me = smUser();
+
+    // Login per geheimem Token in der Adresse (?token=…, auch zusammen mit &q=… aus der Adressleiste).
+    // Danach sofort weiter auf dieselbe Adresse ohne Token, damit er nicht in Verlauf oder Lesezeichen hängen bleibt.
+    if (isset($_GET['token']) && is_string($_GET['token']) && !$post) {
+        $clean = $_GET;
+        unset($clean['token']);
+        $to = smBase() . ($clean ? '?' . http_build_query($clean) : '');
+        // Nur direkt aufgerufen (Adressleiste, Lesezeichen, Browser-Suche), nicht über einen Link einer fremden Seite.
+        // Sonst könnte eine fremde Seite dich unbemerkt in ein anderes Konto einloggen (Login-CSRF).
+        $site = (string)($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '');
+        if ($site === 'cross-site' || $site === 'same-site') {
+            smFlash('error', t('Aus Sicherheitsgründen funktioniert die Token-Adresse nur direkt aus der Adressleiste, als Lesezeichen oder als Browser-Suche, nicht über einen Link auf einer anderen Seite.'));
+            smRedirect($to);
+        }
+        [$uid, $terr] = smTokenLogin(trim($_GET['token']));
+        if ($uid === 0) {
+            smFlash('error', $terr);
+            smRedirect($to);
+        }
+        if ($me && $me['id'] !== $uid) {
+            // Schon mit einem anderen Konto angemeldet: nicht stillschweigend wechseln
+            smFlash('error', t('Du bist schon als %s angemeldet. Zum Wechseln bitte erst abmelden.', $me['name']));
+            smRedirect($to);
+        }
+        if (!$me) {
+            smStartSession($uid, SM_TOKEN_DAYS);
+        } else {
+            // Schon angemeldet: Sitzung auf die lange Laufzeit heben
+            smQ('UPDATE sessions SET days = ? WHERE hash = ?', [SM_TOKEN_DAYS, $me['hash']]);
+        }
+        smRedirect($to);
+    }
 
     if ($post && !smCsrfOk($me)) {
         smFlash('error', t('Das Formular war veraltet. Bitte noch einmal versuchen.'));
@@ -60,8 +96,8 @@ function smRun(): void
     }
 
     $public = smSetting('public') === '1';
-    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img'], true))) {
-        if ($a === 'img') {
+    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img', 'qr', 'tools'], true))) {
+        if ($a === 'img' || $a === 'qr') {
             http_response_code(403);
             exit;
         }
@@ -72,8 +108,14 @@ function smRun(): void
         case 'img':
             smServeImgProxy();
             return;
+        case 'qr':
+            smServeQr();
+            return;
         case 'help':
             smRender('help', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Hilfe') . ' – ' . smSiteName()]);
+            return;
+        case 'tools':
+            smPageTools($me, $post);
             return;
         case 'export':
             smServeExport($me);
@@ -95,6 +137,30 @@ function smRun(): void
             smPageSearch($me);
             smAutoUpdate();
     }
+}
+
+/** Werkzeuge: Passwort-Generator, QR-Code, Kurzlinks (Kurzlinks nur mit Konto) */
+function smPageTools(?array $me, bool $post): void
+{
+    if ($post && $me) {
+        $do = (string)($_POST['do'] ?? '');
+        if ($do === 'short_add') {
+            if (smSetting('shortener') !== '1') {
+                smFlash('error', t('Kurzlinks sind ausgeschaltet.'));
+            } else {
+                [$code, $err] = smShortCreate($me['id'], (string)($_POST['url'] ?? ''));
+                if ($err !== '') smFlash('error', $err); else smFlash('ok', t('Kurzlink: %s', smShortUrl($code)));
+                if ($code !== '') smRedirect(smUrl(['a' => 'tools', 'new' => $code]) . '#kurzlinks');
+            }
+        } elseif ($do === 'short_del') {
+            smQ('DELETE FROM shortlinks WHERE code = ? AND user_id = ?', [(string)($_POST['code'] ?? ''), $me['id']]);
+            smFlash('ok', t('Kurzlink gelöscht.'));
+        }
+        smRedirect(smUrl(['a' => 'tools']) . '#kurzlinks');
+    }
+    $new = isset($_GET['new']) && is_string($_GET['new']) && preg_match('/^[A-Za-z0-9]{4,12}$/', $_GET['new']) ? $_GET['new'] : '';
+    smRender('tools', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Werkzeuge') . ' – ' . smSiteName(), 'new' => $new,
+        'qr' => isset($_GET['qr']) && is_string($_GET['qr']) ? mb_substr($_GET['qr'], 0, SM_QR_MAX) : '']);
 }
 
 /** Nur Adressen innerhalb der Suchmaschine als Ziel nach dem Anmelden */
@@ -126,15 +192,18 @@ function smServeOpenSearch(): void
 {
     smHeaders();
     header('Content-Type: application/opensearchdescription+xml; charset=utf-8');
-    header('Cache-Control: no-cache');
+    header('Cache-Control: ' . (isset($_GET['k']) ? 'private, no-store' : 'no-cache'));
     $name = smSiteName();
+    // Persönliche Variante mit Login-Token: der Browser meldet sich bei jeder Suche aus der Adressleiste selbst an
+    $k = isset($_GET['k']) && is_string($_GET['k']) && preg_match('/^[A-Za-z0-9._~-]{32,200}$/', $_GET['k']) ? $_GET['k'] : '';
+    $tpl = smOrigin() . '?' . ($k !== '' ? 'token=' . rawurlencode($k) . '&' : '') . 'q={searchTerms}';
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
        . '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">' . "\n"
        . '  <ShortName>' . h(mb_substr($name, 0, 16)) . "</ShortName>\n"
        . '  <Description>' . h(t('Eigene Suchmaschine ohne Werbung')) . "</Description>\n"
        . "  <InputEncoding>UTF-8</InputEncoding>\n"
        . '  <Image type="image/svg+xml">' . h(smOrigin() . '?a=asset&f=icon.svg') . "</Image>\n"
-       . '  <Url type="text/html" method="get" template="' . h(smOrigin() . '?q={searchTerms}') . "\"/>\n"
+       . '  <Url type="text/html" method="get" template="' . h($tpl) . "\"/>\n"
        . "</OpenSearchDescription>\n";
     exit;
 }
@@ -207,42 +276,92 @@ function smTabs(): array
     return ['web' => t('Alle'), 'images' => t('Bilder'), 'news' => t('News'), 'videos' => t('Videos')];
 }
 
+/** Filter und Sortierung aus der Adresse, geprüft. Abweichungen vom Standard zählen für „Alle Filter zurücksetzen“. */
+function smSearchFilters(string $tab): array
+{
+    $g = function (string $k): string { return isset($_GET[$k]) && is_string($_GET[$k]) ? $_GET[$k] : ''; };
+    $f = [
+        'fresh' => isset(smFreshness()[$g('f')]) ? $g('f') : '',
+        'ft'    => $tab === 'web' ? smCleanFileType($g('ft')) : '',
+        'sort'  => in_array($tab, ['web', 'news'], true) && $g('sort') === 'date' ? 'date' : '',
+        'dl'    => $tab === 'web' && $g('dl') === '0' ? '0' : '',
+        'src'   => isset(smProviders()[$g('src')]) || $g('src') === 'multi' ? $g('src') : '',
+        'io'    => $tab === 'images' && isset(smImageOrientations()[$g('io')]) ? $g('io') : '',
+        'is'    => $tab === 'images' && isset(smImageSizes()[$g('is')]) ? $g('is') : '',
+        'isort' => $tab === 'images' && $g('isort') === 'res' ? 'res' : '',
+    ];
+    return $f;
+}
+
 function smPageSearch(?array $me): void
 {
     $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 400));
+    // Kleine Formulare der Sofort-Antworten (funktionieren auch ohne JavaScript)
+    if (isset($_GET['fx_a'], $_GET['fx_f'], $_GET['fx_t']) && is_string($_GET['fx_a']) && is_string($_GET['fx_f']) && is_string($_GET['fx_t'])) {
+        smRedirect(smUrl(['q' => mb_substr(trim($_GET['fx_a']) . ' ' . $_GET['fx_f'] . ' in ' . $_GET['fx_t'], 0, 80)]));
+    }
+    if (($_GET['wx'] ?? '') === '1' && $q !== '') smRedirect(smUrl(['q' => (smLang() === 'de' ? 'wetter ' : 'weather ') . $q]));
     $tab = (string)($_GET['t'] ?? 'web');
     if (!isset(smTabs()[$tab])) $tab = 'web';
     $prefs = smPrefs($me);
+    $part = ($_GET['part'] ?? '') === '1';
 
     if ($q === '') {
         smRender('home', ['me' => $me, 'prefs' => $prefs, 'title' => smSiteName(), 'home' => true, 'tab' => $tab]);
         return;
     }
 
-    // Bangs: vor jeder Anfrage an Brave, kosten also nichts
-    if (($_GET['part'] ?? '') !== '1' && ($bang = smBangTarget($q, $me))) {
+    // Bangs: vor jeder Anfrage an einen Suchdienst, kosten also nichts
+    if (!$part && ($bang = smBangTarget($q, $me))) {
         if ($bang['internal']) smRedirect($bang['to']);
         smExternalRedirect($bang['to'], $q);
     }
 
-    $ft = $tab === 'web' ? smCleanFileType($_GET['ft'] ?? '') : '';
     $lenses = smLenses($me);
     $lens = (string)($_GET['l'] ?? '');
     if (!isset($lenses[$lens])) $lens = '';
-
     $page = max(1, min(10, (int)($_GET['p'] ?? 1)));
-    $fresh = (string)($_GET['f'] ?? '');
-    if (!isset(smFreshness()[$fresh])) $fresh = '';
     $exact = ($_GET['exact'] ?? '') === '1';
+    $flt = smSearchFilters($tab);
+    $ft = $flt['ft'];
+    $fresh = $flt['fresh'];
+    $vars = ['me' => $me, 'prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact,
+             'ft' => $ft, 'lens' => $lens, 'lenses' => $lenses, 'flt' => $flt, 'res' => null, 'error' => '', 'instant' => null];
+
+    // Sofort-Antworten (Rechner, Währungen, Wetter …): ohne Suchdienst, kosten also kein Guthaben
+    if (!$part && $tab === 'web' && $page === 1 && ($_GET['web'] ?? '') !== '1' && $lens === '' && $ft === '' && $flt['src'] === '') {
+        $card = smInstant($q, $me);
+        if ($card !== null) {
+            $vars['instant'] = $card;
+            smRender('results', $vars + ['title' => $q . ' – ' . smSiteName()]);
+            return;
+        }
+    }
 
     $res = null;
     $error = '';
     try {
         if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
+        if (!$me && $flt['src'] === 'multi') throw new SmSearchError(t('„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.'));
         $res = smSearch($tab, smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null),
-            $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless']);
-        // Eigene Domain-Listen erst jetzt: der Cache bleibt für alle gleich
+            $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src']],
+            $me ? $me['id'] : 0);
+        // Eigene Domain-Listen, Sortierung und Filter erst jetzt: der Zwischenspeicher bleibt für alle gleich
         $res = smApplyDomainLists($res, smDomainLists($me));
+        if (in_array($tab, ['web', 'news'], true) && ($flt['sort'] === 'date' || $fresh !== '')) $res = smSortByDate($res);
+        if ($tab === 'web' && $flt['dl'] !== '0') $res = smDomainLimit($res, 3);
+        if ($tab === 'images') $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === 'res');
+        // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
+        if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && ($res['source'] ?? '') !== 'brave' && smSetting('wiki') === '1') {
+            $res['infobox'] = smWikiCard($q);
+        }
+    } catch (SmSearchExhausted $e) {
+        $error = $e->getMessage();
+        // Alles leer oder gestört: automatisch zum eingestellten Ausweichziel, damit die Suche immer funktioniert
+        $fb = smFallbackUrl($q);
+        if (!$part && $tab === 'web' && $flt['src'] === '' && $fb !== '' && smSetting('fallback_auto') === '1') {
+            smExternalRedirect($fb, $q, $error . ' ' . t('Du wirst zu %s weitergeleitet …', smFallbackName()), 3);
+        }
     } catch (SmSearchError $e) {
         $error = $e->getMessage();
     } catch (Throwable $e) {
@@ -250,19 +369,15 @@ function smPageSearch(?array $me): void
         $error = t('Da ist intern etwas schiefgelaufen. Die Einzelheiten stehen im Fehlerprotokoll des Servers.');
     }
 
-    $part = ($_GET['part'] ?? '') === '1';
+    $vars['res'] = $res;
+    $vars['error'] = $error;
     if ($part) {
         // Endlos-Scrollen: nur die nächsten Treffer, ohne Seitengerüst
         if ($error !== '') http_response_code(502);
-        smRender('part', ['me' => $me, 'prefs' => $prefs, 'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact,
-            'ft' => $ft, 'lens' => $lens, 'lenses' => $lenses, 'res' => $res, 'error' => $error], false);
+        smRender('part', $vars, false);
         return;
     }
-    smRender('results', [
-        'me' => $me, 'prefs' => $prefs, 'title' => $q . ' – ' . smSiteName(),
-        'q' => $q, 'tab' => $tab, 'page' => $page, 'fresh' => $fresh, 'exact' => $exact, 'res' => $res, 'error' => $error,
-        'ft' => $ft, 'lens' => $lens, 'lenses' => $lenses,
-    ]);
+    smRender('results', $vars + ['title' => $q . ' – ' . smSiteName()]);
 }
 
 /** „Auf gut Glück“: direkt zum ersten Treffer */
@@ -277,7 +392,7 @@ function smPageLucky(?array $me): void
     $u = '';
     try {
         if ($me || smPublicQuota()) {
-            $res = smApplyDomainLists(smSearch('web', $q, smPrefs($me)), smDomainLists($me));
+            $res = smApplyDomainLists(smSearch('web', $q, smPrefs($me), $me ? $me['id'] : 0), smDomainLists($me));
             $u = (string)($res['results'][0]['url'] ?? '');
         }
     } catch (Throwable $e) {
@@ -314,6 +429,25 @@ function smPageSettings(array $me, bool $post): void
                 $p['newtab'] = !empty($_POST['newtab']);
                 $p['history'] = !empty($_POST['history']);
                 $p['scroll'] = ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages';
+                $p['city'] = trim(mb_substr(smPlain((string)($_POST['city'] ?? '')), 0, 60));
+                $ws = (string)($_POST['weather_src'] ?? '');
+                $p['weather_src'] = isset(smWeatherSources()[$ws]) ? $ws : '';
+                break;
+            case 'token_gen':
+                $err = smTokenSet($me['id'], smTokenGenerate());
+                $ok = t('Neuer Login-Token erzeugt. Alte Token-Adressen funktionieren ab jetzt nicht mehr.');
+                break;
+            case 'token_set':
+                $err = smTokenSet($me['id'], trim((string)($_POST['token'] ?? '')));
+                if (trim((string)($_POST['token'] ?? '')) === '') $err = t('Bitte einen Token eingeben.');
+                $ok = t('Login-Token gespeichert.');
+                break;
+            case 'token_del':
+                smTokenSet($me['id'], '');
+                $ok = t('Login-Token gelöscht.');
+                break;
+            case 'logout_others':
+                $ok = t('%d andere Geräte abgemeldet.', smLogoutOthers($me));
                 break;
             case 'domains':
                 foreach (['block', 'raise', 'lower'] as $k) $p[$k] = smCleanDomains((string)($_POST[$k] ?? ''));
@@ -326,8 +460,8 @@ function smPageSettings(array $me, bool $post): void
                 $u = smCleanBangUrl($_POST['u'] ?? '');
                 if ($t === '') {
                     $err = t('Das Kürzel darf nur Buchstaben, Ziffern, Punkt, Minus und Unterstrich enthalten (höchstens 24 Zeichen).');
-                } elseif (isset(smTabBangs()[$t])) {
-                    $err = t('Das Kürzel !%s ist für die Reiter reserviert.', $t);
+                } elseif (smBangReserved($t)) {
+                    $err = t('Das Kürzel !%s ist für die Reiter oder Suchdienste reserviert.', $t);
                 } elseif ($u === '') {
                     $err = t('Die Adresse muss mit https:// oder http:// beginnen. {q} steht für den Suchbegriff.');
                 } else {
@@ -402,7 +536,7 @@ function smPageSettings(array $me, bool $post): void
             default:
                 $err = t('Unbekannte Aktion.');
         }
-        if ($err === '' && $do !== 'pass') smUserSavePrefs($me['id'], $p);
+        if ($err === '' && !in_array($do, ['pass', 'token_gen', 'token_set', 'token_del', 'logout_others'], true)) smUserSavePrefs($me['id'], $p);
         smFlash($err === '' ? 'ok' : 'error', $err === '' ? $ok : $err);
         smRedirect(smUrl(['a' => 'settings', 'tab' => $tab !== 'search' ? $tab : null]));
     }
@@ -410,7 +544,9 @@ function smPageSettings(array $me, bool $post): void
     if ($tab === 'lenses' && isset($_GET['edit'])) {
         foreach (smCleanLenses($me['prefs']['lenses'] ?? []) as $l) if ($l['id'] === $_GET['edit']) $edit = $l;
     }
-    smRender('settings', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Einstellungen'), 'tab' => $tab, 'edit' => $edit]);
+    $token = in_array($tab, ['search', 'account'], true) ? smTokenGet($me['id']) : '';
+    smRender('settings', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Einstellungen'), 'tab' => $tab, 'edit' => $edit,
+        'token' => $token, 'osToken' => $token]);
 }
 
 /** Schnellaktion an einem Treffer: Domain blockieren, hochstufen, herabstufen oder zurücksetzen */
@@ -446,7 +582,8 @@ function smPageDomain(array $me, bool $post): void
 
 function smAdminTabs(): array
 {
-    return ['users' => t('Konten'), 'config' => t('Einstellungen'), 'usage' => t('Verbrauch'), 'update' => t('Update')];
+    return ['users' => t('Konten'), 'providers' => t('Suchdienste'), 'usage' => t('Verbrauch'), 'config' => t('Einstellungen'),
+            'backup' => t('Sicherung'), 'update' => t('Update')];
 }
 
 function smPageAdmin(array $me, bool $post): void
@@ -478,12 +615,55 @@ function smPageAdmin(array $me, bool $post): void
             case 'config':
                 $err = smSaveConfig();
                 break;
+            case 'providers':
+                $err = smSaveProviders();
+                break;
+            case 'ptest':
+                $pid = (string)($_POST['p'] ?? '');
+                if (!isset(smProviders()[$pid]) || trim(smProvGet($pid, 'key')) === '') { $err = t('Unbekannte Aktion.'); break; }
+                $err = smProvTest($pid, smProvGet($pid, 'key'));
+                if ($err === '') { smProvOk($pid, 0); $ok = t('%s: Der API-Key funktioniert.', smProviders()[$pid]['name']); }
+                else smProvFail($pid, $err, 0);
+                break;
+            case 'punpause':
+                $pid = (string)($_POST['p'] ?? '');
+                if (isset(smProviders()[$pid])) smProvUnpause($pid);
+                $ok = t('Pause aufgehoben.');
+                break;
+            case 'quota':
+                $uid = (int)($_POST['id'] ?? 0);
+                if ($uid !== 0 && !smQ('SELECT 1 FROM users WHERE id = ?', [$uid])->fetchColumn()) { $err = t('Dieses Konto gibt es nicht.'); break; }
+                $lim = [];
+                foreach ((array)($_POST['lim'] ?? []) as $pid => $v) if (is_string($v) && trim($v) !== '') $lim[$pid] = (int)$v;
+                smQuotaSave($uid, ['allow' => !empty($_POST['allow_all']) ? null : (array)($_POST['allow'] ?? []), 'lim' => $lim]);
+                $ok = t('Kontingent gespeichert.');
+                break;
+            case 'fair':
+                $ok = t('Kontingente gerecht aufgeteilt: %s', smQuotaFair(!empty($_POST['skip_admins']), !empty($_POST['with_anon'])));
+                break;
+            case 'quota_clear':
+                smQ("UPDATE users SET quota = ''");
+                smSetSetting('anon_quota', '');
+                $ok = t('Alle Kontingente aufgehoben.');
+                break;
             case 'export':
                 smServeConfigExport(!empty($_POST['with_key']));
                 return;
             case 'import':
                 [$in, $err] = smReadImport('file', 'suchmaschine-config');
                 if ($in !== null) $ok = t('%d Einstellungen wiederhergestellt.', smConfigImport($in));
+                break;
+            case 'backup':
+                $err = smServeBackup((string)($_POST['bpass'] ?? ''), (string)($_POST['bpass2'] ?? ''));
+                break;
+            case 'restore':
+                [$data, $err] = smBackupRead('file', (string)($_POST['bpass'] ?? ''));
+                if ($data !== null) $err = smBackupRestore($data);
+                if ($err === '') {
+                    smCookie('', time() - 3600);
+                    smFlash('ok', t('Die Sicherung ist eingespielt. Bitte neu anmelden.'));
+                    smRedirect(smUrl(['a' => 'login']));
+                }
                 break;
             case 'testkey':
                 $err = smTestKey(smSetting('api_key'));
@@ -531,19 +711,14 @@ function smPageAdmin(array $me, bool $post): void
     if ($tab === 'config' && smLogoUrl() !== '' && !is_file(smAppIconFile()) && smSetting('logo_type') !== 'image/svg+xml') {
         smAppIconFromRaster((string)@file_get_contents(SM_DATA_DIR . '/logo.bin'));
     }
-    if ($tab === 'users') $vars['users'] = smUsers();
     if ($tab === 'usage') $vars['history'] = smUsageHistory(12);
+    if ($tab === 'users' || $tab === 'usage') $vars['users'] = smUsers();
     smRender('admin', $vars);
 }
 
 /** Einstellungen der Installation speichern. Liefert Fehlertext oder ''. */
 function smSaveConfig(): string
 {
-    $key = trim((string)($_POST['api_key'] ?? ''));
-    if ($key !== '') {
-        if (($e = smTestKey($key)) !== '') return $e;
-        smSetSetting('api_key', $key);
-    }
     $name = trim(mb_substr((string)($_POST['site_name'] ?? ''), 0, 40));
     smSetSetting('site_name', $name);
     $acc = (string)($_POST['accent'] ?? '');
@@ -564,8 +739,6 @@ function smSaveConfig(): string
     } elseif (!empty($_FILES['logo']['error']) && (int)$_FILES['logo']['error'] !== UPLOAD_ERR_NO_FILE) {
         return t('Das Logo konnte nicht hochgeladen werden (höchstens 1 MB).');
     }
-    smSetSetting('monthly_limit', (string)max(0, min(1000000, (int)($_POST['monthly_limit'] ?? 950))));
-    smSetSetting('cache_min', (string)max(0, min(60, (int)($_POST['cache_min'] ?? 15))));
     smSetSetting('per_page', (string)max(5, min(20, (int)($_POST['per_page'] ?? 10))));
     $c = (string)($_POST['country'] ?? '');
     if (isset(smCountries()[$c])) smSetSetting('country', $c);
@@ -575,8 +748,82 @@ function smSaveConfig(): string
     if (in_array($s, ['off', 'moderate', 'strict'], true)) smSetSetting('safesearch', $s);
     smSetSetting('public', empty($_POST['public']) ? '0' : '1');
     smSetSetting('img_proxy', empty($_POST['img_proxy']) ? '0' : '1');
+    smSetSetting('shortener', empty($_POST['shortener']) ? '0' : '1');
     smSetSetting('public_hour', (string)max(1, min(1000, (int)($_POST['public_hour'] ?? 20))));
+    $w = (string)($_POST['weather_src'] ?? '');
+    if (isset(smWeatherSources()[$w])) smSetSetting('weather_src', $w);
     return '';
+}
+
+/** Suchdienste speichern: Keys (werden vorher getestet), Stichtag, Limit, Kosten, Zwischenspeicher, Reihenfolge, Ausweichziel */
+function smSaveProviders(): string
+{
+    $err = '';
+    foreach (smProviders() as $id => $p) {
+        if (!empty($_POST['keydel'][$id])) {
+            smProvSet($id, 'key', '');
+        } else {
+            $key = trim((string)($_POST['key'][$id] ?? ''));
+            if ($key !== '') {
+                if (!preg_match('/^[\x21-\x7e]{8,300}$/', $key)) { $err = t('%s: Der API-Key sieht nicht richtig aus.', $p['name']); continue; }
+                if (($e = smProvTest($id, $key)) !== '') { $err = t('%s: %s Der Key wurde nicht gespeichert.', $p['name'], $e); continue; }
+                smProvSet($id, 'key', $key);
+                smProvUnpause($id);
+                smProvOk($id, 0);
+            }
+        }
+        if (!isset($_POST['limit'][$id])) continue;   // Dienst war nicht im Formular (noch kein Key)
+        $start = (string)($_POST['start'][$id] ?? '');
+        smProvSet($id, 'start', preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && checkdate((int)substr($start, 5, 2), (int)substr($start, 8, 2), (int)substr($start, 0, 4)) ? $start : '');
+        smProvSet($id, 'limit', (string)max(0, min(10000000, (int)$_POST['limit'][$id])));
+        $cost = (float)str_replace(',', '.', (string)($_POST['cost'][$id] ?? $p['cost']));
+        smProvSet($id, 'cost', (string)max(0.01, min(1000, $cost)));
+        $cache = (int)($_POST['cache'][$id] ?? 0);
+        smProvSet($id, 'cache', (string)($id === 'brave' ? max(0, min(60, $cache)) : max(0, min(168, $cache))));
+        smProvSet($id, 'on', empty($_POST['on'][$id]) ? '0' : '1');
+    }
+    // Reihenfolge: kleinere Zahl = zuerst
+    $prio = [];
+    foreach (smProvOrder(false) as $i => $id) $prio[$id] = [(int)($_POST['prio'][$id] ?? ($i + 1)), $i];
+    uasort($prio, function ($a, $b) { return $a <=> $b; });
+    smSetSetting('prov_order', implode(',', array_keys($prio)));
+    smSetSetting('balance', empty($_POST['balance']) ? '0' : '1');
+    smSetSetting('answers', empty($_POST['answers']) ? '0' : '1');
+    smSetSetting('wiki', empty($_POST['wiki']) ? '0' : '1');
+    $multi = array_values(array_intersect(array_keys(smProviders()), (array)($_POST['multi'] ?? [])));
+    smSetSetting('multi_set', implode(',', $multi));
+    smSetSetting('fallback_auto', empty($_POST['fallback_auto']) ? '0' : '1');
+    $fb = (string)($_POST['fallback_preset'] ?? '');
+    if ($fb === 'own') $fb = (string)($_POST['fallback_own'] ?? '');
+    if ($fb === '' || (smCleanBangUrl($fb) !== '' && strpos($fb, '{q}') !== false)) smSetSetting('fallback_url', $fb);
+    elseif ($err === '') $err = t('Das Ausweichziel muss mit https:// beginnen und {q} für den Suchbegriff enthalten.');
+    smSetSetting('warn_pct', (string)max(10, min(100, (int)($_POST['warn_pct'] ?? 80))));
+    return $err;
+}
+
+/** Credits der Dienste gleichmäßig auf die Konten verteilen. Liefert eine kurze Zusammenfassung. */
+function smQuotaFair(bool $skipAdmins, bool $withAnon): string
+{
+    $users = array_filter(smUsers(), function ($u) use ($skipAdmins) { return !$skipAdmins || (int)$u['is_admin'] !== 1; });
+    $n = count($users) + ($withAnon ? 1 : 0);
+    if ($n === 0) return '–';
+    $parts = [];
+    $per = [];
+    foreach (smProvOrder() as $id) {
+        $limit = (int)smProvGet($id, 'limit');
+        if ($limit <= 0) continue;
+        $per[$id] = intdiv($limit, $n);
+        $parts[] = smProviders()[$id]['badge'] . ' ' . $per[$id];
+    }
+    $targets = array_map(function ($u) { return (int)$u['id']; }, $users);
+    if ($withAnon) $targets[] = 0;
+    foreach ($targets as $uid) {
+        $q = smQuotaOf($uid);
+        $q['lim'] = $per + $q['lim'];
+        foreach ($per as $id => $v) $q['lim'][$id] = $v;
+        smQuotaSave($uid, $q);
+    }
+    return implode(', ', $parts) . ' ' . t('pro Konto');
 }
 
 /** Hochgeladenes Logo prüfen und speichern. Liefert Fehlertext oder ''. */
