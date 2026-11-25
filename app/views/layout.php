@@ -22,7 +22,11 @@ $flash = smFlash();
 <link rel="icon" type="image/png" sizes="192x192" href="<?= h(smAppIconUrl(192)) ?>">
 <meta name="apple-mobile-web-app-title" content="<?= h(trim(smHasUsersSafe() ? smSetting('site_name') : '') !== '' ? smSetting('site_name') : t('Suchmaschine')) ?>">
 <link rel="manifest" href="<?= h(smUrl(['a' => 'manifest', 'v' => smAppIconCustom() ? smSetting('appicon_v') : SM_VERSION])) ?>">
+<?php if (!empty($osToken)): ?>
+<link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?> (<?= h($me['name'] ?? '') ?>)" href="<?= h(smUrl(['a' => 'opensearch', 'k' => $osToken])) ?>">
+<?php else: ?>
 <link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?>" href="<?= h(smUrl(['a' => 'opensearch'])) ?>">
+<?php endif; ?>
 <link rel="stylesheet" href="<?= h(smAsset('app.css')) ?>">
 <script src="<?= h(smAsset('app.js')) ?>" defer></script>
 </head>
@@ -54,6 +58,7 @@ $flash = smFlash();
                 <div class="menu__who"><span class="avatar avatar--big"><?= h(mb_strtoupper(mb_substr($me['name'], 0, 1))) ?></span>
                     <span><strong><?= h($me['name']) ?></strong><?php if ($me['is_admin']): ?><br><small><?= h(t('Administrator')) ?></small><?php endif; ?></span></div>
                 <a href="<?= h(smUrl(['a' => 'settings'])) ?>"><?= h(t('Einstellungen')) ?></a>
+                <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Werkzeuge')) ?></a>
                 <a href="<?= h(smUrl(['a' => 'help'])) ?>"><?= h(t('Hilfe')) ?></a>
 <?php if ($me['is_admin']): ?>
                 <a href="<?= h(smUrl(['a' => 'admin'])) ?>"><?= h(t('Verwaltung')) ?></a>
@@ -67,6 +72,13 @@ $flash = smFlash();
     </nav>
 </header>
 <?php endif; ?>
+<?php if ($me && $me['is_admin'] && !$bare && empty($_COOKIE['sm_warn_off']) && ($warns = smProvWarnings())): ?>
+<div class="warnbar" data-warnbar role="status">
+    <span><strong><?= h(t('Guthaben wird knapp:')) ?></strong> <?= h(implode(' · ', $warns)) ?></span>
+    <a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'usage'])) ?>"><?= h(t('Verbrauch ansehen')) ?></a>
+    <button type="button" class="iconbtn" data-warn-off aria-label="<?= h(t('Für heute ausblenden')) ?>" title="<?= h(t('Für heute ausblenden')) ?>"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+<?php endif; ?>
 <?php if ($flash): ?>
 <div class="flash">
 <?php foreach ($flash as $f): ?>
@@ -78,10 +90,11 @@ $flash = smFlash();
 <footer class="foot">
     <span><?= h(t('Ohne Werbung, ohne Tracking')) ?></span>
     <span class="foot__sep">·</span>
-    <span><?= t('Ergebnisse von <a href="https://search.brave.com" rel="noopener noreferrer">Brave Search</a>') ?></span>
-<?php if ($me && $me['is_admin']): ?>
+<?php $provs = smHasUsersSafe() ? smProvOrder() : []; ?>
+    <span><?= h(t('Ergebnisse von %s', $provs ? implode(', ', array_map(function ($i) { return smProviders()[$i]['name']; }, $provs)) : 'Brave Search')) ?></span>
+<?php if ($me && $me['is_admin'] && $provs): $f0 = smProvForecast($provs[0]); ?>
     <span class="foot__sep">·</span>
-    <a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'usage'])) ?>" title="<?= h(t('Anfragen an Brave in diesem Monat')) ?>"><?= h(t('%d von %d Suchen', smUsageMonth(), (int)smSetting('monthly_limit'))) ?></a>
+    <a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'usage'])) ?>" title="<?= h(t('Verbrauch im laufenden Zeitraum')) ?>"><?= h(smProviders()[$provs[0]]['badge'] . ': ' . smNumF($f0['used']) . ' / ' . ($f0['limit'] ?: '∞')) ?><?= count($provs) > 1 ? ' …' : '' ?></a>
 <?php endif; ?>
 <?php if (!$bare): ?>
     <span class="foot__sep">·</span>
@@ -91,6 +104,37 @@ $flash = smFlash();
     <a href="<?= h(smUrl(['lang' => smLang() === 'de' ? 'en' : 'de'])) ?>"><?= smLang() === 'de' ? 'English' : 'Deutsch' ?></a>
     <span class="foot__sep">·</span>
     <a href="https://github.com/<?= h(SM_REPO) ?>" rel="noopener noreferrer"><?= h(t('Selbst hosten')) ?></a>
+<?php if (!$bare): ?>
+    <span class="foot__sep">·</span>
+    <button type="button" class="foot__keys" data-keys-open title="<?= h(t('Tastenkürzel (?)')) ?>"><kbd>?</kbd> <?= h(t('Tastenkürzel')) ?></button>
+<?php endif; ?>
 </footer>
+<?php if (!$bare): ?>
+<div class="overlay" data-keys hidden role="dialog" aria-modal="true" aria-labelledby="keys-title">
+    <div class="overlay__box">
+        <button type="button" class="iconbtn overlay__close" data-overlay-close aria-label="<?= h(t('Schließen')) ?>"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        <h2 id="keys-title"><?= h(t('Tastenkürzel')) ?></h2>
+        <dl class="keys">
+            <div><dt><kbd>/</kbd></dt><dd><?= h(t('Suchfeld fokussieren und Text markieren')) ?></dd></div>
+            <div><dt><kbd>↓</kbd> <kbd>J</kbd></dt><dd><?= h(t('nächster Treffer')) ?></dd></div>
+            <div><dt><kbd>↑</kbd> <kbd>K</kbd></dt><dd><?= h(t('vorheriger Treffer')) ?></dd></div>
+            <div><dt><kbd>Enter</kbd></dt><dd><?= h(t('markierten Treffer öffnen')) ?></dd></div>
+            <div><dt><kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></dt><dd><?= h(t('im neuen Tab öffnen')) ?></dd></div>
+            <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd><?= h(t('Seite zurück/weiter, in der Bildvorschau blättern')) ?></dd></div>
+            <div><dt><kbd>F</kbd></dt><dd><?= h(t('Bildvorschau im Vollbild')) ?></dd></div>
+            <div><dt><kbd>?</kbd></dt><dd><?= h(t('diese Übersicht')) ?></dd></div>
+            <div><dt><kbd>Esc</kbd></dt><dd><?= h(t('Übersicht, Menüs, Bildvorschau und Vollbild schließen')) ?></dd></div>
+        </dl>
+        <p class="muted small"><?= h(t('Die Kürzel wirken nur, wenn gerade kein Eingabefeld aktiv ist.')) ?> <a href="<?= h(smUrl(['a' => 'help'])) ?>#tasten"><?= h(t('Mehr in der Hilfe')) ?></a></p>
+    </div>
+</div>
+<div class="overlay" data-qr-dialog hidden role="dialog" aria-modal="true" aria-label="<?= h(t('QR-Code')) ?>">
+    <div class="overlay__box overlay__box--qr">
+        <button type="button" class="iconbtn overlay__close" data-overlay-close aria-label="<?= h(t('Schließen')) ?>"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        <img alt="" width="260" height="260" data-qr-img>
+        <p class="overlay__qrtext" data-qr-text></p>
+    </div>
+</div>
+<?php endif; ?>
 </body>
 </html>

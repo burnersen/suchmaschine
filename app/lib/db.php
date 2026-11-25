@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 1);
+define('SM_SCHEMA', 2);
 
 function smFatal(string $msg): void
 {
@@ -26,13 +26,14 @@ function smDenyFile(string $dir, string $why): void
  * Datenbank-Datei. Eine .php-Datei kann man von außen nicht herunterladen, und ohne den Namen findet
  * niemand die Datenbank, falls die .htaccess einmal nicht greift (z. B. unter nginx).
  */
-function smConfig(): array
+function smConfig(bool $reload = false): array
 {
     static $cfg = null;
-    if ($cfg !== null) return $cfg;
+    if ($cfg !== null && !$reload) return $cfg;
     $file = SM_DATA_DIR . '/config.php';
     if (is_file($file)) {
         $c = require $file;
+        if ($reload && function_exists('opcache_invalidate')) @opcache_invalidate($file, true);
         if (is_array($c) && !empty($c['db'])) return $cfg = $c;
     }
     if (!is_dir(SM_DATA_DIR) && !@mkdir(SM_DATA_DIR, 0700, true) && !is_dir(SM_DATA_DIR)) {
@@ -92,6 +93,28 @@ function smMigrate(PDO $pdo, int $from): void
         $pdo->exec("CREATE TABLE IF NOT EXISTS cache (k TEXT PRIMARY KEY, at INTEGER NOT NULL, v TEXT NOT NULL)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS usage (month TEXT NOT NULL, kind TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (month, kind))");
     }
+    if ($from < 2) {
+        // Zwischenspeicher mit eigener Haltbarkeit pro Eintrag (Brave kurz, andere Dienste länger, Wechselkurse einen Tag)
+        $pdo->exec("DROP TABLE IF EXISTS cache");
+        $pdo->exec("CREATE TABLE cache (k TEXT PRIMARY KEY, exp INTEGER NOT NULL, v TEXT NOT NULL)");
+        // Verbrauch pro Tag, Suchdienst, Art und Konto (0 = ohne Anmeldung). Credits als Kommazahl (Exa rechnet in Cent).
+        $pdo->exec("CREATE TABLE IF NOT EXISTS usage_log (day TEXT NOT NULL, provider TEXT NOT NULL, kind TEXT NOT NULL, user_id INTEGER NOT NULL DEFAULT 0,
+            credits REAL NOT NULL DEFAULT 0, req INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, provider, kind, user_id))");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS usage_prov ON usage_log (provider, day, user_id)");
+        $pdo->exec("INSERT OR IGNORE INTO usage_log (day, provider, kind, user_id, credits, req) SELECT month || '-01', 'brave', kind, 0, n, n FROM usage");
+        $pdo->exec("DROP TABLE IF EXISTS usage");
+        // Zustand der Suchdienste: letzter Erfolg, letzter Fehler, Pause nach Störungen, Antwortzeit
+        $pdo->exec("CREATE TABLE IF NOT EXISTS pstat (provider TEXT PRIMARY KEY, ok_at INTEGER NOT NULL DEFAULT 0, err_at INTEGER NOT NULL DEFAULT 0,
+            err TEXT NOT NULL DEFAULT '', pause_until INTEGER NOT NULL DEFAULT 0, ms_avg REAL NOT NULL DEFAULT 0, ms_n INTEGER NOT NULL DEFAULT 0, fails INTEGER NOT NULL DEFAULT 0)");
+        // Kontingente pro Konto, geheimer Login-Token (nur Prüfsumme zum Suchen, dazu verschlüsselt zum Anzeigen)
+        $pdo->exec("ALTER TABLE users ADD COLUMN quota TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE users ADD COLUMN token_hash TEXT");
+        $pdo->exec("ALTER TABLE users ADD COLUMN token_enc TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS users_token ON users (token_hash)");
+        $pdo->exec("ALTER TABLE sessions ADD COLUMN days INTEGER NOT NULL DEFAULT 90");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS shortlinks (code TEXT PRIMARY KEY, url TEXT NOT NULL, user_id INTEGER NOT NULL, created INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS shortlinks_user ON shortlinks (user_id)");
+    }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();
 }
@@ -125,6 +148,18 @@ function smDefaults(): array
         'public_hour'   => '20',    // dann höchstens so viele Suchen pro Stunde und Adresse
         'auto_update'   => '0',
         'img_proxy'     => '1',     // große Bilder über den eigenen Server laden
+        // Suchdienste (seit 1.2.0): Reihenfolge, Lastverteilung, Multi-Quellen, Ausweichziel
+        'prov_order'    => 'brave,tavily,exa,parallel,firecrawl',
+        'balance'       => '1',     // Credits gleichmäßig über den Abrechnungszeitraum verteilen
+        'multi_set'     => 'brave,tavily,exa',
+        'answers'       => '1',     // Kurzantwort von Tavily mitnehmen (kostet nichts extra)
+        'wiki'          => '1',     // Wikipedia-Kurzinfo, wenn der Suchdienst keine eigene liefert
+        'fallback_auto' => '1',     // alles leer oder gestört: automatisch weiterleiten
+        'fallback_url'  => 'https://www.startpage.com/do/search?q={q}',
+        'warn_pct'      => '80',    // Warnhinweis für Administratoren ab diesem Verbrauch
+        'weather_src'   => 'brightsky',
+        'shortener'     => '1',
+        'anon_quota'    => '',
     ];
 }
 
@@ -145,59 +180,50 @@ function smSetSetting(string $k, string $v): void
     $GLOBALS['sm_settings'][$k] = $v;
 }
 
-/* ---------- Cache: kurz, wie es Braves Bedingungen erlauben ---------- */
+/* ---------- Zwischenspeicher: jeder Eintrag hat seine eigene Haltbarkeit (Sekunden) ---------- */
 
 function smCacheGet(string $key): ?array
 {
-    $min = (int)smSetting('cache_min');
-    if ($min <= 0) return null;
-    $row = smQ('SELECT at, v FROM cache WHERE k = ?', [hash('sha256', $key)])->fetch();
-    if (!$row || (int)$row['at'] < time() - $min * 60) return null;
+    $row = smQ('SELECT exp, v FROM cache WHERE k = ?', [hash('sha256', $key)])->fetch();
+    if (!$row || (int)$row['exp'] < time()) return null;
     $v = json_decode($row['v'], true);
     return is_array($v) ? $v : null;
 }
 
-function smCacheSet(string $key, array $data): void
+function smCacheSet(string $key, array $data, int $ttl): void
 {
-    if ((int)smSetting('cache_min') <= 0) return;
-    smQ('INSERT INTO cache (k, at, v) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET at = excluded.at, v = excluded.v',
-        [hash('sha256', $key), time(), json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+    if ($ttl <= 0) return;
+    smQ('INSERT INTO cache (k, exp, v) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET exp = excluded.exp, v = excluded.v',
+        [hash('sha256', $key), time() + $ttl, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
 }
 
-/* ---------- Zähler: echte Anfragen an Brave pro Monat ---------- */
+/* ---------- Zähler: Credits pro Tag, Suchdienst, Art und Konto ---------- */
 
-function smUsageMonth(?string $month = null): int
+/** Summe der Credits eines Suchdienstes ab einem Tag (Y-m-d), wahlweise nur für ein Konto */
+function smUsageSum(string $provider, string $fromDay, ?int $userId = null, ?string $toDay = null): float
 {
-    return (int)smQ('SELECT COALESCE(SUM(n), 0) FROM usage WHERE month = ?', [$month ?? date('Y-m')])->fetchColumn();
+    $sql = 'SELECT COALESCE(SUM(credits), 0) FROM usage_log WHERE provider = ? AND day >= ?';
+    $args = [$provider, $fromDay];
+    if ($toDay !== null) { $sql .= ' AND day < ?'; $args[] = $toDay; }
+    if ($userId !== null) { $sql .= ' AND user_id = ?'; $args[] = $userId; }
+    return (float)smQ($sql, $args)->fetchColumn();
 }
 
-/** Reserviert eine Anfrage, falls das Monatslimit es erlaubt. Gezählt wird vorher, auch Fehlschläge zählen. */
-function smUsageReserve(string $kind): bool
+/** Credits buchen (negativ = gutschreiben, z. B. wenn die Anfrage gar nicht ankam) */
+function smUsageAdd(string $provider, string $kind, int $userId, float $credits, int $req = 1): void
 {
-    $db = smDb();
-    $db->exec('BEGIN IMMEDIATE');
-    try {
-        $limit = (int)smSetting('monthly_limit');
-        if ($limit > 0 && smUsageMonth() >= $limit) {
-            $db->exec('ROLLBACK');
-            return false;
-        }
-        smQ('INSERT INTO usage (month, kind, n) VALUES (?, ?, 1) ON CONFLICT(month, kind) DO UPDATE SET n = n + 1', [date('Y-m'), $kind]);
-        $db->exec('COMMIT');
-        return true;
-    } catch (Throwable $e) {
-        $db->exec('ROLLBACK');
-        throw $e;
-    }
+    smQ('INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(day, provider, kind, user_id) DO UPDATE SET credits = MAX(0, credits + excluded.credits), req = MAX(0, req + excluded.req)',
+        [date('Y-m-d'), $provider, $kind, $userId, $credits, $req]);
 }
 
-/** Letzte Monate: ['2026-11' => ['web' => 12, 'images' => 3, …], …] */
+/** Verlauf nach Kalendermonaten: ['2026-11' => ['brave' => 12.0, 'tavily' => 3.0], …] */
 function smUsageHistory(int $months = 6): array
 {
     $out = [];
-    foreach (smQ('SELECT month, kind, n FROM usage ORDER BY month DESC')->fetchAll() as $r) {
-        if (!isset($out[$r['month']]) && count($out) >= $months) break;
-        $out[$r['month']][$r['kind']] = (int)$r['n'];
+    foreach (smQ("SELECT substr(day, 1, 7) AS m, provider, SUM(credits) AS c FROM usage_log GROUP BY m, provider ORDER BY m DESC")->fetchAll() as $r) {
+        if (!isset($out[$r['m']]) && count($out) >= $months) break;
+        $out[$r['m']][$r['provider']] = (float)$r['c'];
     }
     return $out;
 }
@@ -206,8 +232,8 @@ function smUsageHistory(int $months = 6): array
 function smMaintenance(): void
 {
     if (random_int(1, 40) !== 1) return;
-    $min = max(1, (int)smSetting('cache_min'));
-    smQ('DELETE FROM cache WHERE at < ?', [time() - $min * 60]);
+    smQ('DELETE FROM cache WHERE exp < ?', [time()]);
     smQ('DELETE FROM sessions WHERE expires < ?', [time()]);
     smQ('DELETE FROM throttle WHERE last < ?', [time() - 86400]);
+    smQ('DELETE FROM usage_log WHERE day < ?', [date('Y-m-d', strtotime('-25 months'))]);
 }

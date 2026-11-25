@@ -56,6 +56,7 @@ function smAsset(string $file): string
 
 function smRedirect(string $to): void
 {
+    header('Cache-Control: no-store');
     header('Location: ' . $to, true, 303);
     exit;
 }
@@ -204,4 +205,23 @@ function smNum(int $n): string
     if ($n >= 1000000) return str_replace('.', smLang() === 'de' ? ',' : '.', (string)round($n / 1000000, 1)) . t(' Mio.');
     if ($n >= 1000) return str_replace('.', smLang() === 'de' ? ',' : '.', (string)round($n / 1000, 1)) . t(' Tsd.');
     return (string)$n;
+}
+
+/** „Mittwoch, 25. November 2026“ bzw. „Wednesday, November 25, 2026“ */
+function smLongDate(int $ts, bool $weekday = true): string
+{
+    $days = smLang() === 'de' ? ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'] : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    $months = smLang() === 'de' ? ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+        : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    $d = (int)date('j', $ts);
+    $m = $months[(int)date('n', $ts) - 1];
+    $s = smLang() === 'de' ? $d . '. ' . $m . ' ' . date('Y', $ts) : $m . ' ' . $d . ', ' . date('Y', $ts);
+    return $weekday ? $days[(int)date('w', $ts)] . ', ' . $s : $s;
+}
+
+/** Kurzer Wochentag: „Mo“ / „Mon“ */
+function smShortDay(int $ts): string
+{
+    $d = smLang() === 'de' ? ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return $d[(int)date('w', $ts)];
 }
