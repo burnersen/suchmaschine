@@ -75,7 +75,8 @@ function smHeaders(bool $html = false): void
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: no-referrer');
-    header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()');
+    // Kamera nur auf den Seiten, die den Scanner anbieten (Werkzeuge, Startseite und Ergebnisse mit dem Scan-Knopf im Suchfeld)
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=' . (!empty($GLOBALS['sm_camera']) ? '(self)' : '()') . ', payment=(), usb=(), interest-cohort=()');
     header('Cross-Origin-Opener-Policy: same-origin');
     header('X-Robots-Tag: noindex, nofollow, noarchive');
     if (smIsHttps()) header('Strict-Transport-Security: max-age=31536000');
@@ -83,7 +84,8 @@ function smHeaders(bool $html = false): void
         // Für „IPv4/IPv6 auch anzeigen“: eigene IPv4-Subdomain und ipify.org (wird nur auf Klick gefragt)
         $v4 = smHasUsersSafe() ? smSetting('ipv4_host') : '';
         $connect = "'self' https://api4.ipify.org https://api6.ipify.org" . ($v4 !== '' ? ' https://' . $v4 : '');
-        header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; "
+        // wasm-unsafe-eval nur, wo die Scan-Engine (WebAssembly) läuft: Scanner, QR-Studio, Nummern-Detektiv, Scan-Knopf im Suchfeld
+        header("Content-Security-Policy: default-src 'none'; script-src 'self'" . (!empty($GLOBALS['sm_csp_wasm']) ? " 'wasm-unsafe-eval'" : '') . "; style-src 'self'; worker-src 'self'; "
             . "img-src 'self' data: blob: https://imgs.search.brave.com; font-src 'self'; media-src 'self'; connect-src " . $connect . "; manifest-src 'self'; "
             . "frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     } else {
@@ -250,6 +252,14 @@ function smNum(int $n): string
 }
 
 /** „Mittwoch, 25. November 2026“ bzw. „Wednesday, November 25, 2026“ */
+/** Name eines Monats (1 bis 12) in der Sprache der Oberfläche */
+function smMonthName(int $m): string
+{
+    $months = smLang() === 'de' ? ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+        : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return $months[max(1, min(12, $m)) - 1];
+}
+
 function smLongDate(int $ts, bool $weekday = true): string
 {
     $days = smLang() === 'de' ? ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'] : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

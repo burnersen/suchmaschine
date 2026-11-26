@@ -127,6 +127,24 @@ case 'calc': ?>
         <p class="ia__big"><?= h(smLongDate($c['b'])) ?></p>
         <p class="muted small"><?= h(smDate($c['a'])) ?> <?= h($c['sign']) ?> <?= h($c['n'] . ' ' . ['day' => t('Tage'), 'week' => t('Wochen'), 'month' => t('Monate'), 'year' => t('Jahre')][$c['unit']]) ?>
             · <?= h($c['days'] === 0 ? t('das ist heute') : ($c['days'] > 0 ? t('in %d Tagen', $c['days']) : t('vor %d Tagen', -$c['days']))) ?> · <?= h(t('KW %d', (int)date('W', $c['b']))) ?></p>
+<?php elseif ($c['mode'] === 'weekday'): ?>
+        <p class="ia__label"><?= h(t('Wochentag')) ?></p>
+        <p class="ia__big"><?= h(smLongDate($c['a'])) ?></p>
+        <p class="muted small"><?= h(t('KW %d', $c['kw'])) ?> · <?= h(t('%d. Tag des Jahres, noch %d Tage bis Jahresende', $c['doy'], $c['left'])) ?>
+            · <?= h($c['days'] === 0 ? t('das ist heute') : ($c['days'] > 0 ? t('in %d Tagen', $c['days']) : t('vor %d Tagen', -$c['days']))) ?><?php if ($c['holiday'] !== ''): ?> · <strong><?= h($c['holiday']) ?></strong><?php endif; ?></p>
+<?php elseif ($c['mode'] === 'work'): ?>
+        <p class="ia__label"><?= h(t('Arbeitstage')) ?> · <?= h($c['state'] !== '' ? smStates()[$c['state']] : t('nur bundesweite Feiertage')) ?></p>
+        <p class="ia__big"><?= h(t('%s Arbeitstage', smFmtNumber($c['work']))) ?></p>
+        <p><?= h(smLongDate($c['a'])) ?> → <?= h(smLongDate($c['b'])) ?></p>
+        <p class="muted small"><?= h(t('Montag bis Freitag, ohne gesetzliche Feiertage, Anfangs- und Endtag zählen mit. Insgesamt %d Kalendertage.', $c['days'])) ?></p>
+<?php if ($c['hol']): ?>
+        <p class="muted small"><?= h(t('Feiertage an Werktagen:')) ?> <?= h(implode(', ', array_map(function ($x) { return $x[1] . ' (' . smDate($x[0]) . ')'; }, $c['hol']))) ?></p>
+<?php endif; ?>
+<?php elseif ($c['mode'] === 'addwork'): ?>
+        <p class="ia__label"><?= h(t('Datumsrechner')) ?> · <?= h($c['state'] !== '' ? smStates()[$c['state']] : t('nur bundesweite Feiertage')) ?></p>
+        <p class="ia__big"><?= h(smLongDate($c['b'])) ?></p>
+        <p class="muted small"><?= h(smDate($c['a'])) ?> <?= h($c['sign']) ?> <?= h(t('%d Arbeitstage', $c['n'])) ?>
+            · <?= h($c['days'] === 0 ? t('das ist heute') : ($c['days'] > 0 ? t('in %d Tagen', $c['days']) : t('vor %d Tagen', -$c['days']))) ?> · <?= h(t('KW %d', (int)date('W', $c['b']))) ?></p>
 <?php else: ?>
         <p class="ia__label"><?= h(t('Alter')) ?></p>
         <p class="ia__big"><?= h(t('%d Jahre', $c['years'])) ?></p>
@@ -134,6 +152,52 @@ case 'calc': ?>
         <p class="muted small"><?= h($c['until'] === 0 ? t('Heute ist der Geburtstag! Herzlichen Glückwunsch zum %d.', $c['years']) : t('Nächster Geburtstag: %s, in %d Tagen (wird %d)', smLongDate($c['next']), $c['until'], $c['turns'])) ?>
             · <?= h(t('%s Tage auf der Welt', smFmtNumber($c['lived']))) ?></p>
 <?php endif; ?>
+<?php break; case 'lotto': ?>
+        <p class="ia__label"><?= h($c['game'] === 'euro' ? t('Eurojackpot: 5 aus 50 und 2 aus 12') : t('Lotto 6 aus 49 mit Superzahl')) ?></p>
+        <p class="ia__dice ia__balls"><?php foreach ($c['main'] as $n): ?><span class="ball"><?= (int)$n ?></span><?php endforeach; ?>
+            <?php foreach ($c['extra'] as $n): ?><span class="ball ball--extra" title="<?= h($c['game'] === 'euro' ? t('Eurozahl') : t('Superzahl')) ?>"><?= (int)$n ?></span><?php endforeach; ?></p>
+        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smToolUrl('zufall', ['z' => $c['game'] === 'euro' ? 'euro' : 'lotto']) : smUrl(['q' => $q])) ?>"><?= h(t('Neue Zahlen')) ?></a>
+            <span class="muted small"><?= h(t('Zufällig gezogen, ohne Gewähr auf Gewinn.')) ?></span></p>
+<?php break; case 'card': ?>
+        <p class="ia__label"><?= h(t('Gezogene Karte')) ?></p>
+        <p class="ia__playcard<?= $c['red'] ? ' is-red' : '' ?>"><span><?= h($c['rank']) ?></span><span><?= h($c['suit']) ?></span></p>
+        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smToolUrl('zufall', ['z' => 'card']) : smUrl(['q' => $q])) ?>"><?= h(t('Neue Karte')) ?></a></p>
+<?php break; case 'yesno': ?>
+        <p class="ia__label"><?= h(t('Ja oder nein?')) ?></p>
+        <p class="ia__big"><?= h($c['yes'] ? t('Ja!') : t('Nein!')) ?></p>
+        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smToolUrl('zufall', ['z' => 'yesno']) : smUrl(['q' => $q])) ?>"><?= h(t('Nochmal fragen')) ?></a></p>
+<?php break; case 'bridges': ?>
+        <p class="ia__label"><?= h(t('Brückentage %d', $c['year'])) ?> · <?= h($c['state'] !== '' ? smStates()[$c['state']] : t('nur bundesweite Feiertage')) ?></p>
+<?php if (!$c['list']): ?>
+        <p><?= h(t('Keine lohnenden Brückentage gefunden.')) ?></p>
+<?php else: ?>
+        <table class="table ia__table">
+            <tr><th><?= h(t('Zeitraum')) ?></th><th><?= h(t('Urlaub')) ?></th><th><?= h(t('Frei')) ?></th></tr>
+<?php foreach ($c['list'] as $b): ?>
+            <tr<?= $b['to'] < mktime(0, 0, 0) ? ' class="is-past"' : '' ?>><td><strong><?= h(smDate($b['from'])) ?> – <?= h(smDate($b['to'])) ?></strong><br><small class="muted"><?= h(implode(', ', $b['names'])) ?> · <?= h(t('Urlaub nehmen: %s', implode(', ', array_map(function ($t) { return smShortDay($t) . ' ' . date(smLang() === 'de' ? 'j.n.' : 'n/j', $t); }, $b['days'])))) ?></small></td>
+                <td><?= h(t('%d Tage', $b['vacation'])) ?></td><td><strong><?= h(t('%d Tage', $b['total'])) ?></strong></td></tr>
+<?php endforeach; ?>
+        </table>
+<?php endif; ?>
+        <p class="muted small"><?= h(t('Gerechnet mit Montag bis Freitag als Arbeitstage und den gesetzlichen Feiertagen. Schulferien sind nicht berücksichtigt.')) ?></p>
+<?php break; case 'yearcal': ?>
+        <p class="ia__label"><?= h(t('Jahreskalender %d', $c['year'])) ?> · <?= h($c['state'] !== '' ? smStates()[$c['state']] : t('bundesweite Feiertage')) ?>
+            <button type="button" class="btn btn--small" data-print><?= h(t('Drucken')) ?></button></p>
+        <div class="yearcal">
+<?php $wd = smLang() === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']; $today = date('Y-m-d');
+for ($mo = 1; $mo <= 12; $mo++): $first = mktime(0, 0, 0, $mo, 1, $c['year']); $dim = (int)date('t', $first); $off = (int)date('N', $first) - 1; ?>
+            <table class="yearcal__m"><caption><?= h(smMonthName($mo)) ?></caption>
+                <tr><th class="yearcal__kw"><?= h(t('KW')) ?></th><?php foreach ($wd as $w): ?><th><?= h($w) ?></th><?php endforeach; ?></tr>
+<?php for ($cell = 0; $cell < $off + $dim; $cell += 7): ?>
+                <tr><td class="yearcal__kw"><?= (int)date('W', mktime(0, 0, 0, $mo, max(1, $cell - $off + 1), $c['year'])) ?></td>
+<?php for ($k = 0; $k < 7; $k++): $dd = $cell + $k - $off + 1; if ($dd < 1 || $dd > $dim): ?><td></td><?php else: $key = sprintf('%04d-%02d-%02d', $c['year'], $mo, $dd); $hn = $c['hol'][$key] ?? ''; ?>
+                    <td class="<?= $k >= 5 ? 'is-we ' : '' ?><?= $hn !== '' ? 'is-hol ' : '' ?><?= $key === $today ? 'is-today' : '' ?>"<?= $hn !== '' ? ' title="' . h($hn) . '"' : '' ?>><?= $dd ?></td>
+<?php endif; endfor; ?>
+                </tr>
+<?php endfor; ?>
+            </table>
+<?php endfor; ?>
+        </div>
 <?php break; case 'holidays': ?>
         <p class="ia__label"><?= h(t('Feiertage %d', $c['year'])) ?> · <?= h($c['state'] !== '' ? smStates()[$c['state']] : t('alle Bundesländer')) ?></p>
 <?php if ($c['next']): ?>        <p><?= h(t('Nächster Feiertag: %s, %s', $c['next']['name'], smLongDate($c['next']['ts']))) ?> <span class="muted">(<?= h(t('in %d Tagen', max(0, smDayDiff(mktime(0, 0, 0), $c['next']['ts'])))) ?>)</span></p><?php endif; ?>
@@ -145,22 +209,6 @@ case 'calc': ?>
 <?php endforeach; ?>
         </table>
         <p class="muted small"><?= h(t('Gesetzliche Feiertage, ohne Gewähr. Regionale Besonderheiten (z. B. Augsburger Friedensfest) fehlen.')) ?></p>
-<?php break; case 'pick': ?>
-<?php if ($c['mode'] === 'teams'): ?>
-        <p class="ia__label"><?= h(t('%d Gruppen, zufällig eingeteilt', count($c['groups']))) ?></p>
-        <div class="ia__teams">
-<?php foreach ($c['groups'] as $gi => $g): ?>
-            <div class="ia__team"><strong><?= h(t('Gruppe %d', $gi + 1)) ?></strong><ul><?php foreach ($g as $n): ?><li><?= h($n) ?></li><?php endforeach; ?></ul></div>
-<?php endforeach; ?>
-        </div>
-<?php elseif ($c['mode'] === 'order'): ?>
-        <p class="ia__label"><?= h(t('Zufällige Reihenfolge')) ?></p>
-        <ol class="ia__order"><?php foreach ($c['names'] as $n): ?><li><?= h($n) ?></li><?php endforeach; ?></ol>
-<?php else: ?>
-        <p class="ia__label"><?= h(t('Ausgelost aus %d', count($c['names']))) ?></p>
-        <p class="ia__big"><?= h(implode(', ', array_slice($c['names'], 0, $c['n']))) ?></p>
-<?php endif; ?>
-        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smToolUrl($toolId, ['ia' => $c['query']]) : smUrl(['q' => $c['query']])) ?>"><?= h(t('Nochmal')) ?></a></p>
 <?php break; case 'weather': ?>
         <p class="ia__label"><?= h(t('Wetter')) ?><?php if (!empty($c['geo'])): ?> · <?= h(implode(', ', array_filter([$c['geo']['name'], $c['geo']['region'] !== $c['geo']['name'] ? $c['geo']['region'] : '', $c['geo']['country']]))) ?><?php endif; ?></p>
 <?php if ($c['error'] === 'noplace'): ?>

@@ -40,7 +40,8 @@ if (PHP_VERSION_ID < 80000) {
 foreach ([
     'lang', 'util', 'db', 'auth',                          // Grundlagen: Sprache, Helfer, Datenbank, Konten
     'brave', 'providers', 'filters', 'domains', 'bangs',   // Suchen: Suchdienste, Filter, Domain-Listen, Bangs und Linsen
-    'instant', 'qr', 'imgproxy', 'reader',                 // Sofort-Antworten, QR-Codes, Bild-Proxy, Lesemodus
+    'instant', 'instant_more', 'qr', 'imgproxy', 'reader',                // Sofort-Antworten, QR-Codes, Bild-Proxy, Lesemodus
+    'net', 'shortlinks', 'tools_api',                      // Werkzeuge: sicherer Abruf, Kurzlinks und Schnipsel, Schnittstelle der Werkzeug-Apps
     'prefs', 'look', 'branding', 'backup', 'update',       // Einstellungen, Aussehen, Logo, Sicherung, Update
     'serve', 'router',                                     // Dateien ausliefern, Ablauf
     'page_search', 'page_tools', 'page_read', 'page_settings', 'page_admin',   // die einzelnen Seiten

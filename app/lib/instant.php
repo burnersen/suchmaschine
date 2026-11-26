@@ -72,8 +72,9 @@ function smInstant(string $q, ?array $me): ?array
         return smCardWeather(trim($m[2] ?? ''), $me);
     }
 
-    // Datumsrechner, Alter, Feiertage, Losen und Gruppen
-    if ($c = smCardPick($raw)) return $c;
+    // Lotto, Karte, Ja/Nein, Wochentag, Arbeitstage, Brückentage, Jahreskalender (seit 2.0)
+    if ($c = smCardMore($l, $me)) return $c;
+    // Datumsrechner, Alter, Feiertage
     if ($c = smCardDate($l)) return $c;
     if ($c = smCardHolidays($l, $me)) return $c;
 
@@ -720,76 +721,13 @@ function smWikiCard(string $q): ?array
     ];
 }
 
-/* ---------- Kurzlinks: eigener kleiner Shortener (…/?s=abc123) ---------- */
-
-const SM_SHORT_MAX = 500;    // pro Konto
-
-/** Ziel für einen Kurzlink prüfen: nur http(s), ohne Leerzeichen. Ohne Protokoll wird https:// ergänzt. '' = ungültig. */
-function smCleanShortTarget($u): string
-{
-    $u = trim(is_string($u) ? $u : '');
-    if ($u !== '' && !preg_match('~^[a-z][a-z0-9+.\-]*://~i', $u) && preg_match('~^[a-z0-9.\-]+\.[a-z]{2,}(/|$)~i', $u)) $u = 'https://' . $u;
-    if (strlen($u) > 2000 || !preg_match('~^https?://[^\s/?#]+\.[^\s/?#]+~i', $u) || preg_match('/[\x00-\x20"<>\\\\]/', $u)) return '';
-    $host = (string)parse_url($u, PHP_URL_HOST);
-    return $host !== '' ? $u : '';
-}
-
-/** Kurzlink anlegen (oder den vorhandenen für dieselbe Adresse liefern). Liefert [Code, Fehlertext]. */
-function smShortCreate(int $uid, string $url): array
-{
-    $url = smCleanShortTarget($url);
-    if ($url === '') return ['', t('Bitte eine vollständige Adresse eingeben, z. B. https://example.org/seite.')];
-    $old = smQ('SELECT code FROM shortlinks WHERE user_id = ? AND url = ?', [$uid, $url])->fetchColumn();
-    if ($old) return [(string)$old, ''];
-    if ((int)smQ('SELECT COUNT(*) FROM shortlinks WHERE user_id = ?', [$uid])->fetchColumn() >= SM_SHORT_MAX) {
-        return ['', t('Du hast schon %d Kurzlinks. Bitte erst alte löschen.', SM_SHORT_MAX)];
-    }
-    $abc = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    for ($try = 0; $try < 10; $try++) {
-        $code = '';
-        for ($i = 0; $i < 6; $i++) $code .= $abc[random_int(0, strlen($abc) - 1)];
-        try {
-            smQ('INSERT INTO shortlinks (code, url, user_id, created) VALUES (?, ?, ?, ?)', [$code, $url, $uid, time()]);
-            return [$code, ''];
-        } catch (PDOException $e) {
-        }
-    }
-    return ['', t('Es konnte kein freier Kurzlink gefunden werden.')];
-}
-
-function smShortUrl(string $code): string
-{
-    return smOrigin() . '?s=' . rawurlencode($code);
-}
-
-function smShortList(int $uid): array
-{
-    return smQ('SELECT code, url, created, hits FROM shortlinks WHERE user_id = ? ORDER BY created DESC LIMIT 200', [$uid])->fetchAll();
-}
-
-/** Kurzlink aufrufen: direkt weiter zum Ziel (ohne Anmeldung, ohne Referrer) */
-function smServeShort(string $code): void
-{
-    $url = preg_match('/^[A-Za-z0-9]{4,12}$/', $code) ? smQ('SELECT url FROM shortlinks WHERE code = ?', [$code])->fetchColumn() : false;
-    smHeaders();
-    header('Cache-Control: no-store');
-    if (!$url || smCleanShortTarget($url) === '') {
-        http_response_code(404);
-        header('Content-Type: text/plain; charset=utf-8');
-        exit(t('Diesen Kurzlink gibt es nicht (mehr).') . "\n");
-    }
-    smQ('UPDATE shortlinks SET hits = hits + 1 WHERE code = ?', [$code]);
-    header('Location: ' . $url, true, 302);
-    exit;
-}
-
 /** Töne für Timer und Hinweise: Kürzel => Name (Dateien in app/assets/sounds/, selbst erzeugt, frei verwendbar) */
 function smSounds(): array
 {
     return ['glocke' => t('Glocke'), 'gong' => t('Gong'), 'dingdong' => t('Ding-Dong'), 'sanft' => t('Sanfte Tonfolge'), 'vogel' => t('Vogelzwitschern'), 'wecker' => t('Wecker')];
 }
 
-/* ---------- Datumsrechner, Alter, Feiertage, Losen und Gruppen (seit 1.4.1) ---------- */
+/* ---------- Datumsrechner, Alter, Feiertage (seit 1.4.1) ---------- */
 
 /** Datum aus „12.05.1940“, „12.5.40“, „2026-11-26“, „heute“, „morgen“, „gestern“. Liefert Mitternacht oder null. */
 function smParseDate(string $s): ?int
@@ -929,26 +867,4 @@ function smCardHolidays(string $l, ?array $me): ?array
     $next = null;
     foreach ($list as $h) if ($h['ts'] >= mktime(0, 0, 0)) { $next = $h; break; }
     return ['type' => 'holidays', 'year' => $y, 'state' => $state, 'list' => $list, 'next' => $next];
-}
-
-/** „losen: Anna, Bernd, Carla“, „teams 3: …“, „reihenfolge: …“ (auch mit Zeilenumbrüchen getrennt) */
-function smCardPick(string $raw): ?array
-{
-    if (!preg_match('/^(losen|auslosen|wer|ziehen|pick|draw|teams?|gruppen?|groups?|reihenfolge|mischen|shuffle|order)(?:\s+(\d{1,2}))?\s*[:]\s*(.+)$/isu', trim($raw), $m)) return null;
-    $names = array_values(array_unique(array_filter(array_map(function ($x) { return trim(mb_substr($x, 0, 60)); }, preg_split('/[,;\n]+/u', $m[3])), 'strlen')));
-    if (count($names) < 2 || count($names) > 200) return null;
-    $kind = mb_strtolower($m[1]);
-    $mode = preg_match('/^(teams?|gruppen?|groups?)$/u', $kind) ? 'teams' : (preg_match('/^(reihenfolge|mischen|shuffle|order)$/u', $kind) ? 'order' : 'pick');
-    // Mischen mit sicherem Zufall
-    for ($i = count($names) - 1; $i > 0; $i--) { $j = random_int(0, $i); [$names[$i], $names[$j]] = [$names[$j], $names[$i]]; }
-    $out = ['type' => 'pick', 'mode' => $mode, 'names' => $names, 'raw' => $m[3]];
-    if ($mode === 'pick') $out['n'] = max(1, min(count($names) - 1, (int)($m[2] ?? 1) ?: 1));
-    if ($mode === 'teams') {
-        $k = max(2, min(count($names), (int)($m[2] ?? 2) ?: 2));
-        $groups = array_fill(0, $k, []);
-        foreach ($names as $i => $n) $groups[$i % $k][] = $n;
-        $out['groups'] = $groups;
-    }
-    $out['query'] = $raw;
-    return $out;
 }

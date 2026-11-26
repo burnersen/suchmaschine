@@ -42,6 +42,9 @@ function smRun(): void
 
     // Kurzlinks: …/?s=abc123 führt ohne Anmeldung direkt zum Ziel
     if ($a === '' && isset($_GET['s']) && is_string($_GET['s'])) smServeShort($_GET['s']);
+    // Text-Schnipsel: …/?n=<id>#Schlüssel zeigt die Abholseite, der Inhalt kommt per POST an ?a=noteget (beides ohne Anmeldung)
+    if ($a === '' && isset($_GET['n']) && is_string($_GET['n'])) smServeNote($_GET['n']);
+    if ($a === 'noteget') smServeNoteGet();
 
     $me = smUser();
 

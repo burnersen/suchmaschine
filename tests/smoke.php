@@ -105,12 +105,28 @@ $pages = [
 ];
 foreach (array_keys(smokeSettingsTabs()) as $t) $pages[] = '?a=settings&tab=' . $t;
 foreach (['users', 'providers', 'usage', 'config', 'look', 'backup', 'update'] as $t) $pages[] = '?a=admin&tab=' . $t;
-foreach (['rechner', 'einheiten', 'waehrung', 'timer', 'countdown', 'datum', 'feiertage', 'kalender', 'zufall', 'losen', 'wetter', 'passwort', 'qr', 'kurzlinks', 'ip'] as $t) {
+// Jedes Werkzeug aus der Übersicht, dazu jede Datei, die eine Werkzeugseite lädt (Bausteine, Apps, Stylesheet)
+[, $overview] = req($base . '?a=tools');
+preg_match_all('/data-tool="([a-z]+)"/', $overview, $tm);
+check('Werkzeuge: Übersicht listet mehr als 40 Werkzeuge', count(array_unique($tm[1])) > 40, (string)count(array_unique($tm[1])));
+$assets = [];
+foreach (array_unique($tm[1]) as $t) {
     $pages[] = '?a=tools&tool=' . $t;
+    [, $th] = req($base . '?a=tools&tool=' . $t);
+    if (preg_match_all('/\?a=asset&amp;f=([a-z0-9\/.]+)&amp;v=/', $th, $am)) foreach ($am[1] as $f) $assets[$f] = true;
 }
+foreach (array_keys($assets) as $f) $pages[] = '?a=asset&f=' . $f;
+$pages[] = '?a=asset&f=vendor/zxing.js';
+$pages[] = '?a=tools&tool=feiertage&ics=1&y=2027&st=BY';
+[$st] = req($base . '?a=tools&tool=losen');
+check('Altes Werkzeug Losen leitet zur Übersicht', $st === 303, 'HTTP ' . $st);
 $pages[] = '?a=tools&tool=rechner&x=(12%2C5%2B7)*3';
 $pages[] = '?a=tools&tool=datum&m=diff&d1=2026-01-01&d2=2026-12-24';
-$pages[] = '?a=tools&tool=losen&names=Anna%2C+Bernd%2C+Carla&lm=teams&k=2';
+$pages[] = '?a=tools&tool=datum&m=work&d1=2026-12-01&d2=2026-12-31&st=BY';
+$pages[] = '?a=tools&tool=feiertage&m=bridge&y=2027&st=NW';
+$pages[] = '?a=tools&tool=kalender&year=1&y=2027';
+$pages[] = '?a=tools&tool=zufall&z=lotto';
+$pages[] = '?a=tools&tool=zufall&z=card';
 $pages[] = '?a=tools&tool=qr&qr=https%3A%2F%2Fexample.org';
 
 function smokeSettingsTabs(): array
