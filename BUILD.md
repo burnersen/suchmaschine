@@ -80,7 +80,7 @@ Nur das ZIP kann abweichen, weil ZIP-Dateien das Änderungsdatum der Dateien ent
 
 `.github/workflows/check.yml` baut und testet bei jedem Push und Pull Request, mit PHP 8.0 und 8.3.
 
-## Updates unterschreiben (empfohlen)
+## Updates unterschreiben (freiwillig)
 
 Die Prüfsummen schützen vor kaputten Downloads, aber nicht davor, dass jemand ein Release austauscht. Dafür gibt es eine Unterschrift (Ed25519):
 
@@ -89,7 +89,7 @@ Die Prüfsummen schützen vor kaputten Downloads, aber nicht davor, dass jemand 
 3. Den **öffentlichen** Schlüssel in `app/lib/update.php` bei `const SM_UPDATE_PUBKEY = '';` eintragen und committen.
 4. Ab dem nächsten Release legt der Workflow `suchmaschine-install.php.sig` daneben. Installationen mit dieser Version spielen danach nur noch Updates mit gültiger Unterschrift ein.
 
-Für dieses Repository ist das seit Version 1.5.4 eingerichtet, der öffentliche Schlüssel steht auch in [SECURITY.md](SECURITY.md).
+Für dieses Repository ist das zurzeit **nicht** eingeschaltet (von 1.5.4 bis 1.5.5 war es das). Updates werden über die Prüfsummen kontrolliert.
 
 Reihenfolge beachten: erst das Secret, dann den öffentlichen Schlüssel. Fehlt das Secret, bricht der Release-Workflow absichtlich ab, statt ein Release zu bauen, das keiner einspielen kann. Lokal bauen geht auch ohne Schlüssel, die Datei lässt sich ganz normal installieren.
 

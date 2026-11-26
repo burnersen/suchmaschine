@@ -137,6 +137,7 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **1.5.1:** Währungskurse einmal am Tag nach der EZB plus Knopf „Kurse jetzt abrufen“. „Meine IP-Adresse“ zeigt auf Wunsch auch die IPv4 bei IPv6-Verbindung (und umgekehrt), am besten über eine eigene IPv4-Subdomain (Verwaltung → Einstellungen), sonst auf Klick über ipify.org. Die Vorschau beim Aussehen bleibt beim Scrollen sichtbar.
 - **1.5.2:** Endlos-Scrollen lädt nur noch nach, wenn man unten angekommen ist und bewusst weiterzieht.
 - **1.5.3:** „Verbrauch laut Dashboard“ setzt den Zähler eines Suchdienstes genau auf den Stand aus dem Dashboard und zählt von da weiter (für alle Dienste, die ihren Verbrauch nicht selbst melden).
+- **1.5.4 und 1.5.5:** Unterschriebene Updates kurz ausprobiert und wieder abgeschaltet. Updates werden über die Prüfsummen kontrolliert, die Unterschrift bleibt freiwillig möglich (siehe [BUILD.md](BUILD.md)).
 - Kleinigkeiten: Der Name oben auf der Ergebnisseite wird nicht mehr abgeschnitten, die Währungskarte ist kompakter, Reiter auf dem Handy zeigen, dass man wischen kann. Ist noch kein Suchdienst eingerichtet, kommt der Administrator direkt zur Einrichtung, statt weitergeleitet zu werden.
 - **Für Entwickler:** Code nach Themen aufgeteilt, englische Texte in `app/lang/en.php`, automatische Tests, Prüfung bei jedem Push, wiederholbarer Bau, Updates auf Wunsch mit Unterschrift. Für Nutzer bleibt es **eine einzige Installationsdatei**. Wie das zusammengebaut wird: [BUILD.md](BUILD.md).
 

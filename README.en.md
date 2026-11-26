@@ -114,6 +114,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **1.5.1:** currency rates once a day after the ECB plus a “Fetch rates now” button. “My IP address” can also show your IPv4 on an IPv6 connection (and vice versa), ideally via your own IPv4-only subdomain (Admin → Settings), otherwise on click via ipify.org. The appearance preview stays visible while scrolling.
 - **1.5.2:** endless scrolling only loads more after you reach the bottom and deliberately pull on.
 - **1.5.3:** “Usage according to dashboard” sets a service's counter to exactly the dashboard value and keeps counting from there (for every service that does not report its usage).
+- **1.5.4 and 1.5.5:** signed updates tried and switched off again. Updates are checked by checksums; signing stays optional (see [BUILD.md](BUILD.md)).
 - Small fixes: the name on the results page is no longer cut off, a more compact currency card, tabs on phones show that they scroll. Without any search service, the administrator is sent to the setup instead of being redirected.
 - **For developers:** code split by topic, English texts in `app/lang/en.php`, automated tests, checks on every push, reproducible builds, optional signed updates. Users still get **one single installation file**. How it is built: [BUILD.md](BUILD.md).
 
