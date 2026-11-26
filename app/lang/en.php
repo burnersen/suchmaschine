@@ -1492,4 +1492,11 @@ return [
     'Alle bisher geprüften Seiten antworten.' => 'All sites checked so far respond.',
     'Beim Weiterleiten die Adresse dieser Suchmaschine als Herkunft mitschicken' => 'Send the address of this search engine as the origin when redirecting',
     'Wie bei DuckDuckGo und Kagi: Die Zielseite sieht nur, von welcher Suchmaschine du kommst, nie den Suchbegriff. Manche Seiten (z. B. Reddit) sperren Aufrufe ganz ohne Herkunft als vermeintliche Bots. Aus: keinerlei Herkunft.' => 'Like DuckDuckGo and Kagi: the target site only sees which search engine you come from, never the search terms. Some sites (e.g. Reddit) block visits without any origin as suspected bots. Off: no origin at all.',
+    'Zum Verschieben anfassen und nach oben oder unten ziehen (oder die Pfeile nehmen). Oben = wird zuerst gefragt. Ist ein Dienst aufgebraucht, gestört oder ausgeschaltet, geht die Suche an den nächsten.' => 'Grab to move and drag up or down (or use the arrows). Top = asked first. If a service is used up, failing or turned off, the search goes to the next one.',
+    '%s nach oben' => 'Move %s up',
+    '%s nach unten' => 'Move %s down',
+    'Bilder und Videos fragt die Suchmaschine automatisch nur bei Diensten, die das können (im Moment nur Brave), in dieser Reihenfolge. Kann ein anderer Dienst das auch, wird er genauso mitbenutzt.' => 'For images and videos the search engine automatically only asks services that support them (currently only Brave), in this order. If another service supports them too, it is used the same way.',
+    'Die Lastverteilung (unten unter „Zusammenspiel“) ist an: Verbraucht ein Dienst sein Kontingent zu schnell, gehen Suchen schon früher an den nächsten.' => 'Load balancing (below under “Working together”) is on: if a service uses its quota too fast, searches go to the next one earlier.',
+    'Reihenfolge speichern' => 'Save order',
+    'Web' => 'Web',
 ];

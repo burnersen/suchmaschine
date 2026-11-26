@@ -25,6 +25,33 @@ $without = array_values(array_diff($order, $withKey));
 <?php if (!$withKey): ?>
         <div class="alert alert--error"><?= h(t('Noch kein Suchdienst eingerichtet. Trage unten mindestens einen API-Key ein.')) ?></div>
 <?php endif; ?>
+<?php if ($withKey):
+    $kindNames = ['web' => t('Web'), 'images' => t('Bilder'), 'news' => t('News'), 'videos' => t('Videos')]; ?>
+        <section class="panel">
+            <h2><?= h(t('Reihenfolge')) ?></h2>
+            <p class="muted small"><?= h(t('Zum Verschieben anfassen und nach oben oder unten ziehen (oder die Pfeile nehmen). Oben = wird zuerst gefragt. Ist ein Dienst aufgebraucht, gestört oder ausgeschaltet, geht die Suche an den nächsten.')) ?></p>
+            <ol class="provsort" data-provsort>
+<?php foreach ($withKey as $i => $id): $p = smProviders()[$id]; $on = smProvGet($id, 'on') !== '0'; ?>
+                <li class="provsort__item<?= $on ? '' : ' is-off' ?>" draggable="true" data-id="<?= h($id) ?>">
+                    <span class="provsort__grip" aria-hidden="true">⠿</span>
+                    <span class="provsort__nr"><?= $i + 1 ?></span>
+                    <span class="provsort__main"><strong><?= h($p['name']) ?></strong><?= $on ? '' : ' <small class="muted">(' . h(t('ausgeschaltet')) . ')</small>' ?><br>
+                        <span class="provsort__kinds"><?php foreach ($kindNames as $k => $kn): ?><span class="tag<?= in_array($k, $p['kinds'], true) ? '' : ' tag--no' ?>"><?= h($kn) ?></span> <?php endforeach; ?></span></span>
+                    <span class="provsort__btns">
+                        <button type="button" class="btn btn--small" data-move="-1" aria-label="<?= h(t('%s nach oben', $p['name'])) ?>">↑</button>
+                        <button type="button" class="btn btn--small" data-move="1" aria-label="<?= h(t('%s nach unten', $p['name'])) ?>">↓</button>
+                    </span>
+                    <input type="hidden" name="prio[<?= h($id) ?>]" value="<?= $i + 1 ?>" data-prio>
+                </li>
+<?php endforeach; ?>
+            </ol>
+            <p class="muted small"><?= h(t('Bilder und Videos fragt die Suchmaschine automatisch nur bei Diensten, die das können (im Moment nur Brave), in dieser Reihenfolge. Kann ein anderer Dienst das auch, wird er genauso mitbenutzt.')) ?></p>
+<?php if (smSetting('balance') === '1'): ?>
+            <p class="muted small"><?= h(t('Die Lastverteilung (unten unter „Zusammenspiel“) ist an: Verbraucht ein Dienst sein Kontingent zu schnell, gehen Suchen schon früher an den nächsten.')) ?></p>
+<?php endif; ?>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Reihenfolge speichern')) ?></button></div>
+        </section>
+<?php endif; ?>
 <?php foreach ($withKey as $i => $id): $p = smProviders()[$id]; $st = smProvStat($id); $key = smProvGet($id, 'key'); $f = smProvForecast($id);
     $anc = smProvAnchor($id); $api = smProvApi($id);
     $paused = (int)$st['pause_until'] > time(); $on = smProvGet($id, 'on') !== '0'; ?>
@@ -69,7 +96,7 @@ $without = array_values(array_diff($order, $withKey));
 <?php endif; ?></small></label>
             </div>
 <?php endif; ?>
-            <div class="form__row form__row--4">
+            <div class="form__row form__row--3">
                 <label class="field"><span><?= h(t('Limit pro Zeitraum')) ?></span><input type="number" name="limit[<?= h($id) ?>]" min="0" value="<?= (int)smProvGet($id, 'limit') ?>">
                     <small class="muted"><?= h(t('Frei: %s. Vorschlag: %d (50 Puffer). 0 = ohne Grenze.', smNumF($p['free']) . ' ' . $p['unit'], $p['limit'])) ?></small></label>
                 <label class="field"><span><?= h(t('Kosten pro Suche')) ?></span><input type="number" name="cost[<?= h($id) ?>]" min="0.01" step="0.01" value="<?= h(smProvGet($id, 'cost')) ?>">
@@ -77,8 +104,6 @@ $without = array_values(array_diff($order, $withKey));
                 <label class="field"><span><?= h($id === 'brave' ? t('Zwischenspeicher (Minuten)') : t('Zwischenspeicher (Stunden)')) ?></span>
                     <input type="number" name="cache[<?= h($id) ?>]" min="0" max="<?= $id === 'brave' ? 60 : 168 ?>" value="<?= (int)smProvGet($id, 'cache') ?>">
                     <small class="muted"><?= h($id === 'brave' ? t('Brave erlaubt nur kurzes Speichern (höchstens 60).') : t('Gleiche Suche in dieser Zeit kostet nichts.')) ?></small></label>
-                <label class="field"><span><?= h(t('Reihenfolge')) ?></span><input type="number" name="prio[<?= h($id) ?>]" min="1" max="99" value="<?= array_search($id, $order, true) + 1 ?>">
-                    <small class="muted"><?= h(t('1 = wird zuerst gefragt.')) ?></small></label>
             </div>
             <label class="switch"><input type="checkbox" name="on[<?= h($id) ?>]" value="1"<?= $on ? ' checked' : '' ?>><span class="switch__ui"></span><span><?= h(t('Eingeschaltet')) ?></span></label>
             <label class="check"><input type="checkbox" name="keydel[<?= h($id) ?>]" value="1"> <?= h(t('Key entfernen')) ?></label>
