@@ -366,7 +366,7 @@ function smProvForecast(string $id): array
     $empty = null;
     if ($limit > 0 && !$fits && $avg > 0) $empty = time() + (int)(max(0, $limit - $used) / $avg * 86400);
     // Tempo: 1,0 = genau im Plan, darüber wird schneller verbraucht, als das Kontingent erlaubt
-    $share = max($c['elapsed'] / $c['days'], 1 / $c['days']);
+    $share = max($c['elapsed'] / $c['days'], min(1.0, 3 / $c['days']));   // am Anfang: mindestens 3 Tage Budget, sonst greift die Lastverteilung schon nach ein paar Suchen
     $pace = $limit > 0 ? $used / ($limit * $share) : 0.0;
     $left = $limit > 0 ? max(0.0, $limit - $used) : INF;
     $apiLeft = smProvApiLeft($id);
@@ -506,7 +506,7 @@ function smProvPick(string $kind, int $userId, ?string $forced, int $page, int $
     }
     if ($forced === null && count($list) > 1 && smSetting('balance') === '1' && $older < 7) {
         $pace = [];
-        foreach ($list as $i => $id) $pace[$id] = [smProvForecast($id)['pace'] > 1.0 ? 1 : 0, $i];
+        foreach ($list as $i => $id) $pace[$id] = [smProvForecast($id)['pace'] > 1.15 ? 1 : 0, $i];   // etwas Spielraum, die eigene Reihenfolge soll gelten
         $first = $list[0];
         usort($list, function ($a, $b) use ($pace) {
             if ($pace[$a][0] !== $pace[$b][0]) return $pace[$a][0] <=> $pace[$b][0];
@@ -546,9 +546,11 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
     if ($src === 'multi') return smSearchMulti($kind, $q, $params, $userId);
     $forced = isset(smProviders()[$src]) ? $src : null;
     $ck = json_encode($params);
+    // „Automatisch“ merkt sich auch, welche Reihenfolge galt: nach dem Umsortieren fragt die nächste Suche gleich den neuen ersten Dienst
+    $auto = 'auto' . substr(md5(smSetting('prov_order') . '|' . smSetting('balance')), 0, 8);
 
     // Automatisch: zuerst der Zwischenspeicher, egal welcher Dienst geliefert hat
-    if ($hit = smCacheGet(($forced ?? 'auto') . '|' . $ck)) {
+    if ($hit = smCacheGet(($forced ?? $auto) . '|' . $ck)) {
         $hit['cached'] = true;
         return $hit;
     }
@@ -567,7 +569,7 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
         $out['notice'] = smNoticeText($id, $skip, $errors);
         $ttl = smProvTtl($id);
         smCacheSet($id . '|' . $ck, $out, $ttl);
-        if ($forced === null) smCacheSet('auto|' . $ck, $out, min($ttl, 3600));
+        if ($forced === null) smCacheSet($auto . '|' . $ck, $out, min($ttl, 3600));
         $out['cached'] = false;
         return $out;
     }
