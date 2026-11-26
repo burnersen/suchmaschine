@@ -122,6 +122,10 @@ $combos = $de ? [
     [t('Passwort-Generator (läuft nur im Browser)'), $de ? ['passwort', 'passwort 32', 'passphrase'] : ['password', 'password 32', 'passphrase']],
     [t('QR-Code für eine Adresse oder einen Text'), ['qr https://example.org', $de ? 'qr WLAN-Passwort ist geheim' : 'qr hello world']],
     [t('Kurzlink anlegen (mit Konto)'), $de ? ['kurz https://example.org/ein/langer/pfad'] : ['short https://example.org/a/long/path']],
+    [t('Arbeitstage mit Feiertagen, Wochentag'), $de ? ['arbeitstage zwischen 1.12.2026 und 31.12.2026 bayern', 'heute + 10 arbeitstage', 'wochentag 24.12.2027'] : ['workdays between 2026-12-01 and 2026-12-31', 'today + 10 workdays', 'weekday 2027-12-24']],
+    [t('Brückentage und Jahreskalender'), $de ? ['brückentage 2027 nrw', 'jahreskalender 2027'] : ['bridge days 2027', 'year calendar 2027']],
+    [t('Lotto, Karte ziehen, Ja oder nein'), $de ? ['lotto', 'eurojackpot', 'karte ziehen', 'ja oder nein'] : ['lotto', 'eurojackpot', 'draw a card', 'yes or no']],
+    [t('Werkzeug öffnen'), $de ? ['!qr Hallo', '!scan', '!pw', '!kurz https://example.org', '!notiz', '!json', '!dns example.org'] : ['!qr hello', '!scan', '!pw', '!short https://example.org', '!note', '!json', '!dns example.org']],
 ] as $row): ?>
                 <tr><td><?= h($row[0]) ?></td><td class="chips"><?php foreach ($row[1] as $e) echo $ex($e) . ' '; ?></td></tr>
 <?php endforeach; ?>

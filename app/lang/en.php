@@ -1411,4 +1411,8 @@ return [
     'Echter Zufall vom Server (kryptografisch sicher).' => 'True randomness from the server (cryptographically secure).',
     'Wunschname (optional)' => 'Custom name (optional)',
     'Tracking-Parameter entfernen (utm_…, fbclid …)' => 'Remove tracking parameters (utm_…, fbclid …)',
+    'Arbeitstage mit Feiertagen, Wochentag' => 'Working days with holidays, weekday',
+    'Brückentage und Jahreskalender' => 'Bridge days and year calendar',
+    'Lotto, Karte ziehen, Ja oder nein' => 'Lotto, draw a card, yes or no',
+    'Werkzeug öffnen' => 'Open a tool',
 ];

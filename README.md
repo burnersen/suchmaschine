@@ -10,6 +10,8 @@ bei normaler privater Nutzung komplett in den kostenlosen Monatskontingenten.</p
 
 <p align="center"><img src="docs/de/ergebnisse.png" alt="Ergebnisseite mit Treffern, Top-Meldungen und Kurzinfo" width="820"></p>
 
+> 🚀 **Neu: Version 2.0, das große Werkzeug-Upgrade.** 47 Werkzeuge mit QR-Studio, Scanner (Barcode scannen und sofort suchen), Passwort-Generator, Kurzlinks mit Statistik, verschlüsselten Text-Schnipseln, Netz- und Entwickler-Werkzeugen. [Alles, was neu ist](#neu-in-20-das-große-werkzeug-upgrade)
+
 Einfach `suchmaschine-install.php` hochladen, im Browser aufrufen, Konto anlegen, einen oder mehrere API-Keys einfügen. Das ist die ganze Installation.
 
 Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. Keine Frameworks, keine Abhängigkeiten, kein Build-Schritt, keine MySQL-Datenbank. Läuft auf ganz normalem Shared Webhosting.
@@ -45,7 +47,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -128,6 +130,53 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden die wichtigsten, jeder kann sie für sich abschalten und **eigene anlegen** (Adresse mit `{q}` für den Suchbegriff). Funktioniert auch aus der Adressleiste des Browsers.
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
+
+## Neu in 2.0: das große Werkzeug-Upgrade
+
+> **Version 2.0 ist ein Mega-Upgrade.** Aus 15 kleinen Helfern werden **47 Werkzeuge**, viele davon richtige kleine Apps. Alle laufen auf deinem eigenen Server oder direkt im Browser, nichts fragt einen Suchdienst, nichts kostet Guthaben. Das Update spielt sich wie gewohnt per Knopfdruck ein, Daten und Kurzlinks bleiben erhalten.
+
+<p align="center"><img src="docs/de/werkzeuge.png" alt="Werkzeuge mit Suche, Favoriten und Gruppen" width="820"></p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/de/qr-studio.png" width="400" alt="QR-Studio"><br><sub>QR-Studio mit Design und Lesetest</sub></td>
+    <td align="center"><img src="docs/de/passwort.png" width="400" alt="Passwort-Generator"><br><sub>Passwort-Generator mit Stärke-Check</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/de/waehrung.png" width="400" alt="Währungen mit Kursverlauf"><br><sub>Währungen mit Kursverlauf der EZB</sub></td>
+    <td align="center"><img src="docs/de/wetter.png" width="400" alt="Wetter mit DWD-Warnungen"><br><sub>Wetter mit Stunden, 7 Tagen und DWD-Warnungen</sub></td>
+  </tr>
+</table>
+
+**Übersicht:** Werkzeug-Suche (Taste `/`), Favoriten mit ☆, „Zuletzt benutzt“, Abkürzungen im Suchfeld wie `!qr Hallo`, `!pw`, `!kurz https://…`, `!json`, `!dns example.org`.
+
+**QR-Codes und Scanner** (Bausteine aus CodeForge, gleicher Autor)
+- **QR-Studio:** Vorlagen für Link, Text, WLAN, Kontakt (vCard), Telefon, SMS, E-Mail, Termin, Ort, **GiroCode**, **2FA-Schlüssel**, Produkt (GS1) und **dynamische QR-Codes** (zeigen auf einen eigenen Kurzlink, das Ziel lässt sich später ändern). Farben, Verläufe, sechs Punktformen, eigene Ecken, **Logo in der Mitte**, Rahmen mit Text. Dazu Data Matrix, Aztec, PDF417 und alle Strichcodes. Export als PNG (bis 4096 px) und SVG.
+- **Lesetest:** Jeder Code wird automatisch klein gedruckt, verwischt, schief und dunkel nachgestellt und wieder eingelesen, mit Empfehlung für die Druckgröße.
+- **Scanner:** Webcam am PC, Kamera am Handy (mit Taschenlampe, Zoom, Kamerawechsel), Fotos und Screenshots (auch mit Strg+V). QR, Data Matrix, Aztec, PDF417, EAN, UPC, Code 128 und mehr. Serien- und Inventur-Modus mit CSV.
+- **Gescanntes direkt suchen:** Kamera-Knopf im Suchfeld, Barcode, ISBN oder Text scannen, und die Suche startet sofort. Im Scanner auf Wunsch mit „Gleich suchen“.
+- **Link-Röntgen gegen Quishing:** zeigt die echte Domain, warnt vor nachgemachten Adressen (`pаypal.com` mit kyrillischem a), fremden Markennamen, IP-Adressen und Tricks. Kurzlinks löst der Server auf, ohne die Seite zu öffnen.
+- **QR drucken:** Gäste-WLAN-Schild, Tischkarte, Visitenkarte, Spendenschild, Etikettenbögen (Avery, Herma, Etikettendrucker) mit Seriennummern.
+- **Nummern-Detektiv:** IBAN, EAN, ISBN, ISSN, PZN, IMEI prüfen, mit Prüfziffer und Hinweis, welche Ziffern vertauscht wurden.
+
+**Sicherheit und Teilen**
+- **Passwort-Generator:** zufällige Zeichen, Passphrasen (große deutsche und englische Wortliste), PIN ohne 1234 und Co., aussprechbar, eigenes Muster, Tokens (Hex, Base64url, Base32, UUID). Vorlagen für WLAN, Online-Konto, maximal sicher und zickige Seiten, 50 Stück auf einmal mit CSV, **Stärke-Check** für eigene Passwörter mit Knackzeit und Mustererkennung. Alles nur im Browser.
+- **Kurzlinks 2.0** (Ideen aus [ShrinkURL](https://github.com/burnersen/ShrinkURL)): Wunschname, Ablaufdatum, Aufruf-Grenze („nur einmal“), Passwort, Zwischenseite gegen Messenger-Vorschauen, Vorschau mit `+` am Ende, Tracking-Parameter entfernen, Ziel nachträglich ändern, an/aus, **Statistik nur als Zähler pro Tag** (keine IP, kein Cookie), Titel des Ziels, Ziele auf tote Links prüfen, CSV, Lesezeichen-Knopf, Eintrag im Teilen-Menü am Handy.
+- **Text-Schnipsel:** im Browser verschlüsselt (AES-256-GCM), der Schlüssel steht nur im Link hinter dem `#`. Gültigkeit, „nach dem Lesen weg“, optional Passwort (ein falsches Passwort verbraucht keinen Abruf).
+
+**Rechnen:** Rechner, der beim Tippen rechnet (Verlauf, wissenschaftlich, Grad/Rad), Prozent und MwSt, Dreisatz, Einheiten live (jetzt auch Verbrauch, Druck, Energie, Leistung, Winkel, Kochen), Währungen mit mehreren Zielen und **Kursverlauf der EZB**, Zinseszins, Sparplan, Kredit mit Tilgungsplan, Spritkosten, Rechnung teilen, römische Zahlen, Morsecode mit Ton und Licht.
+
+**Zeit und Datum:** mehrere Timer gleichzeitig, Pomodoro, Intervall-Training, Wecker, Stoppuhr mit Runden (Timer überleben das Neuladen), Countdown mit Titel, Vollbild und Link, **Arbeitstage mit Feiertagen des Bundeslands**, Wochentag, **Brückentage-Planer**, Feiertage als **Kalenderdatei (.ics)**, Jahreskalender zum Drucken, Weltzeituhr mit Termin-Planer.
+
+**Netz und Web** (nach dem Anmelden, mit sicherem Abruf nach dem Vorbild von [LinkVault](https://github.com/burnersen/LinkVault)): Was Seiten über dich sehen (Kopfzeilen, Browser, WebRTC), Ist die Seite down?, Header und Weiterleitungen mit Sicherheits-Check, SSL-Zertifikat, DNS mit SPF und DMARC, WHOIS über RDAP, Link-Checker für bis zu 200 Links, **Link-Vorschau** (so sieht dein Link in Messengern aus), **Lesezeichen aufräumen** (Doppelte und tote Links aus dem Browser-Export entfernen).
+
+**Für Entwickler:** JSON (formatieren, prüfen, CSV), Kodieren (Base64, URL, HTML, Hex, Binär, Unicode), Hash (SHA-256/512, SHA-1, MD5, CRC32, HMAC, auch von Dateien), JWT-Decoder mit Signaturprüfung, UUID v4/v7, ULID, Nano ID, Regex-Tester, Cron-Erklärer mit den nächsten Läufen, Text vergleichen, Farben mit WCAG-Kontrast, Zahlensysteme, Subnetz-Rechner (IPv4 und IPv6), chmod, `.htpasswd`, Text-Werkzeuge, Unix-Zeitstempel.
+
+**Alltag:** Lotto 6 aus 49, Eurojackpot, Karte ziehen, Ja oder nein, **Wetter mit Stunden, 7 Tagen, UV und amtlichen DWD-Warnungen**.
+
+**Raus:** „Losen und Gruppen bilden“.
+
+**Datenschutz bleibt:** Passwörter, QR-Inhalte, Hashes, JWTs, Regex und Texte verlassen den Browser nicht. Abrufe nach draußen (Netz-Werkzeuge, Link-Röntgen) macht nur dein Server, nur zu öffentlichen Adressen, ohne etwas zu speichern. Die Scan-Engine (zxing-wasm, MIT) liegt auf deinem Server und wird nur geladen, wenn du scannst.
 
 ## Neu in 1.5
 
@@ -225,19 +274,26 @@ Direkt im Suchfeld, beantwortet bevor ein Suchdienst gefragt wird. Unter jeder A
 | `tage zwischen 1.1.2026 und 24.12.2026`, `heute + 6 wochen` | Datumsrechner mit Wochen und Werktagen |
 | `alter 12.05.1940` | Alter, nächster Geburtstag, Tage auf der Welt |
 | `feiertage 2027 bayern`, `feiertage nrw` | gesetzliche Feiertage nach Bundesland |
-| `losen: Anna, Bernd, Carla`, `teams 3: …`, `reihenfolge: …` | auslosen, Gruppen bilden, Reihenfolge mischen |
+| `arbeitstage zwischen 1.12.2026 und 31.12.2026 bayern`, `heute + 10 arbeitstage` | Arbeitstage mit den Feiertagen des Bundeslands |
+| `wochentag 24.12.2027` | Wochentag, Kalenderwoche, Tag des Jahres |
+| `brückentage 2027 nrw` | Brückentage-Planer: wenig Urlaub, viele freie Tage |
+| `jahreskalender 2027`, `kalender 2027` | Jahreskalender mit KW und Feiertagen, zum Drucken |
+| `lotto`, `eurojackpot`, `karte ziehen`, `ja oder nein` | Lottozahlen, Spielkarte, Entscheidungshilfe |
+| `!qr Hallo`, `!pw`, `!kurz https://…`, `!scan`, `!json`, `!dns example.org` | öffnet das passende Werkzeug |
 
 ### Werkzeuge
 
-Unter **Werkzeuge** (Kachel-Symbol oben rechts, Konto-Menü oder Startseite) stehen alle kleinen Helfer an einem Ort: eine Übersicht nach Gruppen, jedes Werkzeug mit eigener Seite und eigenen Eingabefeldern. Niemand muss wissen, was man ins Suchfeld tippt. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben.
+Unter **Werkzeuge** (Kachel-Symbol oben rechts, Konto-Menü oder Startseite) stehen 47 Helfer an einem Ort, nach Gruppen sortiert, mit Suche, Favoriten und „Zuletzt benutzt“. Jedes Werkzeug hat eine eigene Seite. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben. Was alles dabei ist, steht oben unter [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade).
 
-- **Rechnen und Umrechnen:** Rechner mit Tastenfeld, Einheiten (Länge, Gewicht, Temperatur, Volumen, Fläche, Geschwindigkeit, Zeit, Datenmengen), Währungen nach EZB-Kurs
-- **Zeit und Datum:** Timer mit Ton und Stoppuhr, Countdown, **Datumsrechner** (Tage zwischen zwei Daten samt Werktagen, Datum plus/minus Tage, Wochen, Monate, Jahre), **Alter und nächster Geburtstag**, **Feiertage nach Bundesland**, Kalenderwoche, Datum und Uhrzeit
-- **Zufall und Entscheidungen:** Würfel, Münze, Zufallszahl, **Losen und Gruppen bilden** (Namen eingeben, einen auslosen, in Gruppen aufteilen oder die Reihenfolge mischen)
-- **Teilen und Sicherheit:** **Passwort-Generator** (Länge, Groß/Klein, Zahlen, Sonderzeichen, ohne Verwechsler, merkbare Wort-Passwörter, Kopier-Knopf, Stärke-Anzeige), **QR-Code-Generator** mit SVG-Download, deine **Kurzlinks** mit Aufrufzahlen (funktionieren für jeden ohne Anmeldung)
-- **Wetter und Netz:** Wetter für deinen Ort und die eigene IP-Adresse
+- **QR-Codes und Scanner:** QR-Studio, Scanner (auch direkt aus dem Suchfeld), QR drucken, Nummern-Detektiv
+- **Sicherheit und Teilen:** Passwort-Generator, Kurzlinks, verschlüsselte Text-Schnipsel
+- **Rechnen und Umrechnen:** Rechner, Prozent und MwSt, Einheiten, Währungen, Zinsen, Sprit und Rechnung teilen
+- **Zeit und Datum:** Timer und Stoppuhr, Countdown, Datumsrechner, Feiertage und Brückentage, Kalender, Weltzeituhr
+- **Netz und Web:** Meine IP, Ist die Seite down?, Header, SSL, DNS, WHOIS, Link-Checker, Link-Vorschau, Lesezeichen aufräumen
+- **Für Entwickler:** JSON, Kodieren, Hash, JWT, UUID, Regex, Cron, Text vergleichen, Farben, Zahlensysteme, Subnetz, chmod, .htpasswd, Text-Werkzeuge, Zeitstempel
+- **Alltag und Zufall:** Würfel, Münze, Lotto, Wetter, Römische Zahlen, Morsecode
 
-Alles funktioniert auch ohne JavaScript. Mit JavaScript laufen Timer und Stoppuhr live, und der Rechner hat ein Tastenfeld zum Antippen.
+Die einfachen Rechen- und Datumswerkzeuge funktionieren auch ohne JavaScript. Die Apps (QR-Studio, Scanner, Passwörter, Entwickler-Werkzeuge …) brauchen JavaScript, weil sie bewusst nur im Browser rechnen. Die Netz-Werkzeuge rufen fremde Server ab und sind darum nur nach dem Anmelden da.
 
 **Töne:** Für den Timer gibt es sechs Töne (Glocke, Gong, Ding-Dong, sanfte Tonfolge, Vogelzwitschern, Wecker) mit „Ton testen“. Sie sind rein rechnerisch erzeugt, ohne fremde Aufnahmen, und liegen als MP3 in `app/assets/sounds/`. Frei verwendbar (CC0), auch in anderen Projekten.
 
@@ -357,13 +413,17 @@ Alles lässt sich an derselben Stelle wieder einspielen.
 index.php      Einstieg: Version, Pfade, lädt app/lib/ und startet den Ablauf
 app/lib/       Funktionen, eine Datei pro Thema: Ablauf (router.php), Seiten (page_*.php), Datenbank, Konten,
                Suchdienste (providers.php, brave.php), Filter, Domain-Listen, Bangs und Linsen, Sofort-Antworten (instant.php),
-               QR-Codes, Bild-Proxy, Lesemodus, Aussehen, Logo, Sicherung, Update
+               QR-Codes, Bild-Proxy, Lesemodus, Aussehen, Logo, Sicherung, Update,
+               Werkzeuge (page_tools.php, tools_api.php), sicherer Abruf nach draußen (net.php), Kurzlinks und Schnipsel
 app/lang/      englische Texte (en.php)
 app/views/     HTML-Vorlagen
 app/assets/    CSS, JavaScript, PDF-Baukasten (pdf.js), Symbole, Schriften, Töne (werden über index.php ausgeliefert)
+  cf/          Bausteine der Werkzeug-Apps aus CodeForge: QR-Encoder, Zeichnen, Scanner, Druck, Nummern-Detektiv
+  tools/       eigene Werkzeug-Apps (Passwörter, Kurzlinks, Netz, Entwickler, Rechnen, Zeit) und englische Texte (en.js)
+  vendor/      Scan-Engine zxing-wasm (MIT), wird nur beim Scannen geladen
 data/          entsteht beim ersten Aufruf: Datenbank, Einstellungen, Logo (geheim!)
 tests/         automatische Tests
-tools/         Release bauen (nur für Entwickler)
+tools/         Release bauen, Texte der Apps prüfen (nur für Entwickler)
 ```
 
 Die Dateien in `app/` tun nichts, wenn man sie direkt aufruft, alles läuft über `index.php`. Eine ausführliche Übersicht, welche Datei wofür zuständig ist, steht in [BUILD.md](BUILD.md#wo-was-im-quellcode-steht).
@@ -410,3 +470,5 @@ Die Suchmaschine ist kostenlose Hobby-Software und wird **so, wie sie ist, ohne 
 ## Lizenz
 
 GNU Affero General Public License v3.0, siehe [LICENSE](LICENSE).
+
+Eingebaut seit 2.0: Scan-Engine [zxing-wasm](https://github.com/Sec-ant/zxing-wasm) (MIT) mit zxing-cpp (Apache 2.0), Details in `app/assets/vendor/LIZENZEN.txt`. Wortlisten für Passphrasen: Deutsch aus [dys2p/wordlists-de](https://github.com/dys2p/wordlists-de) (CC0), Englisch aus den Wortlisten der [EFF](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) (CC BY 3.0 US). Symbole im Stil von Lucide (ISC).

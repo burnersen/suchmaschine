@@ -1148,3 +1148,4 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .wx__hours .wx__ico { font-size: 22px; }
 .wx__week .wx__ico { font-size: 20px; vertical-align: -3px; }
 
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
