@@ -148,6 +148,35 @@ foreach ($pages as $p) {
 check('Einstellungen speichern', $st === 303, 'HTTP ' . $st);
 [$st, , $loc] = req($base . '?a=tools', ['csrf' => csrf($html), 'do' => 'short_add', 'url' => 'https://example.org/ein/langer/pfad']);
 check('Kurzlink anlegen', $st === 303 && strpos($loc, 'tool=kurzlinks') !== false, 'HTTP ' . $st . ' ' . $loc);
+
+// Schnittstelle der Werkzeug-Apps (ohne Netz): Kurzlinks, Schnipsel, .htpasswd, unbekannte Aktion
+$api = function (string $action, array $data) use ($base, $html): array {
+    [$st, $body] = req($base . '?a=tools&api=' . $action, ['csrf' => csrf($html), 'data' => json_encode($data)]);
+    $j = json_decode($body, true);
+    return [$st, is_array($j) ? $j : []];
+};
+[$st, $j] = $api('short_create', ['url' => 'https://example.org/api?utm_source=x', 'code' => 'smoke-test', 'strip' => 1]);
+check('API: Kurzlink mit Wunschname', ($j['ok'] ?? false) && ($j['link']['url'] ?? '') === 'https://example.org/api', 'HTTP ' . $st . ' ' . json_encode($j));
+[$st, $loc] = [req($base . '?s=smoke-test')[0], req($base . '?s=smoke-test')[2]];
+check('Kurzlink leitet weiter', $st === 302 && $loc === 'https://example.org/api', 'HTTP ' . $st . ' ' . $loc);
+check('Kurzlink-Vorschau mit +', req($base . '?s=smoke-test%2B')[0] === 200);
+[, $j] = $api('short_list', []);
+check('API: Kurzlinks auflisten', count($j['links'] ?? []) >= 2);
+[, $j] = $api('short_stats', ['code' => 'smoke-test', 'days' => 30]);
+check('API: Statistik zählt die Aufrufe', array_sum($j['days'] ?? []) >= 2, json_encode($j));
+[, $j] = $api('note_create', ['data' => '{"v":1,"iv":"AAAA","ct":"BBBB"}', 'hours' => 1, 'views' => 1]);
+check('API: Schnipsel anlegen', ($j['ok'] ?? false) && preg_match('/[?&]n=[A-Za-z0-9_-]{16}$/', $j['url'] ?? ''), json_encode($j));
+$nid = substr((string)($j['url'] ?? ''), -16);
+check('Schnipsel: Abholseite', req($base . '?n=' . $nid)[0] === 200);
+$g1 = json_decode(req($base . '?a=noteget', ['id' => $nid])[1], true);
+$g2 = json_decode(req($base . '?a=noteget', ['id' => $nid])[1], true);
+check('Schnipsel: einmal abholen, danach weg', ($g1['ok'] ?? false) && !($g2['ok'] ?? true));
+[, $j] = $api('htpasswd', ['user' => 'anna', 'pass' => 'geheim']);
+check('API: .htpasswd mit bcrypt', strpos((string)($j['line'] ?? ''), 'anna:$2y$') === 0, json_encode($j));
+[$st, $j] = $api('gibtsnicht', []);
+check('API: unbekannte Aktion', $st === 404 && ($j['ok'] ?? true) === false);
+[$st] = req($base . '?a=tools&api=short_list', ['data' => '{}']);
+check('API: ohne CSRF-Token abgelehnt', $st === 303, 'HTTP ' . $st);
 [$st, $html] = req($base . '?a=tools&tool=kurzlinks');
 check('Kurzlink in der Liste', strpos($html, 'example.org/ein/langer/pfad') !== false);
 // Ohne gültiges Formular-Kennzeichen wird nichts gespeichert
