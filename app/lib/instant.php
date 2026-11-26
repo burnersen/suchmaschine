@@ -13,7 +13,7 @@ function smInstant(string $q, ?array $me): ?array
     $raw = trim($q);
     $l = mb_strtolower(preg_replace('/\s+/u', ' ', $raw));
     $l = rtrim($l, '?! ');
-    if ($l === '' || mb_strlen($l) > 300) return null;
+    if ($l === '' || mb_strlen($l) > 1000) return null;
 
     // Feste Kurzbefehle
     if (preg_match('/^(meine ip|meine ip-?adresse|was ist meine ip(-?adresse)?|my ip|my ip address|what is my ip( address)?|ip|ip-?adresse)$/u', $l)) {
@@ -71,6 +71,11 @@ function smInstant(string $q, ?array $me): ?array
     if (preg_match('/^(wetter|weather|wettervorhersage|wetterbericht|forecast|weather forecast)(?:\s+(?:in|für|fuer|for|bei))?(?:\s+(.{2,60}))?$/u', $l, $m)) {
         return smCardWeather(trim($m[2] ?? ''), $me);
     }
+
+    // Datumsrechner, Alter, Feiertage, Losen und Gruppen
+    if ($c = smCardPick($raw)) return $c;
+    if ($c = smCardDate($l)) return $c;
+    if ($c = smCardHolidays($l, $me)) return $c;
 
     // Währungen und Einheiten: „50 usd in eur“, „100 km in meilen“
     if (preg_match('/^(-?[\d.,]*\d)?\s*([^\d\s][^\s]*?(?:\s[a-zäöü]+)?)\s+(?:in|to|nach|zu|=|->|→|als|into)\s+([^\s].*?)$/u', $l, $m)) {
@@ -762,4 +767,168 @@ function smServeShort(string $code): void
     smQ('UPDATE shortlinks SET hits = hits + 1 WHERE code = ?', [$code]);
     header('Location: ' . $url, true, 302);
     exit;
+}
+
+/* ---------- Datumsrechner, Alter, Feiertage, Losen und Gruppen (seit 1.4.1) ---------- */
+
+/** Datum aus „12.05.1940“, „12.5.40“, „2026-11-26“, „heute“, „morgen“, „gestern“. Liefert Mitternacht oder null. */
+function smParseDate(string $s): ?int
+{
+    $s = trim(mb_strtolower($s));
+    $today = mktime(0, 0, 0);
+    $named = ['heute' => 0, 'today' => 0, 'morgen' => 1, 'tomorrow' => 1, 'gestern' => -1, 'yesterday' => -1];
+    if (isset($named[$s])) return strtotime(($named[$s] >= 0 ? '+' : '') . $named[$s] . ' day', $today);
+    if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/', $s, $m)) {
+        $y = (int)$m[3];
+        if ($y < 100) $y += $y > (int)date('y') + 1 ? 1900 : 2000;
+        return checkdate((int)$m[2], (int)$m[1], $y) ? mktime(0, 0, 0, (int)$m[2], (int)$m[1], $y) : null;
+    }
+    if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $s, $m)) {
+        return checkdate((int)$m[2], (int)$m[3], (int)$m[1]) ? mktime(0, 0, 0, (int)$m[2], (int)$m[3], (int)$m[1]) : null;
+    }
+    return null;
+}
+
+/** Ganze Tage zwischen zwei Mitternachten (Sommerzeit egal) */
+function smDayDiff(int $a, int $b): int
+{
+    return (int)round(($b - $a) / 86400);
+}
+
+/** Datumsrechner: Abstand, plus/minus, Alter. null = keine Datumsrechnung. */
+function smCardDate(string $l): ?array
+{
+    $d = '(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{1,2}-\d{1,2}|heute|today|morgen|tomorrow|gestern|yesterday)';
+    // Abstand: „tage zwischen 1.1.2026 und 24.12.2026“, „von … bis …“
+    if (preg_match('/^(?:tage |days )?(?:zwischen|between|von|from)\s+' . $d . '\s+(?:und|and|bis|to|until)\s+' . $d . '$/u', $l, $m)) {
+        $a = smParseDate($m[1]);
+        $b = smParseDate($m[2]);
+        if ($a === null || $b === null) return null;
+        $n = smDayDiff($a, $b);
+        $lo = min($a, $b);
+        $hi = max($a, $b);
+        $work = 0;
+        for ($t = $lo, $i = 0; $t < $hi && $i < 40000; $t = strtotime('+1 day', $t), $i++) if ((int)date('N', $t) <= 5) $work++;
+        return ['type' => 'datecalc', 'mode' => 'diff', 'a' => $a, 'b' => $b, 'days' => $n, 'weeks' => intdiv(abs($n), 7), 'rest' => abs($n) % 7, 'work' => $work];
+    }
+    // Plus/minus: „heute + 30 tage“, „1.3.2026 - 2 wochen“
+    if (preg_match('/^' . $d . '\s*([+-])\s*(\d{1,5})\s*(tage?n?|tag|d|days?|wochen?|w|weeks?|monate?n?|monat|m|months?|jahre?n?|jahr|y|years?)$/u', $l, $m)) {
+        $a = smParseDate($m[1]);
+        if ($a === null) return null;
+        $u = $m[4];
+        $unit = preg_match('/^(w|woche|wochen|week|weeks)$/', $u) ? 'week' : (preg_match('/^(m|monat|monate|monaten|month|months)$/', $u) ? 'month' : (preg_match('/^(y|jahr|jahre|jahren|year|years)$/', $u) ? 'year' : 'day'));
+        $b = strtotime($m[2] . (int)$m[3] . ' ' . $unit, $a);
+        return ['type' => 'datecalc', 'mode' => 'add', 'a' => $a, 'b' => $b, 'sign' => $m[2], 'n' => (int)$m[3], 'unit' => $unit, 'days' => smDayDiff(mktime(0, 0, 0), $b)];
+    }
+    // Alter: „alter 12.05.1940“, „geboren 12.5.1940“, „age 1940-05-12“
+    if (preg_match('/^(?:alter|wie alt|age|geboren|geburtstag|birthday|born)(?:\s+(?:am|on|bei|ist|von))?\s+' . $d . '$/u', $l, $m)) {
+        $b = smParseDate($m[1]);
+        $now = mktime(0, 0, 0);
+        if ($b === null || $b > $now) return null;
+        $y = (int)date('Y', $now) - (int)date('Y', $b);
+        if (date('md', $now) < date('md', $b)) $y--;
+        // Nächster Geburtstag (29. Februar: in Nicht-Schaltjahren am 28.)
+        $mo = (int)date('n', $b);
+        $dd = (int)date('j', $b);
+        $next = null;
+        for ($yy = (int)date('Y', $now); $yy <= (int)date('Y', $now) + 1; $yy++) {
+            $t = mktime(0, 0, 0, $mo, min($dd, (int)date('t', mktime(0, 0, 0, $mo, 1, $yy))), $yy);
+            if ($t >= $now) { $next = $t; break; }
+        }
+        return ['type' => 'datecalc', 'mode' => 'age', 'a' => $b, 'years' => $y, 'next' => $next, 'until' => smDayDiff($now, (int)$next),
+                'turns' => $y + ($next === $now ? 0 : 1), 'lived' => smDayDiff($b, $now)];
+    }
+    return null;
+}
+
+/** Bundesländer: Kürzel => Name */
+function smStates(): array
+{
+    return ['BW' => 'Baden-Württemberg', 'BY' => 'Bayern', 'BE' => 'Berlin', 'BB' => 'Brandenburg', 'HB' => 'Bremen', 'HH' => 'Hamburg',
+            'HE' => 'Hessen', 'MV' => 'Mecklenburg-Vorpommern', 'NI' => 'Niedersachsen', 'NW' => 'Nordrhein-Westfalen', 'RP' => 'Rheinland-Pfalz',
+            'SL' => 'Saarland', 'SN' => 'Sachsen', 'ST' => 'Sachsen-Anhalt', 'SH' => 'Schleswig-Holstein', 'TH' => 'Thüringen'];
+}
+
+/** Bundesland aus Kürzel oder Name („bayern“, „nrw“, „BW“) */
+function smStateCode(string $s): string
+{
+    $s = trim(mb_strtolower($s));
+    if ($s === '') return '';
+    $alias = ['nrw' => 'NW', 'meck-pomm' => 'MV', 'mecklenburg' => 'MV', 'sachsen anhalt' => 'ST', 'rheinland pfalz' => 'RP', 'baden württemberg' => 'BW', 'baden-wuerttemberg' => 'BW', 'thueringen' => 'TH'];
+    if (isset($alias[$s])) return $alias[$s];
+    foreach (smStates() as $k => $n) if ($s === mb_strtolower($k) || $s === mb_strtolower($n)) return $k;
+    return '';
+}
+
+/** Gesetzliche Feiertage eines Jahres: [Zeitpunkt, Name, Länder ('' = bundesweit), Hinweis] */
+function smHolidays(int $y): array
+{
+    $e = smEaster($y);
+    $d = function (int $mo, int $day) use ($y) { return mktime(0, 0, 0, $mo, $day, $y); };
+    $o = function (int $days) use ($e) { return strtotime(($days >= 0 ? '+' : '') . $days . ' day', $e); };
+    $bb = strtotime('last wednesday', $d(11, 23));   // Buß- und Bettag: Mittwoch vor dem 23. November
+    $h = [
+        [$d(1, 1), t('Neujahr'), '', ''],
+        [$d(1, 6), t('Heilige Drei Könige'), 'BW BY ST', ''],
+        [$d(3, 8), t('Internationaler Frauentag'), $y >= 2023 ? 'BE MV' : 'BE', ''],
+        [$o(-2), t('Karfreitag'), '', ''],
+        [$e, t('Ostersonntag'), 'BB', ''],
+        [$o(1), t('Ostermontag'), '', ''],
+        [$d(5, 1), t('Tag der Arbeit'), '', ''],
+        [$o(39), t('Christi Himmelfahrt'), '', ''],
+        [$o(49), t('Pfingstsonntag'), 'BB', ''],
+        [$o(50), t('Pfingstmontag'), '', ''],
+        [$o(60), t('Fronleichnam'), 'BW BY HE NW RP SL', t('in Sachsen und Thüringen nur in einigen Gemeinden')],
+        [$d(8, 15), t('Mariä Himmelfahrt'), 'SL BY', t('in Bayern nur in Gemeinden mit überwiegend katholischer Bevölkerung')],
+        [$d(9, 20), t('Weltkindertag'), 'TH', ''],
+        [$d(10, 3), t('Tag der Deutschen Einheit'), '', ''],
+        [$d(10, 31), t('Reformationstag'), 'BB HB HH MV NI SN ST SH TH', ''],
+        [$d(11, 1), t('Allerheiligen'), 'BW BY NW RP SL', ''],
+        [$bb, t('Buß- und Bettag'), 'SN', ''],
+        [$d(12, 25), t('1. Weihnachtstag'), '', ''],
+        [$d(12, 26), t('2. Weihnachtstag'), '', ''],
+    ];
+    usort($h, function ($a, $b) { return $a[0] <=> $b[0]; });
+    return $h;
+}
+
+/** „feiertage 2027 bayern“, „feiertage nrw“, „holidays 2027“ */
+function smCardHolidays(string $l, ?array $me): ?array
+{
+    if (!preg_match('/^(?:feiertage|feiertag|holidays|public holidays)(?:\s+(?:in|für|fuer|for))?(?:\s+(\d{4}))?(?:\s+(?:in\s+)?([a-zäöü][a-zäöü -]{1,40}))?(?:\s+(\d{4}))?$/u', $l, $m)) return null;
+    $y = (int)(($m[1] ?? '') !== '' ? $m[1] : (($m[3] ?? '') !== '' ? $m[3] : date('Y')));
+    if ($y < 1995 || $y > 2100) return null;
+    $state = smStateCode($m[2] ?? '');
+    if (($m[2] ?? '') !== '' && $state === '') return null;
+    $list = [];
+    foreach (smHolidays($y) as [$ts, $name, $where, $note]) {
+        $in = $where === '' || ($state !== '' && in_array($state, explode(' ', $where), true));
+        if ($state !== '' && !$in && !($note !== '' && in_array($state, ['SN', 'TH', 'BY'], true) && strpos($note, smStates()[$state]) !== false)) continue;
+        $list[] = ['ts' => $ts, 'name' => $name, 'where' => $where, 'note' => $note];
+    }
+    $next = null;
+    foreach ($list as $h) if ($h['ts'] >= mktime(0, 0, 0)) { $next = $h; break; }
+    return ['type' => 'holidays', 'year' => $y, 'state' => $state, 'list' => $list, 'next' => $next];
+}
+
+/** „losen: Anna, Bernd, Carla“, „teams 3: …“, „reihenfolge: …“ (auch mit Zeilenumbrüchen getrennt) */
+function smCardPick(string $raw): ?array
+{
+    if (!preg_match('/^(losen|auslosen|wer|ziehen|pick|draw|teams?|gruppen?|groups?|reihenfolge|mischen|shuffle|order)(?:\s+(\d{1,2}))?\s*[:]\s*(.+)$/isu', trim($raw), $m)) return null;
+    $names = array_values(array_unique(array_filter(array_map(function ($x) { return trim(mb_substr($x, 0, 60)); }, preg_split('/[,;\n]+/u', $m[3])), 'strlen')));
+    if (count($names) < 2 || count($names) > 200) return null;
+    $kind = mb_strtolower($m[1]);
+    $mode = preg_match('/^(teams?|gruppen?|groups?)$/u', $kind) ? 'teams' : (preg_match('/^(reihenfolge|mischen|shuffle|order)$/u', $kind) ? 'order' : 'pick');
+    // Mischen mit sicherem Zufall
+    for ($i = count($names) - 1; $i > 0; $i--) { $j = random_int(0, $i); [$names[$i], $names[$j]] = [$names[$j], $names[$i]]; }
+    $out = ['type' => 'pick', 'mode' => $mode, 'names' => $names, 'raw' => $m[3]];
+    if ($mode === 'pick') $out['n'] = max(1, min(count($names) - 1, (int)($m[2] ?? 1) ?: 1));
+    if ($mode === 'teams') {
+        $k = max(2, min(count($names), (int)($m[2] ?? 2) ?: 2));
+        $groups = array_fill(0, $k, []);
+        foreach ($names as $i => $n) $groups[$i % $k][] = $n;
+        $out['groups'] = $groups;
+    }
+    $out['query'] = $raw;
+    return $out;
 }

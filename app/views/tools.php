@@ -1,22 +1,211 @@
 <?php defined('SM_VERSION') || exit;
-/** Werkzeuge: Passwort-Generator, QR-Code-Generator, Kurzlinks. Alles ohne Suchdienst, kostet also kein Guthaben. */
+/**
+ * Werkzeuge: alle kleinen Helfer an einem Ort. Die meisten nutzen dieselbe Rechnung wie die Sofort-Antworten im Suchfeld,
+ * das Ergebnis erscheint direkt in der Karte. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben.
+ * $tool = gerade benutztes Werkzeug, $card = Ergebnis dazu (oder null), $toolErr = Fehlertext
+ */
 $c = ['len' => 20];
 $links = $me ? smShortList($me['id']) : [];
+$de = smLang() === 'de';
+$g = function (string $k, string $def = ''): string { return isset($_GET[$k]) && is_string($_GET[$k]) ? $_GET[$k] : $def; };
 $ex = function (string $q) { return '<a class="chip" href="' . h(smUrl(['q' => $q])) . '"><code>' . h($q) . '</code></a>'; };
+$groups = [
+    t('Rechnen und Umrechnen') => ['rechner' => ['🧮', t('Rechner')], 'einheiten' => ['📏', t('Einheiten')], 'waehrung' => ['💶', t('Währungen')]],
+    t('Zeit und Datum') => ['timer' => ['⏱️', t('Timer und Stoppuhr')], 'countdown' => ['⏳', t('Countdown')], 'datum' => ['📅', t('Datumsrechner und Alter')],
+                            'feiertage' => ['🎉', t('Feiertage')], 'kalender' => ['🗓️', t('Kalenderwoche und Uhrzeit')]],
+    t('Zufall und Spiele') => ['zufall' => ['🎲', t('Würfel, Münze, Zufallszahl')], 'losen' => ['🎟️', t('Losen und Gruppen bilden')]],
+    t('Alltag') => ['wetter' => ['🌦️', t('Wetter')], 'passwort' => ['🔑', t('Passwort-Generator')], 'qr' => ['🔳', t('QR-Code')], 'kurzlinks' => ['🔗', t('Kurzlinks')], 'ip' => ['🌐', t('Meine IP-Adresse')]],
+];
+// Ergebnis in der Karte des Werkzeugs
+$result = function (string $id) use ($tool, $card, $toolErr, $me, $prefs) {
+    if ($tool !== $id) return;
+    if ($toolErr !== '') { echo '<div class="alert alert--error tool__err">' . h($toolErr) . '</div>'; return; }
+    if (!$card) return;
+    $instant = $card;
+    $q = (string)($_GET['ia'] ?? '');
+    $inTools = true;
+    $toolId = $id;
+    require __DIR__ . '/_instant.php';
+};
+$form = function (string $id, string $extra = '') { return '<form method="get" action="' . h(smBase()) . '#' . $id . '" class="form tool__form"' . $extra . '><input type="hidden" name="a" value="tools"><input type="hidden" name="tool" value="' . $id . '">'; };
+$sel = function (string $name, array $opts, string $cur) {
+    $s = '<select name="' . h($name) . '">';
+    foreach ($opts as $k => $v) $s .= '<option value="' . h((string)$k) . '"' . ((string)$k === $cur ? ' selected' : '') . '>' . h($v) . '</option>';
+    return $s . '</select>';
+};
 ?>
 <main class="page page--tools">
     <h1 class="page__title"><?= h(t('Werkzeuge')) ?></h1>
-    <p class="muted small page__lead"><?= h(t('Alles hier läuft ohne Suchdienst und kostet kein Guthaben. Viele Werkzeuge gehen auch direkt im Suchfeld, siehe Beispiele.')) ?></p>
+    <p class="muted small page__lead"><?= h(t('Alles hier läuft ohne Suchdienst und kostet kein Guthaben. Fast alles geht auch direkt im Suchfeld, die Beispiele stehen bei jedem Werkzeug.')) ?></p>
 
-    <details class="panel tool" id="passwort" open>
-        <summary><h2><?= h(t('Passwort-Generator')) ?></h2></summary>
+    <nav class="toolnav" aria-label="<?= h(t('Alle Werkzeuge')) ?>">
+<?php foreach ($groups as $gname => $items) foreach ($items as $id => [$ico, $name]): ?>
+        <a class="toolnav__item<?= $tool === $id ? ' is-active' : '' ?>" href="#<?= $id ?>"><span class="toolnav__ico" aria-hidden="true"><?= $ico ?></span><span><?= h($name) ?></span></a>
+<?php endforeach; ?>
+    </nav>
+
+<?php foreach ($groups as $gname => $items): ?>
+    <h2 class="tools__group"><?= h($gname) ?></h2>
+<?php foreach ($items as $id => [$ico, $name]): ?>
+    <section class="panel tool" id="<?= $id ?>">
+        <h3 class="tool__title"><span aria-hidden="true"><?= $ico ?></span> <?= h($name) ?></h3>
+<?php switch ($id):
+case 'rechner': ?>
+        <?= $form('rechner', ' data-calc') ?>
+            <label class="field"><span><?= h(t('Rechnung')) ?></span><input type="text" name="x" value="<?= h($g('x')) ?>" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="(12,5 + 7) * 3" data-calc-in></label>
+            <div class="keypad" data-keypad hidden>
+<?php foreach (['7', '8', '9', '/', '(', '4', '5', '6', '*', ')', '1', '2', '3', '-', '^', '0', $de ? ',' : '.', '%', '+', '⌫'] as $k): ?>
+                <button type="button" class="keypad__k<?= in_array($k, ['/', '*', '-', '+', '^', '%', '(', ')'], true) ? ' keypad__k--op' : '' ?>" data-key="<?= h($k) ?>"><?= h(['/' => '÷', '*' => '×'][$k] ?? $k) ?></button>
+<?php endforeach; ?>
+                <button type="button" class="keypad__k keypad__k--clr" data-key="C">C</button>
+                <button type="submit" class="keypad__k keypad__k--eq">=</button>
+            </div>
+            <div class="form__actions keypad__nojs"><button type="submit" class="btn btn--primary"><?= h(t('Ausrechnen')) ?></button></div>
+        </form>
+<?php $result('rechner'); ?>
+        <p class="chips"><?= $ex($de ? '200 + 19%' : '200 + 19%') ?> <?= $ex($de ? '15% von 80' : '15% of 80') ?> <?= $ex('sqrt 2') ?> <?= $ex('2^10') ?></p>
+<?php break; case 'einheiten':
+    $units = [];
+    $gn = ['len' => t('Länge'), 'mass' => t('Gewicht'), 'temp' => t('Temperatur'), 'vol' => t('Volumen'), 'area' => t('Fläche'), 'speed' => t('Geschwindigkeit'), 'time' => t('Zeit'), 'data' => t('Datenmengen')];
+    $seen = [];
+    foreach (smUnits() as $k => [$grp, , $show]) { if (isset($seen[$grp . $show])) continue; $seen[$grp . $show] = 1; $units[$grp][$k] = $show; }
+    $ufrom = $g('from', 'km'); $uto = $g('to', 'mi'); ?>
+        <?= $form('einheiten', ' data-units') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Wert')) ?></span><input type="text" name="n" value="<?= h($g('n', '1')) ?>" inputmode="decimal" required></label>
+<?php foreach (['from' => [t('von'), $ufrom], 'to' => [t('in'), $uto]] as $fn => [$lab, $cur]): ?>
+                <label class="field"><span><?= h($lab) ?></span><select name="<?= $fn ?>">
+<?php foreach ($gn as $grp => $gl): if (empty($units[$grp])) continue; ?>
+                    <optgroup label="<?= h($gl) ?>" data-grp="<?= $grp ?>"><?php foreach ($units[$grp] as $k => $show): ?><option value="<?= h($k) ?>" data-grp="<?= $grp ?>"<?= $k === $cur ? ' selected' : '' ?>><?= h($show) ?></option><?php endforeach; ?></optgroup>
+<?php endforeach; ?>
+                </select></label>
+<?php endforeach; ?>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Umrechnen')) ?></button></div>
+        </form>
+<?php $result('einheiten'); ?>
+        <p class="chips"><?= $ex($de ? '10 km in meilen' : '10 km in miles') ?> <?= $ex('20 °c in f') ?> <?= $ex($de ? '2 tassen in ml' : '2 cups in ml') ?></p>
+<?php break; case 'waehrung':
+    $fx = smFxRates();
+    $codes = array_keys($fx['rates']);
+    $codes[] = 'EUR';
+    sort($codes); ?>
+        <?= $form('waehrung') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Betrag')) ?></span><input type="text" name="n" value="<?= h($g('n', '100')) ?>" inputmode="decimal" required></label>
+<?php if (count($codes) > 1): ?>
+                <label class="field"><span><?= h(t('von')) ?></span><?= $sel('from', array_combine($codes, $codes), strtoupper($g('from', 'EUR'))) ?></label>
+                <label class="field"><span><?= h(t('in')) ?></span><?= $sel('to', array_combine($codes, $codes), strtoupper($g('to', 'USD'))) ?></label>
+<?php else: ?>
+                <label class="field"><span><?= h(t('von')) ?></span><input type="text" name="from" value="<?= h($g('from', 'EUR')) ?>" maxlength="3"></label>
+                <label class="field"><span><?= h(t('in')) ?></span><input type="text" name="to" value="<?= h($g('to', 'USD')) ?>" maxlength="3"></label>
+<?php endif; ?>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Umrechnen')) ?></button></div>
+        </form>
+<?php $result('waehrung'); ?>
+        <p class="muted small"><?= h(t('Referenzkurse der Europäischen Zentralbank, einmal am Tag aktualisiert.')) ?></p>
+<?php break; case 'timer': ?>
+        <?= $form('timer') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Minuten')) ?></span><input type="number" name="min" value="<?= h($g('min', '5')) ?>" min="0" max="5999" step="any"></label>
+            </div>
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary"><?= h(t('Timer stellen')) ?></button>
+                <button type="submit" class="btn" name="watch" value="1"><?= h(t('Stoppuhr')) ?></button>
+<?php foreach ([1, 3, 5, 10, 15, 30] as $mm): ?>
+                <a class="btn btn--small" href="<?= h(smUrl(['a' => 'tools', 'tool' => 'timer', 'min' => $mm]) . '#timer') ?>"><?= $mm ?> min</a>
+<?php endforeach; ?>
+            </div>
+        </form>
+<?php $result('timer'); ?>
+        <p class="muted small"><?= h(t('Am Ende piept es dreimal, auf dem Handy vibriert es. Die Zeit steht auch im Tab-Titel.')) ?></p>
+<?php break; case 'countdown': ?>
+        <?= $form('countdown') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Datum')) ?></span><input type="date" name="d" value="<?= h($g('d')) ?>"></label>
+                <label class="field"><span><?= h(t('oder')) ?></span><?= $sel('named', ['' => '…', 'weihnachten' => t('Heiligabend'), 'silvester' => t('Silvester'), 'neujahr' => t('Neujahr'), 'ostern' => t('Ostern'), 'nikolaus' => t('Nikolaus'), 'valentinstag' => t('Valentinstag'), 'halloween' => 'Halloween'], $g('named')) ?></label>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Countdown starten')) ?></button></div>
+        </form>
+<?php $result('countdown'); ?>
+<?php break; case 'datum': $dm = $g('m', 'diff'); ?>
+        <?= $form('datum', ' data-datemode') ?>
+            <div class="seg">
+<?php foreach (['diff' => t('Tage zwischen'), 'add' => t('Plus/minus'), 'age' => t('Alter')] as $k => $v): ?>
+                <label><input type="radio" name="m" value="<?= $k ?>"<?= $k === $dm ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
+<?php endforeach; ?>
+            </div>
+            <div class="form__row form__row--tool">
+                <label class="field" data-dm="diff add age"><span data-dm-label data-l-age="<?= h(t('Geburtstag')) ?>" data-l-other="<?= h(t('Datum')) ?>"><?= h($dm === 'age' ? t('Geburtstag') : t('Datum')) ?></span><input type="date" name="d1" value="<?= h($g('d1', date('Y-m-d'))) ?>" required></label>
+                <label class="field" data-dm="diff"><span><?= h(t('bis')) ?></span><input type="date" name="d2" value="<?= h($g('d2')) ?>"></label>
+                <label class="field" data-dm="add"><span><?= h(t('plus oder minus')) ?></span>
+                    <span class="tool__inline"><?= $sel('sign', ['+' => '+', '-' => '−'], $g('sign', '+')) ?><input type="number" name="k" value="<?= h($g('k', '30')) ?>" min="0" max="99999"><?= $sel('u', ['tage' => t('Tage'), 'wochen' => t('Wochen'), 'monate' => t('Monate'), 'jahre' => t('Jahre')], $g('u', 'tage')) ?></span></label>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Ausrechnen')) ?></button></div>
+        </form>
+<?php $result('datum'); ?>
+        <p class="chips"><?= $ex('tage zwischen 1.1.2026 und 24.12.2026') ?> <?= $ex('heute + 6 wochen') ?> <?= $ex('alter 12.05.1940') ?></p>
+<?php break; case 'feiertage': ?>
+        <?= $form('feiertage') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Jahr')) ?></span><input type="number" name="y" value="<?= h($g('y', date('Y'))) ?>" min="1995" max="2100"></label>
+                <label class="field"><span><?= h(t('Bundesland')) ?></span><?= $sel('st', ['' => t('alle Bundesländer')] + smStates(), $g('st', (string)($me['prefs']['state'] ?? ''))) ?></label>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Feiertage zeigen')) ?></button></div>
+        </form>
+<?php $result('feiertage'); ?>
+        <p class="chips"><?= $ex('feiertage 2027 bayern') ?> <?= $ex('feiertage nrw') ?></p>
+<?php break; case 'kalender': ?>
+        <?= $form('kalender') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Kalenderwoche (leer = aktuelle)')) ?></span><input type="number" name="w" value="<?= h($g('w')) ?>" min="1" max="53"></label>
+                <label class="field"><span><?= h(t('Jahr')) ?></span><input type="number" name="y" value="<?= h($g('y', date('Y'))) ?>" min="1970" max="2100"></label>
+            </div>
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary"><?= h(t('Kalenderwoche zeigen')) ?></button>
+                <a class="btn" href="<?= h(smUrl(['a' => 'tools', 'tool' => 'kalender', 'now' => '1']) . '#kalender') ?>"><?= h(t('Datum und Uhrzeit')) ?></a>
+            </div>
+        </form>
+<?php $result('kalender'); ?>
+<?php break; case 'zufall': ?>
+        <?= $form('zufall') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Würfel')) ?></span><span class="tool__inline"><input type="number" name="dn" value="<?= h($g('dn', '1')) ?>" min="1" max="20"> × W <input type="number" name="df" value="<?= h($g('df', '6')) ?>" min="2" max="1000"></span></label>
+                <label class="field"><span><?= h(t('Zufallszahl von … bis')) ?></span><span class="tool__inline"><input type="number" name="ra" value="<?= h($g('ra', '1')) ?>"> – <input type="number" name="rb" value="<?= h($g('rb', '100')) ?>"></span></label>
+            </div>
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary" name="z" value="dice"><?= h(t('Würfeln')) ?></button>
+                <button type="submit" class="btn" name="z" value="random"><?= h(t('Zufallszahl')) ?></button>
+                <button type="submit" class="btn" name="z" value="coin"><?= h(t('Münze werfen')) ?></button>
+            </div>
+        </form>
+<?php $result('zufall'); ?>
+<?php break; case 'losen': $lm = $g('lm', 'pick'); ?>
+        <?= $form('losen') ?>
+            <label class="field"><span><?= h(t('Namen, einer pro Zeile oder mit Komma getrennt')) ?></span>
+                <textarea name="names" rows="4" maxlength="3000" placeholder="<?= h(t('Anna, Bernd, Carla, Dieter')) ?>"><?= h($g('names')) ?></textarea></label>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Was soll passieren?')) ?></span><?= $sel('lm', ['pick' => t('Einen auslosen'), 'teams' => t('In Gruppen aufteilen'), 'order' => t('Reihenfolge mischen')], $lm) ?></label>
+                <label class="field"><span><?= h(t('Anzahl (Gewinner oder Gruppen)')) ?></span><input type="number" name="k" value="<?= h($g('k', $lm === 'teams' ? '2' : '1')) ?>" min="1" max="50"></label>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Los')) ?></button></div>
+        </form>
+<?php $result('losen'); ?>
+        <p class="muted small"><?= h(t('Echter Zufall vom Server. Die Namen werden nirgends gespeichert.')) ?></p>
+<?php break; case 'wetter': ?>
+        <?= $form('wetter') ?>
+            <div class="form__row form__row--tool">
+                <label class="field"><span><?= h(t('Ort')) ?></span><input type="text" name="ort" value="<?= h($g('ort', (string)($me['prefs']['city'] ?? ''))) ?>" maxlength="60" placeholder="<?= h(t('z. B. Berlin')) ?>"></label>
+            </div>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Wetter zeigen')) ?></button></div>
+        </form>
+<?php $result('wetter'); ?>
+<?php break; case 'passwort': ?>
 <?php require __DIR__ . '/_pwgen.php'; ?>
-        <p class="chips"><?= $ex(smLang() === 'de' ? 'passwort 32' : 'password 32') ?> <?= $ex('passphrase') ?></p>
-    </details>
-
-    <details class="panel tool" id="qr" open>
-        <summary><h2><?= h(t('QR-Code-Generator')) ?></h2></summary>
-        <form method="get" action="<?= h(smBase()) ?>" class="form" data-qr-form>
+        <p class="chips"><?= $ex($de ? 'passwort 32' : 'password 32') ?> <?= $ex('passphrase') ?></p>
+<?php break; case 'qr': ?>
+        <form method="get" action="<?= h(smBase()) ?>#qr" class="form" data-qr-form>
             <input type="hidden" name="a" value="tools">
             <label class="field"><span><?= h(t('Adresse oder Text')) ?></span>
                 <textarea name="qr" rows="2" maxlength="<?= SM_QR_MAX ?>" required placeholder="https://example.org" spellcheck="false" data-qr-input><?= h($qr) ?></textarea></label>
@@ -27,11 +216,7 @@ $ex = function (string $q) { return '<a class="chip" href="' . h(smUrl(['q' => $
         <p><a class="btn btn--small" href="<?= h(smUrl(['a' => 'qr', 'd' => $qr, 'dl' => '1'])) ?>" download="qr-code.svg"><?= h(t('Als SVG herunterladen')) ?></a></p>
 <?php endif; ?>
         <p class="muted small"><?= h(t('Der Code entsteht auf diesem Server als SVG, ohne fremden Dienst. Im Menü ⋮ neben jedem Suchtreffer gibt es ihn auch für die Adresse des Treffers.')) ?></p>
-        <p class="chips"><?= $ex('qr https://example.org') ?></p>
-    </details>
-
-    <details class="panel tool" id="kurzlinks" open>
-        <summary><h2><?= h(t('Kurzlinks')) ?></h2></summary>
+<?php break; case 'kurzlinks': ?>
 <?php if (!$me): ?>
         <p class="muted"><?= h(t('Kurzlinks kann man nach dem Anmelden anlegen.')) ?></p>
 <?php elseif (smSetting('shortener') !== '1'): ?>
@@ -57,13 +242,14 @@ $ex = function (string $q) { return '<a class="chip" href="' . h(smUrl(['q' => $
 <?php endif; ?>
         <p class="muted small"><?= h(t('Kurzlinks funktionieren für jeden, auch ohne Anmeldung, und leiten direkt weiter. Nur du siehst deine Liste. Im Suchfeld geht auch „kurz https://…“.')) ?></p>
 <?php endif; ?>
-    </details>
-
-    <section class="panel">
-        <h2><?= h(t('Direkt im Suchfeld')) ?></h2>
-        <p class="chips"><?php foreach (smLang() === 'de'
-            ? ['(12,5 + 7) * 3', '200 + 19%', '15% von 80', '100 usd in eur', '50 chf in eur', '10 km in meilen', '20 °c in f', '1 gib in mb', 'meine ip', 'kw', 'datum', 'wetter berlin', 'würfel 2w6', 'münze', 'zufallszahl 1-49', 'timer 5 min', 'countdown weihnachten']
-            : ['(12.5 + 7) * 3', '200 + 19%', '15% of 80', '100 usd in eur', '50 chf in eur', '10 km in miles', '20 °c in f', '1 gib in mb', 'my ip', 'week', 'date', 'weather london', 'dice 2d6', 'coin', 'random 1-49', 'timer 5 min', 'countdown christmas'] as $e) echo $ex($e) . ' '; ?></p>
-        <p><a href="<?= h(smUrl(['a' => 'help'])) ?>#sofort"><?= h(t('Alle Sofort-Antworten in der Hilfe')) ?></a></p>
+<?php break; case 'ip': ?>
+        <?= $form('ip') ?>
+            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('IP-Adresse zeigen')) ?></button></div>
+        </form>
+<?php $result('ip'); ?>
+<?php break; endswitch; ?>
     </section>
+<?php endforeach; endforeach; ?>
+
+    <p class="muted small"><a href="<?= h(smUrl(['a' => 'help'])) ?>#sofort"><?= h(t('Alle Sofort-Antworten in der Hilfe')) ?></a></p>
 </main>
