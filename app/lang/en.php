@@ -620,7 +620,7 @@ return [
     'Von einem fertigen Design ausgehen …' => 'Start from a ready-made design …',
     'Vorige Seite' => 'Previous page',
     'Weitere Bilder' => 'More images',
-    'Weiterziehen für mehr' => 'Keep pulling for more',
+    'Unten angekommen? Kräftig weiterziehen für mehr' => 'At the bottom? Pull firmly to load more',
     'Wie das Gerät' => 'Like the device',
     'Wählt automatisch „Eigenes“. Titel/Links und Nebentext rechnet die Suchmaschine sonst passend aus.' => 'Selects “Custom” automatically. Otherwise titles/links and secondary text are calculated to match.',
     'Zeilenabstand' => 'Line spacing',
