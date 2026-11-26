@@ -455,7 +455,7 @@
 .cf mark { color: inherit; }
 .cf .out-box .diff-add, .cf .out-box .diff-del { display: inline; }
 .cf .out-box > div.diff-add, .cf .out-box > div.diff-del { display: block; }
-.cf input[type=checkbox] { width: 1.1rem; height: 1.1rem; accent-color: var(--acc); }
+.cf table input[type=checkbox] { width: 1.1rem; height: 1.1rem; accent-color: var(--acc); }
 
 /* ---------- Rechner ---------- */
 .cf .calc-screen { display: flex; flex-direction: column; gap: .3rem; padding: .8rem; border-radius: 1rem; border: 1px solid var(--line2); background: var(--field); }
@@ -509,3 +509,5 @@
 .cf .wz.is-work { border-left: 4px solid var(--ok); }
 .cf .wz.is-night { opacity: .7; }
 .cf select.in.big { padding-top: .62rem; padding-bottom: .62rem; line-height: 1.35; height: auto; }
+.cf .switch input { background: color-mix(in srgb, var(--text-3) 55%, transparent); }
+.cf .switch input:checked { background: var(--acc); }
