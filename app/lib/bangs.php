@@ -491,6 +491,15 @@ function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $fil
     usort($rows, function ($a, $b) use ($rank) {
         return [$a['score'], $rank($a), mb_strlen($a['t']), $a['t']] <=> [$b['score'], $rank($b), mb_strlen($b['t']), $b['t']];
     });
+    // „Nicht erreichbar“: nur Bangs, deren Domain wirklich mehrmals nicht geantwortet hat.
+    // (Eigene, für alle und die Extras stehen immer in der Kandidatenliste und müssen hier genauso geprüft werden.)
+    if ($filter === 'dead') {
+        $dead = [];
+        foreach (array_chunk(array_values(array_unique(array_filter(array_column($rows, 'd')))), 400) as $chunk) {
+            foreach (smQ('SELECT d FROM bang_check WHERE fails >= ? AND d IN (' . implode(',', array_fill(0, count($chunk), '?')) . ')', array_merge([SM_BANG_DEAD], $chunk))->fetchAll(PDO::FETCH_COLUMN) as $d) $dead[$d] = true;
+        }
+        $rows = array_values(array_filter($rows, function ($r) use ($dead) { return isset($dead[$r['d']]); }));
+    }
     $more = count($rows) > $limit;
     $rows = array_slice($rows, 0, $limit);
     // Erreichbarkeit dazuschreiben

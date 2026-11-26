@@ -1489,4 +1489,5 @@ return [
     'jetzt Suchbegriff eingeben' => 'now type your search',
     'Bangs: direkt zu einer anderen Seite springen' => 'Bangs: jump straight to another site',
     'Hier stehen die wichtigsten, dazu kommen über 10.000 weitere aus der Liste von Kagi. Tippe „!“ ins Suchfeld, um sie zu finden.' => 'These are the most important ones; more than 10,000 more come from Kagi’s list. Type “!” in the search box to find them.',
+    'Alle bisher geprüften Seiten antworten.' => 'All sites checked so far respond.',
 ];

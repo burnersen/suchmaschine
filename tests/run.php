@@ -209,6 +209,11 @@ same('Grundzustand: nichts mehr gelöscht', [], $l['off']);
 $r = smBangSearch('youtube', null, 'mine', '', 5);
 check('Bang-Suche nach Name findet YouTube', in_array('yt', array_column($r['rows'], 't'), true));
 check('Bang-Suche ohne Begriff zeigt die Extras', count(smBangSearch('', null)['rows']) >= 20);
+smQ("INSERT OR REPLACE INTO bang_check (d, checked, fails) VALUES ('www.youtube.com', 1, 5), ('www.google.com', 1, 1)");
+$dead = array_column(smBangSearch('', null, 'mine', 'dead', 300)['rows'], 't');
+check('Nicht erreichbar: nur wirklich ausgefallene', in_array('yt', $dead, true) && !in_array('g', $dead, true) && !in_array('a', $dead, true), implode(',', $dead));
+smQ("DELETE FROM bang_check");
+same('Nicht erreichbar: leer, wenn alles antwortet', [], smBangSearch('', null, 'mine', 'dead', 300)['rows']);
 
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
