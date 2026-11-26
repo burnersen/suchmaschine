@@ -149,7 +149,7 @@ CF.views.timer = {
             el('div', { class: 'stack lg sticky' },
                 CF.card('Pomodoro', 'sparkles', el('div', { class: 'stack' }, el('p', { class: 'small muted', text: T('4 × 25 Minuten konzentriert arbeiten, dazwischen 5 Minuten Pause, am Ende 15.') }), btn(T('Pomodoro starten'), 'btn-second', pomo, 'play'))),
                 CF.card(T('Intervall-Training'), 'refresh', el('div', { class: 'stack' }, el('div', { class: 'row' }, field(T('Belastung (s)'), work), field(T('Pause (s)'), rest), field(T('Runden'), rounds)), btn(T('Intervall starten'), 'btn-second', hiit, 'play'))),
-                CF.card(T('Wecker'), 'calendar', el('div', { class: 'row' }, alarmIn, btn(T('Stellen'), 'btn-second', () => { CF.ls.set('alarm.t', alarmIn.value); addAlarm(alarmIn.value); }, 'check'))),
+                CF.card(T('Wecker'), 'calendar', el('div', { class: 'row' }, alarmIn, btn(T('Wecker stellen'), 'btn-second', () => { CF.ls.set('alarm.t', alarmIn.value); addAlarm(alarmIn.value); }, 'check'))),
                 CF.card(T('Ton und Anzeige'), 'volume', el('div', { class: 'stack' }, el('div', { class: 'row' }, soundSel, btn(T('Ton testen'), 'btn-ghost btn-sm', () => { ring(T('Test')); setTimeout(stopRing, 2500); }, 'play')),
                     CF.toggle(T('Bildschirm anlassen'), CF.ls.get('timer.awake', false), v => { CF.ls.set('timer.awake', v); keepAwake(v); }), notifyBtn,
                     el('p', { class: 'tiny faint', text: T('Timer laufen weiter, auch wenn du die Seite neu lädst. Der Ton klingt nur, solange der Tab offen ist.') }))))));

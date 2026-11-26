@@ -207,7 +207,7 @@ CF.views.jwt = {
             }
             fill(out, notes,
                 CF.card(T('Kopf'), 'settings', el('div', { class: 'out-box', text: JSON.stringify(h, null, 2) })),
-                CF.card(T('Inhalt'), 'text', el('div', { class: 'stack' }, el('div', { class: 'out-box', text: JSON.stringify(p, null, 2) }),
+                CF.card(T('Nutzdaten'), 'text', el('div', { class: 'stack' }, el('div', { class: 'out-box', text: JSON.stringify(p, null, 2) }),
                     kv([['iat', time(p.iat)], ['nbf', time(p.nbf)], ['exp', time(p.exp)], ['sub', p.sub], ['iss', p.iss], ['aud', Array.isArray(p.aud) ? p.aud.join(', ') : p.aud]].filter(r => r[1])))),
                 el('p', { class: 'tiny faint', text: T('Das Token wird nur in deinem Browser zerlegt, nichts wird gesendet.') }));
         }
@@ -425,7 +425,7 @@ CF.views.diff = {
         }
         [a, b].forEach(x => x.addEventListener('input', CF.debounce(run, 250)));
         fill(root, el('div', { class: 'stack lg' }, two([field(T('Vorher'), a)], [field(T('Nachher'), b)]),
-            el('div', { class: 'row' }, CF.seg([['line', T('Zeilen')], ['word', T('Wörter')]], mode, v => { mode = v; run(); }),
+            el('div', { class: 'row' }, CF.seg([['line', T('Zeilenweise')], ['word', T('Wortweise')]], mode, v => { mode = v; run(); }),
                 CF.toggle(T('Leerzeichen ignorieren'), ws, v => { ws = v; run(); }), CF.toggle(T('Groß/klein ignorieren'), ic, v => { ic = v; run(); })), out));
         run();
     },
@@ -670,7 +670,7 @@ CF.views.textwerk = {
             const v = t.value;
             const w = (v.match(/[^\s]+/g) || []).length;
             fill(stats, el('div', { class: 'grid3 small' }, [[T('Zeichen'), v.length], [T('ohne Leerzeichen'), v.replace(/\s/g, '').length], [T('Wörter'), w], [T('Sätze'), (v.match(/[^.!?]+[.!?]+/g) || []).length],
-                [T('Zeilen'), v ? v.split('\n').length : 0], [T('Absätze'), v.trim() ? v.trim().split(/\n\s*\n/).length : 0], [T('Lesezeit'), T('%s Min.', Math.max(1, Math.round(w / 220)))], ['Bytes (UTF-8)', utf8(v).length]]
+                [T('Zeilenzahl'), v ? v.split('\n').length : 0], [T('Absätze'), v.trim() ? v.trim().split(/\n\s*\n/).length : 0], [T('Lesezeit'), T('%s Min.', Math.max(1, Math.round(w / 220)))], ['Bytes (UTF-8)', utf8(v).length]]
                 .map(([k, n]) => el('div', { class: 'card flat tight' }, el('div', { class: 'tiny faint', text: k }), el('div', { style: { fontWeight: 750, fontSize: '1.1rem' }, text: typeof n === 'number' ? CF.fmtNum(n) : n })))));
         }
         const lines = fn => { t.value = fn(t.value.split('\n')).join('\n'); count(); };

@@ -132,7 +132,7 @@ $combos = $de ? [
 
     <section class="panel" id="werkzeuge">
         <h2><?= h(t('Werkzeuge')) ?></h2>
-        <p class="muted small"><?= h(t('Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es alle Helfer nach Gruppen, jeden auf einer eigenen Seite: Rechner, Einheiten, Währungen, Timer, Countdown, Datumsrechner, Feiertage, Kalenderwoche, Würfel und Losen, Passwort-Generator, QR-Codes, deine Kurzlinks, Wetter und die eigene IP-Adresse.')) ?>
+        <p class="muted small"><?= h(t('Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es über 50 Helfer nach Gruppen, jeden auf einer eigenen Seite: QR-Studio, Scanner, Passwort-Generator, Kurzlinks, verschlüsselte Text-Schnipsel, Rechner, Einheiten, Währungen mit Kursverlauf, Zinsen, Timer, Countdown, Weltzeituhr, Datumsrechner, Feiertage und Brückentage, Netz-Werkzeuge (DNS, WHOIS, SSL, Header, Link-Checker) und Werkzeuge für Entwickler (JSON, Hash, JWT, Regex, Cron und mehr).')) ?>
             <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Zu den Werkzeugen')) ?></a></p>
     </section>
 

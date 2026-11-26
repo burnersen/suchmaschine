@@ -123,7 +123,7 @@ CF.views.header = {
             fill(out, spin());
             try {
                 const r = await CF.api('headers', { url: v, method });
-                const sec = el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' }, el('tr', {}, el('th', { text: T('Sicherheits-Kopfzeile') }), el('th', { text: T('Bewertung') }), el('th', { text: T('Wert') })),
+                const sec = el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' }, el('tr', {}, el('th', { text: T('Sicherheits-Kopfzeile') }), el('th', { text: T('Einstufung') }), el('th', { text: T('Wert') })),
                     r.security.map(([n, lv, val]) => el('tr', {}, el('td', { class: 'mono', text: n }), el('td', {}, el('span', { class: 'pill-' + lv, text: lv === 'ok' ? T('gut') : lv === 'mid' ? T('mittel') : T('fehlt') })), el('td', { class: 'small break', text: val })))));
                 const score = r.security.filter(x => x[1] === 'ok').length;
                 fill(out,
