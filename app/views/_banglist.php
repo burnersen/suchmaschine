@@ -9,7 +9,7 @@ $act = smUrl(['a' => 'settings', 'tab' => 'bangs', 'for' => $all ? 'all' : null,
 $ownLayer = $all ? 'global' : 'own';
 ?>
 <?php if (!$res['rows']): ?>
-            <p class="muted"><?= h($bq !== '' || $bf !== '' ? t('Nichts gefunden.') : t('Noch keine eigenen Bangs.')) ?></p>
+            <p class="muted"><?= h($bf === 'dead' ? t('Alle bisher geprüften Seiten antworten.') : ($bq !== '' || $bf !== '' ? t('Nichts gefunden.') : t('Noch keine eigenen Bangs.'))) ?></p>
 <?php else: ?>
 <?php if ($bq === '' && $bf === ''): ?>
             <p class="muted small"><?= h(t('Hier stehen deine eigenen Bangs und die deutschen Extras. Alle anderen findest du über die Suche oben.')) ?></p>
