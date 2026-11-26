@@ -21,6 +21,7 @@ case 'calc': ?>
         <p class="ia__big"><output><?= h(smFmtNumber($c['result'], 2)) ?></output> <?= h($c['to']) ?></p>
         <p class="muted small">1 <?= h($c['from']) ?> = <?= h(smFmtNumber($c['rate'], 6)) ?> <?= h($c['to']) ?> · 1 <?= h($c['to']) ?> = <?= h(smFmtNumber(1 / $c['rate'], 6)) ?> <?= h($c['from']) ?>
             · <?= h(t('Referenzkurs der EZB vom %s (über frankfurter.app), wird einmal am Tag aktualisiert.', $c['date'] !== '' ? smDate((int)strtotime($c['date'])) : '–')) ?></p>
+<?php if (empty($inTools)): /* unter Werkzeuge steht das Formular schon über der Karte */ ?>
         <form class="ia__form" method="get" action="<?= h(smBase()) ?>">
             <input type="text" inputmode="decimal" name="fx_a" value="<?= h($nf($c['amount'])) ?>" aria-label="<?= h(t('Betrag')) ?>">
             <select name="fx_f" aria-label="<?= h(t('Von')) ?>"><?php foreach ($c['list'] as $cc): ?><option<?= $cc === $c['from'] ? ' selected' : '' ?>><?= h($cc) ?></option><?php endforeach; ?></select>
@@ -28,6 +29,7 @@ case 'calc': ?>
             <select name="fx_t" aria-label="<?= h(t('Nach')) ?>"><?php foreach ($c['list'] as $cc): ?><option<?= $cc === $c['to'] ? ' selected' : '' ?>><?= h($cc) ?></option><?php endforeach; ?></select>
             <button type="submit" class="btn btn--small"><?= h(t('Umrechnen')) ?></button>
         </form>
+<?php endif; ?>
 <?php endif; ?>
 <?php break; case 'unit': ?>
         <p class="ia__label"><?= h(t('Einheiten umrechnen')) ?></p>
@@ -58,7 +60,7 @@ case 'calc': ?>
         <div class="ia__qr"><img src="<?= h(smUrl(['a' => 'qr', 'd' => $c['text']])) ?>" alt="<?= h(t('QR-Code für %s', $c['text'])) ?>" width="220" height="220"></div>
         <p class="ia__qrtext"><?= h(mb_substr($c['text'], 0, 200)) ?></p>
         <p><a class="btn btn--small" href="<?= h(smUrl(['a' => 'qr', 'd' => $c['text'], 'dl' => '1'])) ?>" download="qr-code.svg"><?= h(t('Als SVG herunterladen')) ?></a>
-            <a class="btn btn--small btn--ghost" href="<?= h(smUrl(['a' => 'tools', 'qr' => $c['text']])) ?>#qr"><?= h(t('Bearbeiten')) ?></a></p>
+            <a class="btn btn--small btn--ghost" href="<?= h(smToolUrl('qr', ['qr' => $c['text']])) ?>"><?= h(t('Bearbeiten')) ?></a></p>
         <p class="muted small"><?= h(t('Wird auf diesem Server erzeugt, kein fremder Dienst sieht den Inhalt.')) ?></p>
 <?php break; case 'short': ?>
         <p class="ia__label"><?= h(t('Kurzlink')) ?></p>
@@ -150,7 +152,7 @@ case 'calc': ?>
         <p class="ia__label"><?= h(t('Ausgelost aus %d', count($c['names']))) ?></p>
         <p class="ia__big"><?= h(implode(', ', array_slice($c['names'], 0, $c['n']))) ?></p>
 <?php endif; ?>
-        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smUrl(['a' => 'tools', 'tool' => $toolId, 'ia' => $c['query']]) . '#' . $toolId : smUrl(['q' => $c['query']])) ?>"><?= h(t('Nochmal')) ?></a></p>
+        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smToolUrl($toolId, ['ia' => $c['query']]) : smUrl(['q' => $c['query']])) ?>"><?= h(t('Nochmal')) ?></a></p>
 <?php break; case 'weather': ?>
         <p class="ia__label"><?= h(t('Wetter')) ?><?php if (!empty($c['geo'])): ?> · <?= h(implode(', ', array_filter([$c['geo']['name'], $c['geo']['region'] !== $c['geo']['name'] ? $c['geo']['region'] : '', $c['geo']['country']]))) ?><?php endif; ?></p>
 <?php if ($c['error'] === 'noplace'): ?>

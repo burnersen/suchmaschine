@@ -98,7 +98,7 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                 </div>
             </div>
             <p class="field"><span><?= h(t('Farben, Schrift und Größen')) ?></span>
-                <a class="btn btn--small" href="<?= h(smUrl(['a' => 'settings', 'tab' => 'look', 'default' => '1'])) ?>"><?= h(t('Aussehen für alle festlegen')) ?> →</a>
+                <a class="btn btn--small" href="<?= h($aurl('look')) ?>"><?= h(t('Aussehen für alle festlegen')) ?> →</a>
                 <small class="muted"><?= h(t('Designs, eigene Farben, Schrift und Abstände. Gilt für alle Konten, die nichts Eigenes eingestellt haben, und für Besucher.')) ?></small></p>
         </section>
         <section class="panel">
@@ -110,7 +110,7 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                 <span><?= h(t('Bilder in voller Auflösung über diesen Server laden')) ?><br><small class="muted"><?= h(t('Für die große Bildvorschau und den Vollbild-Modus holt der Server das Originalbild und reicht es weiter. Kostet keine Suche bei Brave, nur etwas Datenverkehr. Die fremde Seite sieht dabei nur den Server, nicht den Besucher. Aus: nur Braves Vorschaubilder.')) ?></small></span></label>
             <label class="switch"><input type="checkbox" name="shortener" value="1"<?= smSetting('shortener') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Kurzlinks erlauben')) ?><br><small class="muted"><?= h(t('Angemeldete Konten können unter Werkzeuge eigene Kurzlinks (…/?s=abc123) anlegen.')) ?></small></span></label>
-            <label class="field field--short"><span><?= h(t('Wetter: Standardquelle')) ?></span>
+            <label class="field"><span><?= h(t('Wetter: Standardquelle')) ?></span>
                 <select name="weather_src"><?php foreach (smWeatherSources() as $k => $v): ?><option value="<?= h($k) ?>"<?= $k === smSetting('weather_src') ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?></select></label>
         </section>
         <section class="panel">
@@ -148,6 +148,10 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
         </section>
         <div class="form__actions form__actions--sticky"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
     </form>
+<?php elseif ($tab === 'look'): $isDefault = true; $look = smLook(null); $lookUrl = $aurl('look'); ?>
+    <link rel="stylesheet" href="<?= h(smLookUrl($look, true)) ?>">
+    <p class="muted small page__lead"><?= h(t('Das Aussehen für alle Konten, die nichts Eigenes eingestellt haben, und für Besucher ohne Anmeldung. Jedes Konto kann es unter Einstellungen → Aussehen für sich ändern.')) ?></p>
+<?php require __DIR__ . '/_look.php'; ?>
 <?php elseif ($tab === 'providers'): require __DIR__ . '/_providers.php'; ?>
 
 <?php elseif ($tab === 'usage'): require __DIR__ . '/_usage.php'; ?>

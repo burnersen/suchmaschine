@@ -9,13 +9,6 @@ $links = $me ? smShortList($me['id']) : [];
 $de = smLang() === 'de';
 $g = function (string $k, string $def = ''): string { return isset($_GET[$k]) && is_string($_GET[$k]) ? $_GET[$k] : $def; };
 $ex = function (string $q) { return '<a class="chip" href="' . h(smUrl(['q' => $q])) . '"><code>' . h($q) . '</code></a>'; };
-$groups = [
-    t('Rechnen und Umrechnen') => ['rechner' => ['🧮', t('Rechner')], 'einheiten' => ['📏', t('Einheiten')], 'waehrung' => ['💶', t('Währungen')]],
-    t('Zeit und Datum') => ['timer' => ['⏱️', t('Timer und Stoppuhr')], 'countdown' => ['⏳', t('Countdown')], 'datum' => ['📅', t('Datumsrechner und Alter')],
-                            'feiertage' => ['🎉', t('Feiertage')], 'kalender' => ['🗓️', t('Kalenderwoche und Uhrzeit')]],
-    t('Zufall und Spiele') => ['zufall' => ['🎲', t('Würfel, Münze, Zufallszahl')], 'losen' => ['🎟️', t('Losen und Gruppen bilden')]],
-    t('Alltag') => ['wetter' => ['🌦️', t('Wetter')], 'passwort' => ['🔑', t('Passwort-Generator')], 'qr' => ['🔳', t('QR-Code')], 'kurzlinks' => ['🔗', t('Kurzlinks')], 'ip' => ['🌐', t('Meine IP-Adresse')]],
-];
 // Ergebnis in der Karte des Werkzeugs
 $result = function (string $id) use ($tool, $card, $toolErr, $me, $prefs) {
     if ($tool !== $id) return;
@@ -27,7 +20,7 @@ $result = function (string $id) use ($tool, $card, $toolErr, $me, $prefs) {
     $toolId = $id;
     require __DIR__ . '/_instant.php';
 };
-$form = function (string $id, string $extra = '') { return '<form method="get" action="' . h(smBase()) . '#' . $id . '" class="form tool__form"' . $extra . '><input type="hidden" name="a" value="tools"><input type="hidden" name="tool" value="' . $id . '">'; };
+$form = function (string $id, string $extra = '') { return '<form method="get" action="' . h(smBase()) . '" class="form tool__form"' . $extra . '><input type="hidden" name="a" value="tools"><input type="hidden" name="tool" value="' . $id . '">'; };
 $sel = function (string $name, array $opts, string $cur) {
     $s = '<select name="' . h($name) . '">';
     foreach ($opts as $k => $v) $s .= '<option value="' . h((string)$k) . '"' . ((string)$k === $cur ? ' selected' : '') . '>' . h($v) . '</option>';
@@ -35,20 +28,24 @@ $sel = function (string $name, array $opts, string $cur) {
 };
 ?>
 <main class="page page--tools">
+<?php if ($tool === ''): ?>
     <h1 class="page__title"><?= h(t('Werkzeuge')) ?></h1>
     <p class="muted small page__lead"><?= h(t('Alles hier läuft ohne Suchdienst und kostet kein Guthaben. Fast alles geht auch direkt im Suchfeld, die Beispiele stehen bei jedem Werkzeug.')) ?></p>
-
-    <nav class="toolnav" aria-label="<?= h(t('Alle Werkzeuge')) ?>">
-<?php foreach ($groups as $gname => $items) foreach ($items as $id => [$ico, $name]): ?>
-        <a class="toolnav__item<?= $tool === $id ? ' is-active' : '' ?>" href="#<?= $id ?>"><span class="toolnav__ico" aria-hidden="true"><?= $ico ?></span><span><?= h($name) ?></span></a>
-<?php endforeach; ?>
-    </nav>
-
-<?php foreach ($groups as $gname => $items): ?>
+<?php foreach (smToolGroups() as $gname => $items): ?>
     <h2 class="tools__group"><?= h($gname) ?></h2>
-<?php foreach ($items as $id => [$ico, $name]): ?>
-    <section class="panel tool" id="<?= $id ?>">
-        <h3 class="tool__title"><span aria-hidden="true"><?= $ico ?></span> <?= h($name) ?></h3>
+    <div class="toolgrid">
+<?php foreach ($items as $id => [$ico, $name, $desc]): ?>
+        <a class="toolcard" id="<?= $id ?>" href="<?= h(smToolUrl($id)) ?>"><span class="toolcard__ico" aria-hidden="true"><?= $ico ?></span>
+            <span class="toolcard__text"><strong><?= h($name) ?></strong><small><?= h($desc) ?></small></span></a>
+<?php endforeach; ?>
+    </div>
+<?php endforeach; ?>
+    <p class="muted small tools__foot"><a href="<?= h(smUrl(['a' => 'help'])) ?>#sofort"><?= h(t('Alle Sofort-Antworten in der Hilfe')) ?></a></p>
+<?php else: $id = $tool; [$gname, $ico, $name, $desc] = smToolInfo($tool); ?>
+    <nav class="crumbs" aria-label="<?= h(t('Brotkrumen')) ?>"><a href="<?= h(smUrl(['a' => 'tools'])) ?>" data-tools-back>← <?= h(t('Alle Werkzeuge')) ?></a> <span aria-hidden="true">·</span> <span><?= h($gname) ?></span></nav>
+    <section class="panel tool tool--single" id="<?= $id ?>">
+        <h1 class="tool__title"><span aria-hidden="true"><?= $ico ?></span> <?= h($name) ?></h1>
+        <p class="muted small tool__desc"><?= h($desc) ?></p>
 <?php switch ($id):
 case 'rechner': ?>
         <?= $form('rechner', ' data-calc') ?>
@@ -114,7 +111,7 @@ case 'rechner': ?>
                 <button type="submit" class="btn btn--primary"><?= h(t('Timer stellen')) ?></button>
                 <button type="submit" class="btn" name="watch" value="1"><?= h(t('Stoppuhr')) ?></button>
 <?php foreach ([1, 3, 5, 10, 15, 30] as $mm): ?>
-                <a class="btn btn--small" href="<?= h(smUrl(['a' => 'tools', 'tool' => 'timer', 'min' => $mm]) . '#timer') ?>"><?= $mm ?> min</a>
+                <a class="btn btn--small" href="<?= h(smToolUrl('timer', ['min' => $mm])) ?>"><?= $mm ?> min</a>
 <?php endforeach; ?>
             </div>
         </form>
@@ -164,7 +161,7 @@ case 'rechner': ?>
             </div>
             <div class="form__actions">
                 <button type="submit" class="btn btn--primary"><?= h(t('Kalenderwoche zeigen')) ?></button>
-                <a class="btn" href="<?= h(smUrl(['a' => 'tools', 'tool' => 'kalender', 'now' => '1']) . '#kalender') ?>"><?= h(t('Datum und Uhrzeit')) ?></a>
+                <a class="btn" href="<?= h(smToolUrl('kalender', ['now' => '1'])) ?>"><?= h(t('Datum und Uhrzeit')) ?></a>
             </div>
         </form>
 <?php $result('kalender'); ?>
@@ -205,8 +202,8 @@ case 'rechner': ?>
 <?php require __DIR__ . '/_pwgen.php'; ?>
         <p class="chips"><?= $ex($de ? 'passwort 32' : 'password 32') ?> <?= $ex('passphrase') ?></p>
 <?php break; case 'qr': ?>
-        <form method="get" action="<?= h(smBase()) ?>#qr" class="form" data-qr-form>
-            <input type="hidden" name="a" value="tools">
+        <form method="get" action="<?= h(smBase()) ?>" class="form" data-qr-form>
+            <input type="hidden" name="a" value="tools"><input type="hidden" name="tool" value="qr">
             <label class="field"><span><?= h(t('Adresse oder Text')) ?></span>
                 <textarea name="qr" rows="2" maxlength="<?= SM_QR_MAX ?>" required placeholder="https://example.org" spellcheck="false" data-qr-input><?= h($qr) ?></textarea></label>
             <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('QR-Code erzeugen')) ?></button></div>
@@ -249,7 +246,15 @@ case 'rechner': ?>
 <?php $result('ip'); ?>
 <?php break; endswitch; ?>
     </section>
-<?php endforeach; endforeach; ?>
-
-    <p class="muted small"><a href="<?= h(smUrl(['a' => 'help'])) ?>#sofort"><?= h(t('Alle Sofort-Antworten in der Hilfe')) ?></a></p>
+<?php $sib = array_diff_key(smToolGroups()[$gname], [$id => 1]); ?>
+    <nav class="toolmore" aria-label="<?= h(t('Weitere Werkzeuge')) ?>">
+<?php if ($sib): ?>
+        <span class="toolmore__label"><?= h(t('Mehr dazu:')) ?></span>
+<?php foreach ($sib as $sid => [$sico, $sname]): ?>
+        <a class="chip" href="<?= h(smToolUrl($sid)) ?>"><span aria-hidden="true"><?= $sico ?></span> <?= h($sname) ?></a>
+<?php endforeach; ?>
+<?php endif; ?>
+        <a class="chip chip--all" href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Alle Werkzeuge')) ?></a>
+    </nav>
+<?php endif; ?>
 </main>

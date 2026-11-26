@@ -8,6 +8,14 @@ $info = [
     'parallel'  => t('Bis zu 5.000 kostenlose Anfragen pro Monat (Guthaben mit hinterlegter Karte, Ausgabenlimit dort setzen).'),
     'firecrawl' => t('1.000 Credits im kostenlosen Plan. Firecrawl meldet die verbrauchten Credits bei jeder Suche zurück.'),
 ];
+// So kommt man an den Key: kurze Schritte pro Dienst (ausführlicher in der README)
+$guide = [
+    'brave' => [t('Bei api-dashboard.search.brave.com anmelden und den Plan „Search“ wählen. Eine Karte ist nötig (gegen Missbrauch), abgerechnet wird über das Guthaben, kein Abo.'), t('Automatisches Aufladen ausgeschaltet lassen.'), t('Unter „API Keys“ einen Key anlegen (beginnt mit BSA) und hier einfügen.')],
+    'tavily' => [t('Bei app.tavily.com anmelden. Der kostenlose Plan „Researcher“ hat 1.000 Credits im Monat, ohne Karte.'), t('Pay-as-you-go ausgeschaltet lassen.'), t('Den Key aus dem Dashboard kopieren (beginnt mit tvly-) und hier einfügen.')],
+    'exa' => [t('Bei dashboard.exa.ai anmelden.'), t('Unter „API Keys“ einen Key anlegen und hier einfügen.'), t('Kein automatisches Aufladen einrichten. Das monatliche Guthaben von 10 $ reicht für normale Nutzung.')],
+    'parallel' => [t('Bei platform.parallel.ai anmelden. Für das monatliche Guthaben muss eine Karte hinterlegt sein.'), t('Unter „Billing“ das automatische Aufladen ausschalten und ein Ausgabenlimit setzen.'), t('Unter „API Keys“ einen Key anlegen und hier einfügen.')],
+    'firecrawl' => [t('Bei firecrawl.dev anmelden. Der kostenlose Plan hat 1.000 Credits.'), t('Den Key unter „API Keys“ kopieren (beginnt mit fc-) und hier einfügen.'), t('Reset-Datum und Restguthaben holt sich die Suchmaschine selbst von Firecrawl.')],
+];
 $order = smProvOrder(false);
 $withKey = array_values(array_filter($order, function ($id) { return trim(smProvGet($id, 'key')) !== ''; }));
 $without = array_values(array_diff($order, $withKey));
@@ -84,11 +92,17 @@ $without = array_values(array_diff($order, $withKey));
 <?php if ($without): ?>
         <section class="panel">
             <h2><?= h(t('Suchdienst hinzufügen')) ?></h2>
-            <p class="muted small"><?= h(t('Einfach den API-Key eintragen und speichern. Er wird vorher mit einer Testsuche geprüft. Danach erscheinen hier alle Einstellungen für den Dienst. Wie man an die Keys kommt, steht in der README.')) ?></p>
+            <p class="muted small"><?= h(t('Einfach den API-Key eintragen und speichern. Er wird vorher mit einer Testsuche geprüft. Danach erscheinen hier alle Einstellungen für den Dienst. Ein Klick auf einen Dienst zeigt, wie du an den Key kommst.')) ?></p>
 <?php foreach ($without as $id): $p = smProviders()[$id]; ?>
             <details class="prov__add">
                 <summary><strong><?= h($p['name']) ?></strong> <small class="muted"><?= h(t('frei: %s pro Monat', smNumF($p['free']) . ' ' . $p['unit'])) ?></small></summary>
-                <p class="muted small"><?= h($info[$id]) ?> <a href="<?= h($p['site']) ?>" target="_blank" rel="noopener noreferrer"><?= h(t('Zum Dashboard')) ?> ↗</a></p>
+                <p class="muted small"><?= h($info[$id]) ?></p>
+                <ol class="prov__steps">
+<?php foreach ($guide[$id] ?? [] as $step): ?>
+                    <li><?= h($step) ?></li>
+<?php endforeach; ?>
+                </ol>
+                <p><a class="btn btn--small" href="<?= h($p['site']) ?>" target="_blank" rel="noopener noreferrer"><?= h(t('Zum Dashboard')) ?> ↗</a></p>
                 <label class="field"><span><?= h(t('API-Key')) ?></span><input type="password" name="key[<?= h($id) ?>]" autocomplete="off" spellcheck="false" placeholder="<?= h($p['key_hint']) ?>" data-reveal></label>
             </details>
 <?php endforeach; ?>

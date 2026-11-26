@@ -65,7 +65,7 @@ $combos = $de ? [
     ['🔎', t('Mehrere Suchdienste'), t('Brave, Tavily, Exa, parallel.ai und Firecrawl. Automatisch der beste verfügbare, gezielt per Bang oder alle zusammen.')],
     ['⚖️', t('Lastverteilung'), t('Die freien Kontingente reichen gleichmäßig über den Monat. Fällt ein Dienst aus, springt der nächste ein.')],
     ['⚡', t('Sofort-Antworten'), t('Rechner, Währungen, Einheiten, Wetter, Kalenderwoche, Würfel, Timer und mehr, ohne Guthaben zu verbrauchen.')],
-    ['🧰', t('Werkzeuge'), t('Passwort-Generator, QR-Codes und eigene Kurzlinks.')],
+    ['🧰', t('Werkzeuge'), t('Rechner, Timer, Feiertage, Losen, Passwörter, QR-Codes, Kurzlinks und mehr.')],
     ['🎛️', t('Filter'), t('Zeitraum, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bildfilter wie bei Google.')],
     ['⌨️', t('Tastatur'), t('Durch alle Treffer mit J/K oder Pfeilen, Enter öffnet, ? zeigt alle Kürzel.')],
     ['🔑', t('Login-Token'), t('Einmal ?token=… aufrufen und ein Jahr angemeldet bleiben, auch als Standardsuche im Browser.')],
@@ -133,7 +133,7 @@ $combos = $de ? [
 
     <section class="panel" id="werkzeuge">
         <h2><?= h(t('Werkzeuge')) ?></h2>
-        <p class="muted small"><?= h(t('Unter Werkzeuge (Menü oben rechts oder Startseite) gibt es den Passwort-Generator mit allen Optionen (Länge, Zeichenarten, ohne Verwechsler, merkbare Wort-Passwörter), den QR-Code-Generator mit Download als SVG und die Liste deiner Kurzlinks mit Aufrufzahlen.')) ?>
+        <p class="muted small"><?= h(t('Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es alle Helfer nach Gruppen, jeden auf einer eigenen Seite: Rechner, Einheiten, Währungen, Timer, Countdown, Datumsrechner, Feiertage, Kalenderwoche, Würfel und Losen, Passwort-Generator, QR-Codes, deine Kurzlinks, Wetter und die eigene IP-Adresse.')) ?>
             <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Zu den Werkzeugen')) ?></a></p>
     </section>
 
@@ -257,9 +257,9 @@ $combos = $de ? [
     <section class="panel" id="token">
         <h2><?= h(t('Login-Token und Browser')) ?></h2>
         <ul class="bullets">
-            <li><?= h(t('Unter Einstellungen → Konto erzeugst du einen langen geheimen Login-Token (oder legst einen eigenen fest, mindestens 32 Zeichen).')) ?></li>
+            <li><?= h(t('Unter Einstellungen → Browser erzeugst du einen langen geheimen Login-Token (oder legst einen eigenen fest, mindestens 32 Zeichen).')) ?></li>
             <li><?= h(t('Wer die Suchmaschine mit ?token=… aufruft, ist sofort angemeldet und bleibt es 365 Tage. Der Token verschwindet dabei sofort aus der Adresse.')) ?></li>
-            <li><?= h(t('Als Standardsuche: die Such-Adresse mit Token in den Browser eintragen, oder in Firefox auf der Konto-Seite die Suchmaschine über das Lupen-Symbol hinzufügen.')) ?></li>
+            <li><?= h(t('Als Standardsuche: die Such-Adresse mit Token in den Browser eintragen, oder in Firefox auf der Seite Einstellungen → Browser die Suchmaschine über das Lupen-Symbol hinzufügen.')) ?></li>
             <li><?= h(t('Bangs und Sofort-Antworten funktionieren auch direkt aus der Adressleiste.')) ?></li>
             <li><?= h(t('Token weitergegeben? Neu erzeugen und „Alle anderen Geräte abmelden“.')) ?></li>
         </ul>

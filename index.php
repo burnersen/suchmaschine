@@ -3,10 +3,12 @@
  * Suchmaschine – deine eigene, werbefreie Suchmaschine zum Selbsthosten
  *
  * Diese Datei ist nur der Einstieg. Der eigentliche Code liegt in app/:
- *   app/lib/     Funktionen (Sprache, Datenbank, Konten, Suchdienste, Sofort-Antworten, QR-Codes, Sicherung, Bangs/Linsen/Domains,
- *                Bild-Proxy, Seiten, Update)
- *   app/views/   HTML-Vorlagen
- *   app/assets/  CSS, JavaScript, Symbole (werden über diese Datei ausgeliefert)
+ *   app/lib/     Funktionen, eine Datei pro Thema (Liste unten), die Seiten in page_*.php
+ *   app/views/   HTML-Vorlagen, Teile mit _ am Anfang werden in andere eingebunden
+ *   app/lang/    Übersetzungen (en.php)
+ *   app/assets/  CSS, JavaScript, Schriften, Töne, Symbole (werden über diese Datei ausgeliefert)
+ *
+ * Wie aus diesem Quellcode die eine Installationsdatei wird, steht in BUILD.md.
  *
  * PHP mit SQLite auf dem Server, schlichtes JavaScript und CSS im Browser. Keine Frameworks,
  * keine Abhängigkeiten, nichts wird von fremden Servern nachgeladen (außer Vorschaubildern über Braves Bild-Proxy).
@@ -20,10 +22,10 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 date_default_timezone_set('Europe/Berlin');
 
-define('SM_VERSION', '1.4.2');
+define('SM_VERSION', '1.5.0');
 define('SM_ROOT', __DIR__);
 define('SM_APP', SM_ROOT . '/app');
-define('SM_DATA_DIR', SM_ROOT . '/data');
+defined('SM_DATA_DIR') || define('SM_DATA_DIR', SM_ROOT . '/data');   // die Tests nehmen einen eigenen Ordner
 define('SM_COOKIE', 'SMSESS');
 define('SM_SESSION_DAYS', 90);      // so lange bleibt ein Gerät angemeldet, solange es benutzt wird
 define('SM_REPO', 'burnersen/suchmaschine');
@@ -34,20 +36,16 @@ if (PHP_VERSION_ID < 80000) {
     exit("Suchmaschine braucht PHP 8.0 oder neuer / needs PHP 8.0 or newer.\n");
 }
 
-require SM_APP . '/lib/lang.php';
-require SM_APP . '/lib/util.php';
-require SM_APP . '/lib/db.php';
-require SM_APP . '/lib/auth.php';
-require SM_APP . '/lib/brave.php';
-require SM_APP . '/lib/providers.php';
-require SM_APP . '/lib/instant.php';
-require SM_APP . '/lib/qr.php';
-require SM_APP . '/lib/backup.php';
-require SM_APP . '/lib/tools.php';
-require SM_APP . '/lib/imgproxy.php';
-require SM_APP . '/lib/look.php';
-require SM_APP . '/lib/reader.php';
-require SM_APP . '/lib/update.php';
-require SM_APP . '/lib/pages.php';
+// Reihenfolge egal, die Dateien enthalten nur Funktionen und Konstanten
+foreach ([
+    'lang', 'util', 'db', 'auth',                          // Grundlagen: Sprache, Helfer, Datenbank, Konten
+    'brave', 'providers', 'filters', 'domains', 'bangs',   // Suchen: Suchdienste, Filter, Domain-Listen, Bangs und Linsen
+    'instant', 'qr', 'imgproxy', 'reader',                 // Sofort-Antworten, QR-Codes, Bild-Proxy, Lesemodus
+    'prefs', 'look', 'branding', 'backup', 'update',       // Einstellungen, Aussehen, Logo, Sicherung, Update
+    'serve', 'router',                                     // Dateien ausliefern, Ablauf
+    'page_search', 'page_tools', 'page_read', 'page_settings', 'page_admin',   // die einzelnen Seiten
+] as $smLib) require SM_APP . '/lib/' . $smLib . '.php';
+unset($smLib);
 
-smRun();
+// Für die automatischen Tests (tests/run.php): nur laden, nichts ausgeben
+if (!defined('SM_NO_RUN')) smRun();

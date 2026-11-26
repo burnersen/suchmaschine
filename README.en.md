@@ -41,7 +41,7 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
-[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.4](#new-in-14) · [Reader mode and PDF](#reader-mode-and-pdf) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.5](#new-in-15) · [New in 1.4](#new-in-14) · [Reader mode and PDF](#reader-mode-and-pdf) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Building it yourself](#building-it-yourself) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
 
 ## What does it cost?
 
@@ -106,6 +106,14 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
 
+## New in 1.5
+
+- **Tools reorganised:** a tile overview by group (calculating, time and date, chance, sharing and security, weather and network); every tool opens on **its own page** instead of one long list, with related tools below. Reachable everywhere via the **grid icon at the top right**, also for visitors when searching without an account is allowed.
+- **Settings tidied up:** login token and “default search in the browser” are now together under **Settings → Browser**. The administrator edits the look for everyone under **Admin → Appearance**.
+- **Getting API keys, step by step,** right next to each search service in the admin page.
+- Small fixes: the name on the results page is no longer cut off, a more compact currency card, tabs on phones show that they scroll. Without any search service, the administrator is sent to the setup instead of being redirected.
+- **For developers:** code split by topic, English texts in `app/lang/en.php`, automated tests, checks on every push, reproducible builds, optional signed updates. Users still get **one single installation file**. How it is built: [BUILD.md](BUILD.md).
+
 ## New in 1.4
 
 - **Appearance** (Settings → Appearance, per account, with an installation default): 17 light and dark designs, including muted ones (Paper, Mist, Sage, Slate, Dusk), the colour mixer from “Kaufen” with sliders, colour code, live preview, contrast warning and automatic matching, five built-in fonts served from your own server (Atkinson Hyperlegible, Lexend, Source Sans 3, Inter, Literata, all SIL OFL, nothing from Google), sizes, line spacing, spacing and list width.
@@ -141,7 +149,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 **Instant answers (free):** `(12.5 + 7) * 3`, `200 + 19%`, `15% of 80` (own parser, no `eval`) · `100 usd in eur` (ECB rates, cached daily) · `10 km in miles`, `20 °c in f`, `1 gib in mb` · `weather london` (German Weather Service via Bright Sky, Open-Meteo or wttr.in) · `my ip` · `week`, `week 12` · `date` · `dice`, `2d20`, `coin`, `random 1-49` · `timer 5 min`, `stopwatch`, `countdown christmas` · `password 32`, `passphrase` · `qr https://…` · `short https://…`.
 
-**Tools:** all helpers in one place with their own forms and a tile overview: calculator with keypad, units, currencies, timer and stopwatch, countdown, **date calculator and age**, **public holidays by German state**, calendar week, weather, dice, coin, random number, **draw lots and make groups**, password generator (runs in the browser only), QR code generator with SVG download, your own short links (`…/?s=abc123`) and your IP address. In the search box: `days between 2026-01-01 and 2026-12-24`, `age 1940-05-12`, `holidays 2027 bavaria`, `teams 3: Anna, Ben, Clara, …`.
+**Tools** (grid icon at the top right): all helpers in one place, a tile overview by group and a page of its own for every tool: calculator with keypad, units, currencies, timer and stopwatch, countdown, **date calculator and age**, **public holidays by German state**, calendar week, weather, dice, coin, random number, **draw lots and make groups**, password generator (runs in the browser only), QR code generator with SVG download, your own short links (`…/?s=abc123`) and your IP address. In the search box: `days between 2026-01-01 and 2026-12-24`, `age 1940-05-12`, `holidays 2027 bavaria`, `teams 3: Anna, Ben, Clara, …`.
 
 **Filters and results:** strict sort by date (newest first, undated last), **max. 3 results per domain** (on by default), **"Reset all filters"**, a large **×** in the search box, and in the **⋮ menu**: search only this domain, archive at web.archive.org and archive.today, show as QR code, copy address.
 
@@ -152,7 +160,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 ## Accounts and token login
 
 - The first visitor creates the administrator account. The Brave key is optional there; keys can be added later under *Admin → Search services*. More accounts are created under *Admin → Accounts*, optionally with a quota.
-- **Login token:** under *Settings → Account* every account creates a long secret token (48 characters) or sets its own (at least 32 characters, at least three kinds of characters). Token, login address and search address can be shown, copied and renewed there, only while signed in.
+- **Login token:** under *Settings → Browser* every account creates a long secret token (48 characters) or sets its own (at least 32 characters, at least three kinds of characters). Token, login address and search address can be shown, copied and renewed there, only while signed in.
 - `https://your-domain/search/?token=YOUR_TOKEN` (also combined: `?token=…&q=…`) signs you in and sets a session cookie for **365 days** (`HttpOnly`, `Secure` on HTTPS, `SameSite=Lax`). The token is removed from the address right away by a redirect. The session lives on the server (the cookie holds a random value, the database only its hash), so it can be ended anytime: sign out, clear cookies or *Sign out all other devices*.
 - **Default search:** add the search address with token (`…/?token=…&q=%s`) to your browser, or in Firefox add it from the account page via the magnifier icon (OpenSearch with token).
 - **Security:** wrong tokens are throttled (growing wait after 5 failures), comparison is constant-time, the token is stored encrypted with a key in `data/config.php`. Treat it like a password; web server logs may record addresses containing it.
@@ -192,6 +200,10 @@ location ^~ /app/  { deny all; return 404; }
 Admin → *Update* → "Check for updates" → "Update now". The running version is saved first and can be restored with one click. Or upload a new `suchmaschine-install.php` and open it: only program files are replaced, `data/` is never touched. Set `'update_url' => ''` in `data/config.php` to switch off update checks.
 
 Everything that matters is in the folder **`data/`**: accounts, settings, API keys, logo. Download that folder to back up. In the browser: the **complete backup** (optionally encrypted) and the installation settings under *Admin → Backup*, personal settings of every account under *Settings → Account*.
+
+## Building it yourself
+
+The source is split into many files, users still get **one file**. Anyone can build it with nothing but PHP: `php tools/build-release.php` checks the syntax, runs all tests, builds `dist/suchmaschine-install.php`, installs it as a test and writes checksums. Builds are reproducible, so every release can be compared with the source. Details, including signed updates: [BUILD.md](BUILD.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md), security issues: [SECURITY.md](SECURITY.md).
 
 ## Good to know
 

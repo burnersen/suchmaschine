@@ -2,6 +2,14 @@
 /* Suchmaschine – Updates per Knopfdruck: neuestes Release von GitHub holen, prüfen, einspielen, zurück zur vorigen Version */
 defined('SM_VERSION') || exit;
 
+/**
+ * Öffentlicher Schlüssel (Ed25519, Base64) für die Unterschrift der Releases. Ist er gesetzt, spielt die Suchmaschine nur
+ * Updates ein, deren Datei suchmaschine-install.php.sig dazu passt. So hilft es nichts, ein Release auf GitHub
+ * auszutauschen: ohne den geheimen Schlüssel gibt es keine gültige Unterschrift.
+ * Leer = keine Unterschrift nötig, nur die Prüfsummen in der Datei. Wie man das einrichtet, steht in BUILD.md.
+ */
+const SM_UPDATE_PUBKEY = '';
+
 /** Woher die Updates kommen. In data/config.php schaltet 'update_url' => '' sie ab. */
 function smUpdUrl(): string
 {
@@ -36,13 +44,16 @@ function smUpdCheck(): array
     $j = json_decode(smHttpGet($url, 2000000), true);
     if (!is_array($j) || empty($j['tag_name'])) throw new RuntimeException(t('Die Antwort von GitHub war unverständlich.'));
     $dl = '';
+    $sig = '';
     foreach ((array)($j['assets'] ?? []) as $a) {
         if (($a['name'] ?? '') === 'suchmaschine-install.php') $dl = (string)($a['browser_download_url'] ?? '');
+        if (($a['name'] ?? '') === 'suchmaschine-install.php.sig') $sig = (string)($a['browser_download_url'] ?? '');
     }
     if ($dl === '') throw new RuntimeException(t('Im neuesten Release fehlt die Datei suchmaschine-install.php.'));
     $info = [
         'v'     => preg_replace('/^[^0-9]*/', '', (string)$j['tag_name']),
         'url'   => $dl,
+        'sig'   => $sig,
         'page'  => (string)($j['html_url'] ?? ''),
         'notes' => mb_substr((string)($j['body'] ?? ''), 0, 4000),
         'at'    => time(),
@@ -60,6 +71,20 @@ function smUpdInfo(): ?array
 function smUpdNewer(?array $i): bool
 {
     return $i !== null && version_compare($i['v'], SM_VERSION, '>');
+}
+
+/** Prüft die Unterschrift einer heruntergeladenen Installationsdatei. '' = in Ordnung (oder keine nötig), sonst Grund. */
+function smUpdVerify(string $bin, string $sigB64, string $pubB64 = SM_UPDATE_PUBKEY): string
+{
+    if ($pubB64 === '') return '';
+    if (!function_exists('sodium_crypto_sign_verify_detached')) return t('Die PHP-Erweiterung sodium fehlt, darum lässt sich die Unterschrift des Updates nicht prüfen.');
+    $pub = base64_decode($pubB64, true);
+    $sig = base64_decode(trim($sigB64), true);
+    if ($pub === false || strlen($pub) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES || $sig === false || strlen($sig) !== SODIUM_CRYPTO_SIGN_BYTES
+        || !sodium_crypto_sign_verify_detached($sig, $bin, $pub)) {
+        return t('Die Unterschrift des Updates stimmt nicht. Es wurde nichts verändert.');
+    }
+    return '';
 }
 
 /** Liest die eingepackten Dateien eines Installers (oder einer Sicherung). Liefert [Pfad => Inhalt] oder null. */
@@ -123,7 +148,7 @@ function smPayloadInstall(array $files): void
         if (function_exists('opcache_invalidate')) @opcache_invalidate($target, true);
     }
     // Programmteile, die es in dieser Version nicht mehr gibt, wegräumen (nur in app/)
-    foreach (['lib', 'views', 'assets'] as $sub) {
+    foreach (['lib', 'views', 'assets', 'lang'] as $sub) {
         foreach ((array)glob(SM_APP . '/' . $sub . '/*') as $old) {
             if (is_file($old) && !isset($files['app/' . $sub . '/' . basename($old)])) @unlink($old);
         }
@@ -133,7 +158,7 @@ function smPayloadInstall(array $files): void
 /** Prüft, ob PHP die Programmdateien überschreiben darf. '' = ja, sonst Grund. */
 function smUpdWritable(): string
 {
-    foreach ([SM_ROOT, SM_APP, SM_APP . '/lib', SM_APP . '/views', SM_APP . '/assets', SM_ROOT . '/index.php'] as $p) {
+    foreach ([SM_ROOT, SM_APP, SM_APP . '/lib', SM_APP . '/views', SM_APP . '/assets', SM_APP . '/lang', SM_ROOT . '/index.php'] as $p) {
         if (file_exists($p) && !is_writable($p)) return t('PHP darf %s nicht überschreiben.', substr($p, strlen(SM_ROOT) + 1) ?: '/');
     }
     return '';
@@ -146,7 +171,12 @@ function smUpdInstall(): string
         if (($w = smUpdWritable()) !== '') return $w;
         $info = smUpdCheck();
         if (!smUpdNewer($info)) return t('Es ist schon die neueste Version installiert.');
-        $files = smPayloadParse(smHttpGet($info['url'], 20000000));
+        $bin = smHttpGet($info['url'], 20000000);
+        if (SM_UPDATE_PUBKEY !== '') {
+            if (($info['sig'] ?? '') === '') return t('Im neuesten Release fehlt die Unterschrift (suchmaschine-install.php.sig). Es wurde nichts verändert.');
+            if (($e = smUpdVerify($bin, smHttpGet($info['sig'], 10000))) !== '') return $e;
+        }
+        $files = smPayloadParse($bin);
         if ($files === null) return t('Die heruntergeladene Datei ist beschädigt. Es wurde nichts verändert.');
         if (@file_put_contents(SM_DATA_DIR . '/prev.php', smPayloadOfCurrent(), LOCK_EX) === false) {
             return t('Die laufende Version konnte nicht gesichert werden. Es wurde nichts verändert.');

@@ -180,10 +180,32 @@
         btn.addEventListener('click', function () {
             var next = order[(order.indexOf(root.getAttribute('data-theme')) + 1) % order.length];
             root.setAttribute('data-theme', next);
-            document.cookie = 'sm_theme=' + next + '; path=/; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+            // Nur für das Verzeichnis der Suchmaschine, nicht für andere Programme auf derselben Domain
+            var path = btn.getAttribute('data-path') || '/';
+            document.cookie = 'sm_theme=' + next + '; path=' + path + '; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+            if (path !== '/') document.cookie = 'sm_theme=; path=/; max-age=0';   // alter Cookie von Version 1.4 und früher
             label();
         });
     });
+
+    /* ---------- Reiter (Einstellungen, Verwaltung): der aktive ist immer zu sehen, Schatten zeigen, dass man wischen kann ---------- */
+    $$('.subnav').forEach(function (bar) {
+        function edges() {
+            bar.classList.toggle('is-more-left', bar.scrollLeft > 4);
+            bar.classList.toggle('is-more-right', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 4);
+        }
+        var cur = $('.is-active, [aria-current]', bar);
+        if (cur && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = cur.offsetLeft - (bar.clientWidth - cur.offsetWidth) / 2;
+        edges();
+        bar.addEventListener('scroll', edges, { passive: true });
+        window.addEventListener('resize', edges);
+    });
+
+    /* ---------- Werkzeuge: alte Adressen mit #rechner, #qr … öffnen das Werkzeug direkt ---------- */
+    if (/[?&]a=tools(&|$)/.test(location.search) && !/[?&]tool=/.test(location.search) && /^#[a-z]{2,12}$/.test(location.hash)) {
+        var toolCard = document.getElementById(location.hash.slice(1));
+        if (toolCard && toolCard.classList.contains('toolcard')) location.replace(toolCard.href);
+    }
 
     /* ---------- Menüs schließen, wenn man daneben klickt ---------- */
     document.addEventListener('click', function (ev) {

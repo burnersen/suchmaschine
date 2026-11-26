@@ -1,0 +1,104 @@
+<?php
+/* Suchmaschine – Dateien ausliefern: CSS, JavaScript, Symbole, OpenSearch, Manifest, Logo, App-Symbol */
+defined('SM_VERSION') || exit;
+
+function smServeAsset(): void
+{
+    $types = ['app.css' => 'text/css; charset=utf-8', 'app.js' => 'text/javascript; charset=utf-8', 'pdf.js' => 'text/javascript; charset=utf-8', 'icon.svg' => 'image/svg+xml',
+              'icon-180.png' => 'image/png', 'icon-192.png' => 'image/png', 'icon-512.png' => 'image/png'];
+    $f = isset($_GET['f']) && is_string($_GET['f']) ? $_GET['f'] : '';
+    // Töne für Timer und Co. (selbst erzeugt, siehe app/assets/sounds/LIESMICH.txt)
+    if (preg_match('~^sounds/[a-z]{2,20}\.mp3$~', $f)) $types[$f] = 'audio/mpeg';
+    if (!isset($types[$f]) || !is_file(SM_APP . '/assets/' . $f)) {
+        http_response_code(404);
+        exit;
+    }
+    smHeaders();
+    header('Content-Type: ' . $types[$f]);
+    header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
+    readfile(SM_APP . '/assets/' . $f);
+    exit;
+}
+
+function smServeOpenSearch(): void
+{
+    smHeaders();
+    header('Content-Type: application/opensearchdescription+xml; charset=utf-8');
+    header('Cache-Control: ' . (isset($_GET['k']) ? 'private, no-store' : 'no-cache'));
+    $name = smSiteName();
+    // Persönliche Variante mit Login-Token: der Browser meldet sich bei jeder Suche aus der Adressleiste selbst an
+    $k = isset($_GET['k']) && is_string($_GET['k']) && preg_match('/^[A-Za-z0-9._~-]{32,200}$/', $_GET['k']) ? $_GET['k'] : '';
+    $tpl = smOrigin() . '?' . ($k !== '' ? 'token=' . rawurlencode($k) . '&' : '') . 'q={searchTerms}';
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+       . '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">' . "\n"
+       . '  <ShortName>' . h(mb_substr($name, 0, 16)) . "</ShortName>\n"
+       . '  <Description>' . h(t('Eigene Suchmaschine ohne Werbung')) . "</Description>\n"
+       . "  <InputEncoding>UTF-8</InputEncoding>\n"
+       . '  <Image type="image/svg+xml">' . h(smOrigin() . '?a=asset&f=icon.svg') . "</Image>\n"
+       . '  <Url type="text/html" method="get" template="' . h($tpl) . "\"/>\n"
+       . "</OpenSearchDescription>\n";
+    exit;
+}
+
+function smServeManifest(): void
+{
+    smHeaders();
+    header('Content-Type: application/manifest+json; charset=utf-8');
+    header('Cache-Control: no-cache');
+    $name = smSiteName();
+    $n = smHasUsersSafe() ? trim(smSetting('site_name')) : '';
+    echo json_encode([
+        'id' => './', 'name' => $name, 'short_name' => $n !== '' ? mb_substr($n, 0, 12) : t('Suchmaschine'),
+        'start_url' => './', 'scope' => './', 'display' => 'standalone',
+        'lang' => smLang(), 'background_color' => '#ffffff', 'theme_color' => '#ffffff',
+        // PNG-Symbole: Startbildschirme von Android und iPhone nehmen kein SVG
+        'icons' => [
+            ['src' => smAppIconUrl(192), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => smAppIconUrl(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => smAppIconUrl(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+        ],
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/** Eigenes Logo ausliefern (liegt in data/, darum über diese Datei) */
+function smServeLogo(): void
+{
+    $type = smHasUsersSafe() ? smSetting('logo_type') : '';
+    $file = SM_DATA_DIR . '/logo.bin';
+    if ($type === '' || !is_file($file)) {
+        http_response_code(404);
+        exit;
+    }
+    smHeaders();
+    header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    header('Content-Type: ' . $type);
+    header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
+    readfile($file);
+    exit;
+}
+
+/** App-Symbol ausliefern: eigenes (verkleinert, falls GD da ist) oder das eingebaute */
+function smServeAppIcon(): void
+{
+    $s = (int)($_GET['s'] ?? 192);
+    if (!in_array($s, SM_ICON_SIZES, true)) $s = 192;
+    $file = SM_APP . '/assets/icon-' . $s . '.png';
+    if (smHasUsersSafe() && smAppIconCustom()) {
+        $file = smAppIconFile();
+        if ($s !== 512 && function_exists('imagecreatefromstring')) {
+            $small = SM_DATA_DIR . '/appicon-' . $s . '.png';
+            if (!is_file($small) && ($src = @imagecreatefromstring((string)file_get_contents($file)))) {
+                $dst = imagecreatetruecolor($s, $s);
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $s, $s, imagesx($src), imagesy($src));
+                @imagepng($dst, $small, 9);
+            }
+            if (is_file($small)) $file = $small;
+        }
+    }
+    smHeaders();
+    header('Content-Type: image/png');
+    header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
+    readfile($file);
+    exit;
+}
