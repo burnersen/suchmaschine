@@ -308,14 +308,28 @@ function smCurrencyCode(string $s): string
     return '';
 }
 
-/** Kurse mit Euro als Basis: ['date' => …, 'rates' => ['USD' => 1.05, …]]. Leer, wenn nicht abrufbar. */
-function smFxRates(): array
+/**
+ * Kurse mit Euro als Basis: ['date' => Tag der EZB-Kurse, 'rates' => ['USD' => 1.05, …], 'fetched' => Abrufzeit]. Leer, wenn nie abrufbar.
+ * Die EZB veröffentlicht einmal pro Werktag gegen 16 Uhr. Darum wird einmal am Tag geholt, und zwar nach 16:30 Uhr.
+ * $force: sofort neu holen (Knopf im Werkzeug), höchstens einmal pro Minute. Klappt ein Abruf nicht, bleiben die letzten Kurse.
+ */
+function smFxRates(bool $force = false): array
 {
     static $fx = null;
-    if ($fx !== null) return $fx;
-    $d = smFetchJson('https://api.frankfurter.dev/v1/latest', 43200);
-    $fx = is_array($d) && is_array($d['rates'] ?? null) ? ['date' => (string)($d['date'] ?? ''), 'rates' => array_filter($d['rates'], 'is_numeric')] : ['date' => '', 'rates' => []];
-    return $fx;
+    if ($fx !== null && !$force) return $fx;
+    $old = smCacheGet('fx|ezb');
+    $due = strtotime('today 16:30');
+    if ($due > time()) $due = strtotime('yesterday 16:30');
+    $stale = !$old || (int)($old['fetched'] ?? 0) < $due;
+    if ($force && $old && (int)($old['fetched'] ?? 0) > time() - 60) $force = false;
+    if ($stale || $force) {
+        $d = smFetchJson('https://api.frankfurter.dev/v1/latest', 0);
+        if (is_array($d) && is_array($d['rates'] ?? null) && $d['rates']) {
+            $old = ['date' => (string)($d['date'] ?? ''), 'rates' => array_filter($d['rates'], 'is_numeric'), 'fetched' => time()];
+            smCacheSet('fx|ezb', $old, 30 * 86400);   // lange aufheben: fällt der Dienst aus, gelten die letzten Kurse weiter
+        }
+    }
+    return $fx = $old ?: ['date' => '', 'rates' => [], 'fetched' => 0];
 }
 
 function smCardCurrency(float $amount, string $from, string $to): ?array
@@ -329,7 +343,7 @@ function smCardCurrency(float $amount, string $from, string $to): ?array
     $rate = function (string $c) use ($fx) { return $c === 'EUR' ? 1.0 : (float)($fx['rates'][$c] ?? 0); };
     if ($rate($f) <= 0 || $rate($t) <= 0) return null;
     $one = $rate($t) / $rate($f);
-    return ['type' => 'currency', 'from' => $f, 'to' => $t, 'amount' => $amount, 'result' => $amount * $one, 'rate' => $one, 'date' => $fx['date'],
+    return ['type' => 'currency', 'from' => $f, 'to' => $t, 'amount' => $amount, 'result' => $amount * $one, 'rate' => $one, 'date' => $fx['date'], 'fetched' => (int)$fx['fetched'],
             'list' => array_merge(['EUR'], array_keys($fx['rates']))];
 }
 
@@ -495,7 +509,7 @@ function smEaster(int $y): int
 function smFetchJson(string $url, int $ttl, int $timeout = 5): ?array
 {
     $ck = 'fetch|' . $url;
-    if ($hit = smCacheGet($ck)) return $hit;
+    if ($ttl > 0 && ($hit = smCacheGet($ck))) return $hit;
     if (!function_exists('curl_init')) return null;
     $ch = curl_init($url);
     curl_setopt_array($ch, [

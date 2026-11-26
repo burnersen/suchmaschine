@@ -1118,3 +1118,16 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .form__sub { margin: 10px 0 -4px; padding-top: 14px; border-top: 1px solid var(--line-2); font-size: 15px; font-weight: 600; }
 .prov__steps { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; color: var(--text-2); display: grid; gap: 4px; }
 .subnav + .page__lead { margin: -4px 0 18px; }
+
+/* Aussehen: die Vorschau bleibt beim Scrollen oben stehen, damit man jede Änderung sofort sieht */
+.look__prev { position: sticky; top: 8px; z-index: 20; box-shadow: 0 8px 24px -12px rgba(0, 0, 0, .35); }
+.look__prev h2 { margin-bottom: 10px; }
+@media (max-width: 720px) {
+    .look__prev { top: 4px; padding: 10px; }
+    .look__prev h2 { display: none; }
+    .look__prev .lookprev { padding: 10px; }
+    .look__prev .lookprev__res + .lookprev__res { display: none; }
+    .look__prev .lookprev__bar { display: none; }
+    .look__prev .lookprev__desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+@media (max-height: 640px) { .look__prev { position: static; } }

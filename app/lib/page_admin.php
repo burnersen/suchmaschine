@@ -180,6 +180,9 @@ function smSaveConfig(): string
     smSetSetting('public', empty($_POST['public']) ? '0' : '1');
     smSetSetting('img_proxy', empty($_POST['img_proxy']) ? '0' : '1');
     smSetSetting('shortener', empty($_POST['shortener']) ? '0' : '1');
+    $v4 = trim((string)($_POST['ipv4_host'] ?? ''));
+    if ($v4 !== '' && smCleanHostname($v4) === '') return t('Die IPv4-Subdomain ist kein gültiger Name (z. B. v4.example.org, ohne https:// und ohne Pfad).');
+    smSetSetting('ipv4_host', smCleanHostname($v4));
     smSetSetting('public_hour', (string)max(1, min(1000, (int)($_POST['public_hour'] ?? 20))));
     $w = (string)($_POST['weather_src'] ?? '');
     if (isset(smWeatherSources()[$w])) smSetSetting('weather_src', $w);

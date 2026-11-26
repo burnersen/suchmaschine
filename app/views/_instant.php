@@ -20,7 +20,7 @@ case 'calc': ?>
         <p class="ia__expr"><?= h($nf($c['amount'])) ?> <?= h($c['from']) ?> =</p>
         <p class="ia__big"><output><?= h(smFmtNumber($c['result'], 2)) ?></output> <?= h($c['to']) ?></p>
         <p class="muted small">1 <?= h($c['from']) ?> = <?= h(smFmtNumber($c['rate'], 6)) ?> <?= h($c['to']) ?> · 1 <?= h($c['to']) ?> = <?= h(smFmtNumber(1 / $c['rate'], 6)) ?> <?= h($c['from']) ?>
-            · <?= h(t('Referenzkurs der EZB vom %s (über frankfurter.app), wird einmal am Tag aktualisiert.', $c['date'] !== '' ? smDate((int)strtotime($c['date'])) : '–')) ?></p>
+            · <?= h(t('Referenzkurs der EZB vom %s, abgerufen %s. Wird einmal am Tag nach der Veröffentlichung der EZB (gegen 16 Uhr) neu geholt.', $c['date'] !== '' ? smDate((int)strtotime($c['date'])) : '?', !empty($c['fetched']) ? date(smLang() === 'de' ? 'd.m.Y, H:i' : 'Y-m-d H:i', $c['fetched']) . (smLang() === 'de' ? ' Uhr' : '') : '?')) ?></p>
 <?php if (empty($inTools)): /* unter Werkzeuge steht das Formular schon über der Karte */ ?>
         <form class="ia__form" method="get" action="<?= h(smBase()) ?>">
             <input type="text" inputmode="decimal" name="fx_a" value="<?= h($nf($c['amount'])) ?>" aria-label="<?= h(t('Betrag')) ?>">
@@ -40,6 +40,14 @@ case 'calc': ?>
         <p class="ia__label"><?= h(t('Deine IP-Adresse')) ?></p>
         <p class="ia__big"><output><?= h($c['ip']) ?></output> <button type="button" class="btn btn--small" data-copy-text="<?= h($c['ip']) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></p>
         <p class="muted small"><?= h($c['v6'] ? 'IPv6' : 'IPv4') ?> · <?= h(t('So sieht dieser Server dich. Hinter einem VPN, Proxy oder Mobilfunk-NAT ist das deren Adresse.')) ?></p>
+<?php $other = $c['v6'] ? 'IPv4' : 'IPv6'; $src = smIpOtherSources($c['v6']); ?>
+        <div class="ipother" data-ip-other data-own="<?= h($src['own']) ?>" data-ext="<?= h($src['ext']) ?>" data-fail="<?= h(t('Keine %s gefunden. Vermutlich hat dein Anschluss gerade keine.', $other)) ?>" hidden>
+            <p class="ia__label"><?= h(t('Deine %s-Adresse', $other)) ?></p>
+            <p class="ia__big" data-ip-out hidden><output></output> <button type="button" class="btn btn--small" data-copy-text="" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></p>
+            <p class="muted small" data-ip-msg></p>
+            <p data-ip-ask hidden><button type="button" class="btn btn--small" data-ip-go><?= h(t('%s auch anzeigen', $other)) ?></button>
+                <small class="muted"><?= h(t('Fragt dafür einmal ipify.org. Der Dienst sieht dabei deine Adresse.')) ?></small></p>
+        </div>
 <?php break; case 'week': ?>
         <p class="ia__label"><?= h($c['current'] ? t('Aktuelle Kalenderwoche') : t('Kalenderwoche')) ?></p>
         <p class="ia__big"><?= h(t('KW %d', $c['week'])) ?> <small class="muted"><?= (int)$c['year'] ?></small></p>

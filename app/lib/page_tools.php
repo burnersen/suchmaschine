@@ -77,6 +77,7 @@ function smPageTools(?array $me, bool $post): void
     if ($tool === '' && isset($_GET['new'])) $tool = 'kurzlinks';
     $card = null;
     $err = '';
+    if ($tool === 'waehrung' && ($_GET['fx_refresh'] ?? '') === '1') smFxRates(true);
     if ($tool !== '') {
         $ia = isset($_GET['ia']) && is_string($_GET['ia']) ? mb_substr(trim($_GET['ia']), 0, 3000) : smToolQuery($tool);
         $_GET['ia'] = $ia;

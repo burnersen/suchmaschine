@@ -219,6 +219,7 @@ function smConfigKeys(): array
         'auto_update'   => $in(['0', '1']),
         'img_proxy'     => $in(['0', '1']),
         'shortener'     => $in(['0', '1']),
+        'ipv4_host'     => function ($v) { return is_string($v) ? smCleanHostname($v) : null; },
         'balance'       => $in(['0', '1']),
         'answers'       => $in(['0', '1']),
         'wiki'          => $in(['0', '1']),

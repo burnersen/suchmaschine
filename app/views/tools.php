@@ -98,10 +98,13 @@ case 'rechner': ?>
                 <label class="field"><span><?= h(t('in')) ?></span><input type="text" name="to" value="<?= h($g('to', 'USD')) ?>" maxlength="3"></label>
 <?php endif; ?>
             </div>
-            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Umrechnen')) ?></button></div>
+            <div class="form__actions">
+                <button type="submit" class="btn btn--primary"><?= h(t('Umrechnen')) ?></button>
+                <button type="submit" class="btn" name="fx_refresh" value="1" title="<?= h(t('Holt sofort den neuesten Stand der EZB')) ?>"><?= h(t('Kurse jetzt abrufen')) ?></button>
+            </div>
         </form>
 <?php $result('waehrung'); ?>
-        <p class="muted small"><?= h(t('Referenzkurse der Europäischen Zentralbank, einmal am Tag aktualisiert.')) ?></p>
+        <p class="muted small"><?= h(t('Referenzkurse der Europäischen Zentralbank. Die EZB veröffentlicht sie einmal pro Werktag gegen 16 Uhr, die Suchmaschine holt sie danach automatisch. Mit „Kurse jetzt abrufen“ geht es sofort.')) ?></p>
 <?php break; case 'timer': ?>
         <?= $form('timer') ?>
             <div class="form__row form__row--tool">
