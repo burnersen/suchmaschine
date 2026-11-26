@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 3);
+define('SM_SCHEMA', 4);
 
 function smFatal(string $msg): void
 {
@@ -130,6 +130,15 @@ function smMigrate(PDO $pdo, int $from): void
             auth TEXT NOT NULL DEFAULT '')");
         $pdo->exec("CREATE INDEX IF NOT EXISTS notes_user ON notes (user_id)");
     }
+    if ($from < 4) {
+        // 2.1: die große Bang-Liste (Kagi), eine Zeile pro Kürzel; Zweitkürzel zeigen über main auf das Hauptkürzel
+        $pdo->exec("CREATE TABLE IF NOT EXISTS bang_list (t TEXT PRIMARY KEY, main TEXT NOT NULL, a TEXT NOT NULL DEFAULT '', n TEXT NOT NULL,
+            u TEXT NOT NULL, d TEXT NOT NULL DEFAULT '', c TEXT NOT NULL DEFAULT '', f TEXT NOT NULL DEFAULT '', x TEXT NOT NULL DEFAULT '')");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS bang_list_d ON bang_list (d)");
+        // Erreichbarkeit pro Domain: wann geprüft, wie oft hintereinander nicht erreichbar
+        $pdo->exec("CREATE TABLE IF NOT EXISTS bang_check (d TEXT PRIMARY KEY, checked INTEGER NOT NULL DEFAULT 0, fails INTEGER NOT NULL DEFAULT 0,
+            status INTEGER NOT NULL DEFAULT 0, err TEXT NOT NULL DEFAULT '', ok_at INTEGER NOT NULL DEFAULT 0)");
+    }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();
 }
@@ -180,6 +189,8 @@ function smDefaults(): array
         'shortener'     => '1',
         'ipv4_host'     => '',      // eigene Subdomain nur mit IPv4 (A-Eintrag), um die IPv4 auch bei IPv6-Verbindung zu zeigen
         'anon_quota'    => '',
+        'bang_auto'     => '1',     // Bang-Liste einmal pro Woche frisch von GitHub (Kagi) holen
+        'bang_check'    => '1',     // Zielseiten der Bangs nach und nach auf Erreichbarkeit prüfen
     ];
 }
 

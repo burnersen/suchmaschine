@@ -1149,3 +1149,44 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .wx__week .wx__ico { font-size: 20px; vertical-align: -3px; }
 
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- 2.1: Bangs im Suchfeld, Bang-Verwaltung, Umschalter „Mein …/Standard für alle“, Vorschau hell/dunkel ---------- */
+.sbox__bang { display: inline-grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+    color: var(--text-3); font: 700 19px/1 var(--font); }
+.sbox__bang:hover, .sbox__bang:focus-visible { background: var(--hover); color: var(--accent); }
+.sbox.has-bang .sbox__bang { color: var(--accent); }
+.sbox__opt--bang { gap: 12px; }
+.sbox__opt--bang code { flex: none; min-width: 64px; font-size: 14px; color: var(--accent); background: none; padding: 0; }
+.sbox__opt--bang code .sbox__text { color: var(--accent); }
+.sbox__opt--bang code b { color: var(--accent); }
+.sbox__opt--bang > .sbox__text { color: var(--text); }
+.sbox__dom { color: var(--text-3); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+.sbox__dom.is-dead { color: var(--error); text-decoration: line-through; }
+.sbox__target { margin: 8px 6px 0; font-size: 14px; color: var(--text-2); }
+.sbox__target b { color: var(--text); font-weight: 600; }
+.sbox__target small { color: var(--text-3); font-size: 13px; }
+.sbox__go-to { color: var(--accent); }
+.sbox__hint { color: var(--text-3); }
+.sbox.is-open .sbox__target { visibility: hidden; }
+.top .sbox__target { position: absolute; left: 12px; top: 100%; margin-top: 4px; white-space: nowrap; z-index: 5; }
+.tag--warn { background: color-mix(in srgb, var(--error) 14%, transparent); color: var(--error); }
+
+.scope { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -4px 0 18px; }
+.seg--links a, .seg--small button { display: block; padding: 7px 16px; border-radius: 999px; font-size: 14px; color: var(--text-2); border: 0; background: none; cursor: pointer; font-family: inherit; }
+.seg--links a:hover, .seg--small button:hover { color: var(--text); text-decoration: none; background: var(--hover); }
+.seg--links a.is-on, .seg--small button.is-on { background: var(--accent); color: var(--bg); font-weight: 600; }
+.seg--small button { padding: 4px 12px; font-size: 13px; }
+.look__prevhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.look__prevhead h2 { margin: 0; }
+
+.bangfind { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+.bangfind input[type=search] { flex: 1 1 240px; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font: inherit; }
+.bangfind select { flex: 0 0 auto; width: auto; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); padding: 0 8px; font: inherit; }
+.has-js .bangfind .btn { display: none; }
+.banglist { margin-top: 8px; transition: opacity .15s; }
+.banglist.is-busy { opacity: .55; }
+.bang__t { min-width: 70px; font-weight: 600; color: var(--accent); overflow-wrap: anywhere; }
+.bang__acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.bang.is-off .list__main strong { text-decoration: line-through; color: var(--text-3); }
+.bang.is-editing { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.error-text { color: var(--error); }

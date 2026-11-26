@@ -108,6 +108,20 @@ function smLook(?array $me): array
     return is_array($own) ? smLookClean($own + $def) : $def;
 }
 
+/** Eigenes Aussehen bei allen Konten entfernen („Für alle erzwingen“). Liefert die Zahl der geänderten Konten. */
+function smLookResetAll(): int
+{
+    $n = 0;
+    foreach (smQ("SELECT id, prefs FROM users WHERE prefs LIKE '%\"look\"%'")->fetchAll() as $u) {
+        $p = json_decode((string)$u['prefs'], true);
+        if (!is_array($p) || !isset($p['look'])) continue;
+        unset($p['look']);
+        smUserSavePrefs((int)$u['id'], $p);
+        $n++;
+    }
+    return $n;
+}
+
 /** Hell- und Dunkelfarbe der alten Akzent-Auswahl */
 function smAccentHex(string $a): ?array
 {

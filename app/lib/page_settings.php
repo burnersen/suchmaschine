@@ -11,7 +11,11 @@ function smPageSettings(array $me, bool $post): void
 {
     $tab = (string)($_GET['tab'] ?? 'search');
     if (!isset(smSettingsTabs()[$tab])) $tab = 'search';
-    if ($tab === 'look' && ($_GET['default'] ?? '') === '1' && $me['is_admin'] && !$post) smRedirect(smUrl(['a' => 'admin', 'tab' => 'look']));
+    // Aussehen und Bangs: Administratoren bearbeiten hier auch den Standard für alle (?for=all)
+    if ($tab === 'look' && ($_GET['default'] ?? '') === '1' && $me['is_admin'] && !$post) smRedirect(smUrl(['a' => 'settings', 'tab' => 'look', 'for' => 'all']));
+    $for = ($_GET['for'] ?? '') === 'all' && $me['is_admin'] && in_array($tab, ['look', 'bangs'], true) ? 'all' : '';
+    $back = ['for' => $for !== '' ? $for : null];
+    if ($tab === 'bangs') foreach (['bq', 'bf'] as $k) if (isset($_GET[$k]) && is_string($_GET[$k]) && $_GET[$k] !== '') $back[$k] = mb_substr($_GET[$k], 0, 60);
 
     if ($post) {
         $do = (string)($_POST['do'] ?? '');
@@ -54,11 +58,16 @@ function smPageSettings(array $me, bool $post): void
                 // Der Knopf oben (hell/dunkel) soll die neue Wahl nicht überdecken
                 setcookie('sm_theme', '', ['expires' => time() - 3600, 'path' => smBase()]);
                 if (smBase() !== '/') setcookie('sm_theme', '', ['expires' => time() - 3600, 'path' => '/']);   // Cookie aus 1.4 und früher
-                if (($_POST['scope'] ?? '') === 'default' && $me['is_admin']) {
+                $scope = (string)($_POST['scope'] ?? '');
+                if (in_array($scope, ['default', 'force'], true) && $me['is_admin']) {
                     smSetSetting('look', json_encode(smLookFromPost()));
-                    $ok = t('Aussehen als Standard für alle gespeichert.');
-                    if (!empty($_POST['default_only'])) break;
-                    unset($p['look']);   // Wer den Standard festlegt, sieht ihn auch selbst
+                    // Wer den Standard festlegt, sieht ihn auch selbst
+                    unset($p['look']);
+                    $ok = t('Aussehen als Standard für alle gespeichert. Konten mit eigenem Aussehen behalten ihres.');
+                    if ($scope === 'force') {
+                        $n = smLookResetAll();
+                        $ok = t('Aussehen für alle gespeichert und bei %d Konten das eigene Aussehen zurückgesetzt.', $n);
+                    }
                 } elseif (!empty($_POST['reset'])) {
                     unset($p['look']);
                     $ok = t('Aussehen auf den Standard zurückgesetzt.');
@@ -72,34 +81,40 @@ function smPageSettings(array $me, bool $post): void
                 $p['raise'] = array_values(array_diff($p['raise'], $p['block']));
                 $p['lower'] = array_values(array_diff($p['lower'], $p['block'], $p['raise']));
                 break;
-            case 'bang_add':
-                $t = smCleanBangTrigger($_POST['t'] ?? '');
-                $u = smCleanBangUrl($_POST['u'] ?? '');
-                if ($t === '') {
-                    $err = t('Das Kürzel darf nur Buchstaben, Ziffern, Punkt, Minus und Unterstrich enthalten (höchstens 24 Zeichen).');
-                } elseif (smBangReserved($t)) {
-                    $err = t('Das Kürzel !%s ist für die Reiter oder Suchdienste reserviert.', $t);
-                } elseif ($u === '') {
-                    $err = t('Die Adresse muss mit https:// oder http:// beginnen. {q} steht für den Suchbegriff.');
+            case 'bang_save':
+            case 'bang_del':
+            case 'bang_revert':
+            case 'bang_unhide':
+            case 'bang_restore':
+                if ($for === 'all') {
+                    // Für alle: ändert die Schicht des Administrators über der großen Liste
+                    [$g, $err, $ok] = smBangEdit(smBangGlobal(), $do, $_POST, function (string $t): bool { return smBangSys($t) !== null; });
+                    if ($err === '') smBangSetGlobal($g);
                 } else {
-                    $list = array_values(array_filter(smCleanBangs($p['bangs'] ?? []), function ($b) use ($t) { return $b['t'] !== $t; }));
-                    if (count($list) >= SM_MAX_BANGS) {
-                        $err = t('Es sind schon zu viele eigene Bangs.');
-                    } else {
-                        $list[] = ['t' => $t, 'n' => (string)($_POST['n'] ?? ''), 'u' => $u];
-                        $p['bangs'] = smCleanBangs($list);
-                        $ok = t('Bang !%s gespeichert.', $t);
-                    }
+                    $G = smBangLayers(null, 'all');
+                    $lower = function (string $t) use ($G): bool { return isset($G['gown'][$t]) || (!isset($G['goff'][$t]) && smBangSys($t) !== null); };
+                    [$l, $err, $ok] = smBangEdit(['own' => $p['bangs'] ?? [], 'off' => $p['bang_off'] ?? []], $do, $_POST, $lower);
+                    $p['bangs'] = smCleanBangs($l['own']);
+                    $p['bang_off'] = smCleanBangOff($l['off']);
                 }
                 break;
-            case 'bang_del':
-                $t = smCleanBangTrigger($_POST['t'] ?? '');
-                $p['bangs'] = array_values(array_filter(smCleanBangs($p['bangs'] ?? []), function ($b) use ($t) { return $b['t'] !== $t; }));
-                $ok = t('Bang !%s gelöscht.', $t);
-                break;
-            case 'bang_builtin':
-                $on = is_array($_POST['on'] ?? null) ? $_POST['on'] : [];
-                $p['bang_off'] = array_values(array_diff(array_keys(smBuiltinBangs()), $on));
+            case 'bang_cfg':
+            case 'bang_refresh':
+            case 'bang_checknow':
+                if ($for !== 'all') { $err = t('Unbekannte Aktion.'); break; }
+                if ($do === 'bang_cfg') {
+                    smSetSetting('bang_auto', !empty($_POST['bang_auto']) ? '1' : '0');
+                    smSetSetting('bang_check', !empty($_POST['bang_check']) ? '1' : '0');
+                } elseif ($do === 'bang_refresh') {
+                    @set_time_limit(120);
+                    $err = smBangRefresh();
+                    $u = json_decode(smSetting('bang_upd'), true);
+                    $ok = t('Bang-Liste aktualisiert: %d Bangs, %d neu, %d weggefallen.', (int)($u['n'] ?? 0), (int)($u['add'] ?? 0), (int)($u['del'] ?? 0));
+                } else {
+                    @set_time_limit(120);
+                    [$n, $bad] = smBangCheck(60);
+                    $ok = t('%d Domains geprüft, davon %d gerade nicht erreichbar.', $n, $bad);
+                }
                 break;
             case 'lens_save':
                 $id = (string)($_POST['id'] ?? '');
@@ -155,7 +170,12 @@ function smPageSettings(array $me, bool $post): void
         }
         if ($err === '' && !in_array($do, ['pass', 'token_gen', 'token_set', 'token_del', 'logout_others'], true)) smUserSavePrefs($me['id'], $p);
         smFlash($err === '' ? 'ok' : 'error', $err === '' ? $ok : $err);
-        smRedirect(smUrl(['a' => 'settings', 'tab' => $tab !== 'search' ? $tab : null]));
+        smRedirect(smUrl(['a' => 'settings', 'tab' => $tab !== 'search' ? $tab : null] + $back));
+    }
+    // Bangs: nur die Trefferliste (für die Suche oben, ohne die Seite neu zu laden)
+    if ($tab === 'bangs' && isset($_GET['frag'])) {
+        smRender('_banglist', ['me' => $me, 'for' => $for], false);
+        return;
     }
     $edit = null;
     if ($tab === 'lenses' && isset($_GET['edit'])) {
@@ -163,7 +183,7 @@ function smPageSettings(array $me, bool $post): void
     }
     $token = $tab === 'browser' ? smTokenGet($me['id']) : '';
     smRender('settings', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Einstellungen'), 'tab' => $tab, 'edit' => $edit,
-        'token' => $token, 'osToken' => $token]);
+        'token' => $token, 'osToken' => $token, 'for' => $for]);
 }
 
 /** Schnellaktion an einem Treffer: Domain blockieren, hochstufen, herabstufen oder zurücksetzen */
