@@ -147,10 +147,10 @@ CF.views.rechner = {
             CF.ls.set('calc.hist', hist);
             renderHist();
             inp.value = String(fmt(r)).replace(/\s/g, '');
-            inp.select();
+            CF.focus(inp, true);
         }
         function renderHist() {
-            fill(histBox, hist.length ? [hist.map(h => el('button', { type: 'button', class: 'calc-h', onclick: () => { inp.value = h.e; live(); inp.focus(); } }, el('span', { class: 'mono', text: h.e }), el('b', { class: 'mono', text: '= ' + fmt(h.r) }))),
+            fill(histBox, hist.length ? [hist.map(h => el('button', { type: 'button', class: 'calc-h', onclick: () => { inp.value = h.e; live(); CF.focus(inp); } }, el('span', { class: 'mono', text: h.e }), el('b', { class: 'mono', text: '= ' + fmt(h.r) }))),
                 btn(T('Verlauf löschen'), 'btn-ghost btn-sm', () => { hist = []; CF.ls.set('calc.hist', []); renderHist(); }, 'trash')] : el('p', { class: 'small muted', text: T('Noch nichts gerechnet. Enter speichert eine Rechnung im Verlauf.') }));
         }
         const put = k => {
@@ -160,7 +160,7 @@ CF.views.rechner = {
             else if (k === '=') { commit(); return; }
             else { inp.value = inp.value.slice(0, st) + k + inp.value.slice(en); const p = st + k.length; setTimeout(() => inp.setSelectionRange(p, p), 0); }
             live();
-            inp.focus();
+            CF.focus(inp);   // am Handy keine Tastatur, nur weil eine Taste des Rechners gedrückt wurde
         };
         const key = (k, cls, label) => el('button', { type: 'button', class: 'calc-k ' + (cls || ''), onclick: () => put(k), text: label || k });
         const sci = [['sin(', 'sin'], ['cos(', 'cos'], ['tan(', 'tan'], ['ln(', 'ln'], ['log(', 'log'], ['sqrt(', '√'], ['^', 'xʸ'], ['^2', 'x²'], ['!', 'n!'], ['pi', 'π'], ['e', 'e'], ['ans', 'Ans'], ['asin(', 'sin⁻¹'], ['acos(', 'cos⁻¹'], ['atan(', 'tan⁻¹']];
@@ -176,7 +176,7 @@ CF.views.rechner = {
             [CF.card(T('Verlauf'), 'history', histBox), CF.card(T('Beispiele'), 'sparkles', el('div', { class: 'chips' }, ['200 + 19%', DE ? '15% von 80' : '15% of 80', '2^10', 'sqrt(2)', '5!', 'sin(30)', '(1+0,05)^10', '17 mod 5'].map(x => el('button', { type: 'button', class: 'chip mono', text: x, onclick: () => { inp.value = x; live(); } }))))]));
         renderHist();
         live();
-        setTimeout(() => inp.focus(), 30);
+        setTimeout(() => CF.focus(inp), 30);
     },
 };
 

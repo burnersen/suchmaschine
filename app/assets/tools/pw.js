@@ -423,7 +423,7 @@ CF.views.passwort = {
             inp.addEventListener('input', run);
             run();
             fill(checkBox, CF.card(T('Eigenes Passwort prüfen'), 'shield', el('div', { class: 'stack' }, el('div', { class: 'row nw' }, el('div', { class: 'grow' }, inp), eye), res)));
-            setTimeout(() => inp.focus(), 30);
+            setTimeout(() => CF.focus(inp), 30);
         }
 
         const genView = el('div', { class: 'layout' },

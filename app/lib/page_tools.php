@@ -190,7 +190,7 @@ function smToolIpData(): array
     $ip = smClientIp();
     $host = $ip !== '' ? @gethostbyaddr($ip) : '';
     return ['ip' => $ip, 'v6' => strpos($ip, ':') !== false, 'host' => $host && $host !== $ip ? $host : '', 'headers' => $h, 'https' => smIsHttps(),
-            'proto' => (string)($_SERVER['SERVER_PROTOCOL'] ?? '')];
+            'proto' => (string)($_SERVER['SERVER_PROTOCOL'] ?? ''), 'other' => smIpOtherSources(strpos($ip, ':') !== false)];
 }
 
 /** Anfrage im Format der Sofort-Antworten aus den Feldern eines Werkzeugs ('' = nichts zu tun) */

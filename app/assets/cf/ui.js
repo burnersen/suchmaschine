@@ -10,6 +10,10 @@ try { CF.boot = JSON.parse(document.getElementById('cf-boot').textContent); } ca
 CF.boot.v = CF.boot.v || '';
 
 const LS = 'sm.cf.';
+/** Handy oder Tablet (Finger statt Maus): dort öffnet ein Fokus die Bildschirmtastatur, darum nur fokussieren, wo man wirklich tippen will */
+CF.touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+CF.focus = (e, select) => { if (!e || CF.touch) return; e.focus(); if (select && e.select) e.select(); };
+
 CF.ls = {
     get(k, d) { try { const v = localStorage.getItem(LS + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); return true; } catch (e) { return false; } },

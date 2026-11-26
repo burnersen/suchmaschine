@@ -25,7 +25,7 @@ function askBar(key, placeholder, label, run, params) {
     bar.go = go;
     bar.inp = inp;
     if (params && (params.q || params.url)) setTimeout(go, 0);
-    else setTimeout(() => inp.focus(), 30);
+    else setTimeout(() => CF.focus(inp), 30);
     return bar;
 }
 function shell(root, bar, out, side) {
@@ -72,12 +72,28 @@ CF.views.ip = {
             fill(rtcBox, leak.length ? CF.msg('warn', T('Dein Browser verrät über WebRTC lokale Adressen: %s', leak.join(', ')))
                 : CF.msg('ok', list.length ? T('Lokale Adressen sind verschleiert (%s).', list.join(', ')) : T('WebRTC verrät keine Adressen.')));
         }
+        // Die andere Version (meist IPv4, wenn das Handy per IPv6 kommt) sieht der Server nicht: der Browser fragt eine Adresse, die nur darüber geht
+        const other = d.v6 ? 'IPv4' : 'IPv6';
+        const src = d.other || {};
+        const otherBox = el('div', { class: 'stack' });
+        const askOther = url => fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(j => {
+                const ip = String(j.ip || '');
+                if (!/^[0-9a-fA-F:.]{3,45}$/.test(ip)) throw new Error();
+                fill(otherBox, el('div', { class: 'row' }, el('div', { class: 'big-num mono', text: ip }), ibtn('copy', T('Kopieren'), () => CF.copy(ip))));
+            });
+        const noOther = () => fill(otherBox, CF.msg('info', T('Keine %s gefunden. Vermutlich hat dein Anschluss gerade keine.', other)));
+        const askBtn = () => fill(otherBox, el('div', { class: 'row' }, btn(T('%s auch anzeigen', other), 'btn-second btn-sm', () => { fill(otherBox, spin(T('Prüft …'))); askOther(src.ext).catch(noOther); }, 'search')),
+            el('p', { class: 'tiny faint', text: T('Fragt dafür einmal ipify.org. Der Dienst sieht dabei deine Adresse.') }));
+        if (src.own) { fill(otherBox, spin(T('Prüft …'))); askOther(src.own).catch(askBtn); } else if (src.ext) askBtn(); else noOther();
         fill(root, el('div', { class: 'layout' },
             el('div', { class: 'stack lg' },
                 CF.card(T('So sieht dich das Internet'), 'monitor', el('div', { class: 'stack' },
                     el('div', { class: 'row' }, el('div', { class: 'big-num mono', text: d.ip || '?' }), ibtn('copy', T('Kopieren'), () => CF.copy(d.ip || ''))),
                     kv([[T('Version'), d.v6 ? 'IPv6' : 'IPv4'], [T('Rechnername (Reverse DNS)'), d.host || '–'], [T('Verbindung'), (d.https ? 'HTTPS' : 'HTTP') + (d.proto ? ' · ' + d.proto : '')]]),
                     el('p', { class: 'small muted', text: T('Diese Adresse sieht jede Webseite, die du aufrufst. Ein VPN oder Tor ersetzt sie durch eine andere.') }))),
+                CF.card(T('Deine %s-Adresse', other), 'wifi', otherBox),
                 CF.card(T('Was dein Browser mitschickt'), 'list', el('div', { class: 'stack' },
                     el('p', { class: 'small muted', text: T('Diese Kopfzeilen gehen bei jedem Seitenaufruf mit, ganz ohne JavaScript.') }),
                     kv((d.headers || []).map(h => [h[0], h[1]]))))),

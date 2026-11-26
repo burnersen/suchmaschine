@@ -40,6 +40,10 @@
     }
     document.addEventListener('click', function (ev) { forceNewTab(ev.target.closest && ev.target.closest('a[href]')); }, true);
 
+    // Autofokus nur am Rechner: am Handy würde sonst sofort die Tastatur aufgehen und die halbe Seite verdecken
+    var coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+    $$('[data-autofocus]').forEach(function (i) { if (!coarse) { i.focus(); } });
+
     /* ---------- Suchfeld: Löschen-Knopf und Vorschläge aus dem eigenen Verlauf ---------- */
     var HKEY = 'sm_history';
     function hist() { try { var h = JSON.parse(localStorage.getItem(HKEY) || '[]'); return Array.isArray(h) ? h : []; } catch (e) { return []; } }

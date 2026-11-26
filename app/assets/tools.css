@@ -511,3 +511,41 @@
 .cf select.in.big { padding-top: .62rem; padding-bottom: .62rem; line-height: 1.35; height: auto; }
 .cf .switch input { background: color-mix(in srgb, var(--text-3) 55%, transparent); }
 .cf .switch input:checked { background: var(--acc); }
+
+/* ---------- 2.1.1: Bedienbarkeit am Handy ---------- */
+/* Übersicht: Suchfeld nicht mehr über dem Text darunter, am Handy volle Breite */
+.tools__head + .page__lead { margin-top: 2px; }
+.tools__find { flex: 1 1 260px; max-width: 420px; }
+.tools__find input { width: 100%; }
+/* Schlüssel/Wert-Tabellen: Schlüssel höchstens 40 %, der Wert behält immer Platz (vorher stand er Buchstabe für Buchstabe untereinander) */
+.cf .kv { grid-template-columns: fit-content(40%) minmax(0, 1fr) auto; }
+.cf .kv .k { overflow-wrap: anywhere; }
+/* Farbwahl bei „QR drucken“ (Name kollidierte mit den Designs unter Aussehen) */
+.cf .swatches { display: flex; flex-wrap: wrap; gap: .5rem; }
+.cf .swatches button { width: 2.5rem; height: 2.5rem; padding: 0; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+.cf .swatches button.on { box-shadow: 0 0 0 3px var(--text); }
+/* Timer: Stunden, Minuten, Sekunden mit − und + */
+.cf .timer-set { align-items: center; flex-wrap: wrap; gap: .8rem 1rem; }
+.cf .steps { display: flex; align-items: center; gap: .35rem; }
+.cf .step { display: grid; grid-template-rows: auto auto auto auto; justify-items: center; gap: .15rem; }
+.cf .step__lbl { font-size: .72rem; color: var(--muted); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; }
+.cf .step__val { font-size: 1.9rem; font-weight: 700; line-height: 1.1; min-width: 2.6ch; text-align: center; }
+.cf .step__btn { width: 2.75rem; height: 2.25rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--field, var(--surface)); color: var(--text); font-size: 1.25rem; line-height: 1; cursor: pointer; touch-action: manipulation; user-select: none; }
+.cf .step__btn:active { background: var(--hover); }
+.cf .step__sep { font-size: 1.7rem; font-weight: 700; color: var(--muted); padding-top: 1rem; }
+/* Rechner-Tasten: kein Doppeltipp-Zoom, kein Markieren */
+.cf .calc-k { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+
+@media (pointer: coarse) {
+    /* iPhone zoomt in jedes Feld mit weniger als 16 px Schrift hinein */
+    .cf input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), .cf textarea, .cf select { font-size: max(16px, 1em) !important; }
+    .cf .colorf .in, .cf textarea.in.code { font-size: 16px; }
+    .toolcard__pin { width: 40px; height: 40px; top: 2px; right: 2px; font-size: 18px; }
+    .cf .btn-sm { min-height: 2.5rem; }
+    .cf details > summary { padding-block: .55rem; }
+    .cf input[type=checkbox], .cf input[type=radio] { width: 1.3rem; height: 1.3rem; }
+}
+@media (max-width: 560px) {
+    /* Verschachtelte Karten: weniger Rand, mehr Platz für den Inhalt */
+    .cf .card .card { padding-left: .85rem; padding-right: .85rem; }
+}
