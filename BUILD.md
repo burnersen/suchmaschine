@@ -89,7 +89,28 @@ Die Prüfsummen schützen vor kaputten Downloads, aber nicht davor, dass jemand 
 3. Den **öffentlichen** Schlüssel in `app/lib/update.php` bei `const SM_UPDATE_PUBKEY = '';` eintragen und committen.
 4. Ab dem nächsten Release legt der Workflow `suchmaschine-install.php.sig` daneben. Installationen mit dieser Version spielen danach nur noch Updates mit gültiger Unterschrift ein.
 
+Für dieses Repository ist das seit Version 1.5.4 eingerichtet, der öffentliche Schlüssel steht auch in [SECURITY.md](SECURITY.md).
+
 Reihenfolge beachten: erst das Secret, dann den öffentlichen Schlüssel. Fehlt das Secret, bricht der Release-Workflow absichtlich ab, statt ein Release zu bauen, das keiner einspielen kann. Lokal bauen geht auch ohne Schlüssel, die Datei lässt sich ganz normal installieren.
+
+## Eigene Releases mit eigenem Schlüssel (Fork)
+
+Wer das Projekt forkt und eigene Releases baut, braucht nichts im Code zu ändern:
+
+1. Eigenes Schlüsselpaar erzeugen: `php tools/sign-key.php`, den geheimen Teil im eigenen Fork als Secret `SM_SIGN_KEY` speichern.
+2. Den öffentlichen Schlüssel in `app/lib/update.php` bei `SM_UPDATE_PUBKEY` eintragen, damit die eigenen Releases damit gebaut werden (der Release-Workflow prüft, dass Schlüssel und Secret zusammenpassen).
+3. Bestehende Installationen, die künftig Updates aus dem Fork holen sollen, bekommen in `data/config.php` zwei Zeilen:
+
+```php
+return array (
+  'db' => '…',                 // steht schon drin, nicht ändern
+  'secret' => '…',             // steht schon drin, nicht ändern
+  'update_url' => 'https://api.github.com/repos/NAME/REPO/releases/latest',
+  'update_pubkey' => 'DEIN-ÖFFENTLICHER-SCHLÜSSEL',
+);
+```
+
+Das geht absichtlich nur über die Datei und nicht in der Verwaltung im Browser: Wer nur ein Admin-Passwort erbeutet, kann so weder die Update-Quelle noch den Schlüssel umstellen.
 
 ## Wo was im Quellcode steht
 

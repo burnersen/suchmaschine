@@ -49,7 +49,7 @@ function smConfigWrite(array $c): void
 {
     $file = SM_DATA_DIR . '/config.php';
     $php = "<?php\n// Suchmaschine: automatisch angelegt. Nicht löschen, nicht weitergeben.\n"
-         . "// Optional: 'update_url' => '' schaltet die Update-Suche ab.\nreturn " . var_export($c, true) . ";\n";
+         . "// Optional: 'update_url' => '' schaltet die Update-Suche ab. Eigene Releases (Fork): 'update_url' und 'update_pubkey', siehe BUILD.md.\nreturn " . var_export($c, true) . ";\n";
     if (@file_put_contents($file, $php, LOCK_EX) === false) {
         smFatal(t('In den Ordner data/ kann nicht geschrieben werden. Bitte die Schreibrechte prüfen.'));
     }

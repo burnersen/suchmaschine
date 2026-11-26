@@ -164,6 +164,13 @@ if (function_exists('sodium_crypto_sign_keypair')) {
     check('Update-Unterschrift: fehlende Unterschrift fällt auf', smUpdVerify('Inhalt', '', $pub) !== '');
 }
 same('Update-Unterschrift: ohne Schlüssel keine Prüfung', '', smUpdVerify('egal', '', ''));
+$cfg = smConfig();
+smConfigWrite($cfg + ['update_pubkey' => 'eigener']);
+smConfig(true);
+same('Eigener Update-Schlüssel aus data/config.php', 'eigener', smUpdPubkey());
+smConfigWrite($cfg);
+smConfig(true);
+same('Ohne Eintrag gilt der Schlüssel des Projekts', SM_UPDATE_PUBKEY, smUpdPubkey());
 check('Update-Schlüssel im Code ist leer oder gültig', SM_UPDATE_PUBKEY === '' || strlen((string)base64_decode(SM_UPDATE_PUBKEY, true)) === 32);
 
 /* ---------- Aufräumen ---------- */
