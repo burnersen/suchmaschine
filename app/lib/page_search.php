@@ -66,7 +66,7 @@ function smPageSearch(?array $me): void
     // Bangs: vor jeder Anfrage an einen Suchdienst, kosten also nichts
     if (!$part && ($bang = smBangTarget($q, $me))) {
         if ($bang['internal']) smRedirect($bang['to']);
-        smExternalRedirect($bang['to'], $q);
+        smExternalRedirect($bang['to'], $q, '', 0, smSetting('bang_ref') === '1');
     }
 
     $lenses = smLenses($me);
@@ -180,7 +180,7 @@ function smPageLucky(?array $me): void
     if ($q === '') smRedirect(smBase());
     if ($bang = smBangTarget($q, $me)) {
         if ($bang['internal']) smRedirect($bang['to']);
-        smExternalRedirect($bang['to'], $q);
+        smExternalRedirect($bang['to'], $q, '', 0, smSetting('bang_ref') === '1');
     }
     $u = '';
     try {

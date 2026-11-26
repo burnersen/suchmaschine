@@ -285,17 +285,22 @@ function smShortDay(int $ts): string
  * Ohne Hinweis (Bangs, „Auf gut Glück“) ist sie leer und in der Farbe der Seite, die Zieladresse blitzt also nicht auf.
  * Erst wenn es nach zwei Sekunden noch nicht weitergegangen ist, erscheint ein Knopf zum Weiterklicken.
  */
-function smExternalRedirect(string $url, string $title, string $msg = '', int $delay = 0): void
+function smExternalRedirect(string $url, string $title, string $msg = '', int $delay = 0, bool $origin = false): void
 {
     smHeaders(true);   // HTML-Regeln, sonst blockiert die CSP das eigene Stylesheet und die Seite blitzt weiß und ungestaltet auf
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
+    // $origin: nur die Adresse der Suchmaschine mitschicken (nie den Suchbegriff), wie DuckDuckGo und Kagi bei Bangs.
+    // Manche Seiten (z. B. Reddit) halten Aufrufe ganz ohne Herkunft sonst für Bots. Ein Skript leitet weiter, weil
+    // Chrome bei „refresh“ gar keine Herkunft schickt; ohne JavaScript greift das refresh eine Sekunde später.
+    if ($origin) header('Referrer-Policy: origin');
     $quiet = $msg === '' && $delay === 0;
     echo '<!DOCTYPE html><html lang="' . h(smLang()) . '" data-theme="' . h(smTheme()) . '" data-accent="' . h(smAccent()) . '">'
-       . '<meta charset="utf-8"><meta name="referrer" content="no-referrer">'
+       . '<meta charset="utf-8"><meta name="referrer" content="' . ($origin ? 'origin' : 'no-referrer') . '">'
        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
-       . '<meta http-equiv="refresh" content="' . max(0, $delay) . ';url=' . h($url) . '"><title>' . h($quiet ? smSiteName() : $title) . '</title>'
+       . '<meta http-equiv="refresh" content="' . max($origin ? 1 : 0, $delay) . ';url=' . h($url) . '"><title>' . h($quiet ? smSiteName() : $title) . '</title>'
        . '<link rel="stylesheet" href="' . h(smAsset('app.css')) . '"><link rel="stylesheet" href="' . h(smLookUrl(smLook(smUser()))) . '">'
+       . ($origin && $delay === 0 ? '<script src="' . h(smAsset('tools/weiter.js')) . '" data-go="' . h($url) . '"></script>' : '')
        . '<main class="redir' . ($quiet ? ' redir--quiet' : '') . '">' . ($msg !== '' ? '<p class="redir__msg">' . h($msg) . '</p>' : '')
        . '<p><a class="btn btn--primary" href="' . h($url) . '" rel="noopener noreferrer">' . h($msg !== '' ? t('Jetzt weiter') : t('Weiter')) . '</a>'
        . ($msg !== '' ? ' <a class="btn" href="' . h(smBase()) . '">' . h(t('Abbrechen')) . '</a>' : '') . '</p></main>';

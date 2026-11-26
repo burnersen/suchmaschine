@@ -160,7 +160,7 @@ check('Bang-Vorschlag: !qr ist das Werkzeug', ($j['exact']['d'] ?? '') !== '' &&
 // Ziel eines Bangs: Weiterleitung (intern) oder die kleine Weiter-Seite ohne Referrer (extern)
 $go = function (string $q) use ($base): string {
     [$st, $body, $loc] = req($base . '?q=' . rawurlencode($q));
-    if ($st === 200 && preg_match('/http-equiv="refresh" content="0;url=([^"]+)"/', $body, $m)) return html_entity_decode($m[1], ENT_QUOTES);
+    if ($st === 200 && preg_match('/http-equiv="refresh" content="\d;url=([^"]+)"/', $body, $m)) return html_entity_decode($m[1], ENT_QUOTES);
     return (string)$loc;
 };
 $bang = function (array $post, string $for = '') use ($base, $html) {
