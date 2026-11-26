@@ -81,7 +81,8 @@ code { font: 14px ui-monospace, Menlo, monospace; background: var(--surface-2); 
 .top--results { padding: 20px 20px 4px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--text); flex-shrink: 0; min-width: 0; }
 .brand:hover { text-decoration: none; }
-.top--results .brand { width: calc(var(--gutter) - 12px); min-width: 36px; }
+/* So breit wie der linke Rand der Treffer, aber nie schmaler als der Name: sonst wurde „Suchmaschine“ abgeschnitten */
+.top--results .brand { width: auto; min-width: calc(var(--gutter) - 12px); max-width: 260px; }
 .brand__mark { display: inline-block; width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; background: url("?a=asset&f=icon.svg") center / contain no-repeat; }
 .brand__mark--img { background: none; object-fit: contain; }
 .brand__mark--big { width: 60px; height: 60px; border-radius: 16px; }
@@ -97,6 +98,9 @@ code { font: 14px ui-monospace, Menlo, monospace; background: var(--surface-2); 
     background: transparent; color: var(--text-2); cursor: pointer;
 }
 .iconbtn:hover { background: var(--hover); }
+a.iconbtn { color: inherit; text-decoration: none; }
+.iconbtn.is-active { color: var(--accent); }
+.iconbtn svg .fill { fill: currentColor; stroke: none; }
 .iconbtn svg, .ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ico { display: none; }
 .ico .fill { fill: currentColor; stroke: none; }
@@ -276,6 +280,10 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
 .subnav a { padding: 10px 14px; color: var(--text-2); font-size: 15px; border-bottom: 3px solid transparent; margin-bottom: -1px; }
 .subnav a:hover { color: var(--text); text-decoration: none; }
 .subnav a.is-active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+/* Schmale Bildschirme: die Reiter scrollen seitlich, ein weicher Rand zeigt, dass es weitergeht */
+.subnav.is-more-right { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); }
+.subnav.is-more-left { -webkit-mask-image: linear-gradient(to left, #000 82%, transparent); mask-image: linear-gradient(to left, #000 82%, transparent); }
+.subnav.is-more-left.is-more-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent); }
 .users { list-style: none; margin: 0; padding: 0; }
 .users__row { position: relative; display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line-2); flex-wrap: wrap; }
 .users__row:first-child { border-top: 0; }
@@ -1066,14 +1074,26 @@ html:not(.has-js) .lightbox__full { display: none; }
     .reader__src { color: #333; }
 }
 
-/* 1.4.1: Werkzeuge */
-.toolnav { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0 0 8px; }
-.toolnav__item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); font-size: 14px; line-height: 1.25; }
-.toolnav__item:hover, .toolnav__item.is-active { border-color: var(--accent); background: var(--hover); }
-.toolnav__ico { font-size: 22px; line-height: 1; }
-.tools__group { font-size: 15px; font-weight: 600; color: var(--text-2); margin: 26px 0 10px; text-transform: uppercase; letter-spacing: .04em; }
-.page--tools .tool { margin-bottom: 14px; scroll-margin-top: 80px; }
-.tool__title { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+/* Werkzeuge: Übersicht mit Gruppen, jedes Werkzeug auf einer eigenen Seite */
+.toolgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.toolcard { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); line-height: 1.3; transition: border-color .12s, background .12s, transform .12s; }
+.toolcard:hover, .toolcard:focus-visible { border-color: var(--accent); background: var(--hover); text-decoration: none; }
+.toolcard:active { transform: scale(.985); }
+.toolcard__ico { font-size: 26px; line-height: 1; flex: none; }
+.toolcard__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.toolcard__text strong { font-size: 15px; font-weight: 600; }
+.toolcard__text small { font-size: 13px; color: var(--text-2); }
+.tools__group { font-size: 13px; font-weight: 600; color: var(--text-2); margin: 28px 0 10px; text-transform: uppercase; letter-spacing: .05em; }
+.tools__foot { margin-top: 28px; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 14px; color: var(--text-2); }
+.crumbs a { font-weight: 500; }
+.page--tools .tool { margin-bottom: 14px; }
+.tool__title { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.tool__desc { margin: 0 0 16px; }
+.toolmore { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 18px; }
+.toolmore__label { font-size: 13px; color: var(--text-2); margin-right: 4px; }
+.toolmore .chip { gap: 6px; }
+.chip--all { border-style: dashed; }
 .form__row--tool { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 .tool__inline { display: flex; align-items: center; gap: 6px; }
 .tool__inline input, .tool__inline select { min-width: 0; flex: 1; }
@@ -1090,7 +1110,7 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .ia__teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 8px 0; }
 .ia__team { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .ia__team ul, .ia__order { margin: 6px 0 0; padding-left: 20px; }
-@media (max-width: 640px) { .toolnav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .toolgrid { grid-template-columns: 1fr; gap: 8px; } .toolcard { padding: 12px; } }
 .timer__sound { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .timer__sound label { display: flex; align-items: center; gap: 8px; }
 .timer__sound select { width: auto; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }

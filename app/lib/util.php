@@ -231,3 +231,27 @@ function smShortDay(int $ts): string
     $d = smLang() === 'de' ? ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return $d[(int)date('w', $ts)];
 }
+
+/* ---------- Weiterleitung nach außen (Bangs, Auf gut Glück) ---------- */
+
+/**
+ * Kein 303 nach außen: Browser blockieren das nach einem Formular (CSP form-action). Darum eine Zwischenseite.
+ * Ohne Hinweis (Bangs, „Auf gut Glück“) ist sie leer und in der Farbe der Seite, die Zieladresse blitzt also nicht auf.
+ * Erst wenn es nach zwei Sekunden noch nicht weitergegangen ist, erscheint ein Knopf zum Weiterklicken.
+ */
+function smExternalRedirect(string $url, string $title, string $msg = '', int $delay = 0): void
+{
+    smHeaders(true);   // HTML-Regeln, sonst blockiert die CSP das eigene Stylesheet und die Seite blitzt weiß und ungestaltet auf
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    $quiet = $msg === '' && $delay === 0;
+    echo '<!DOCTYPE html><html lang="' . h(smLang()) . '" data-theme="' . h(smTheme()) . '" data-accent="' . h(smAccent()) . '">'
+       . '<meta charset="utf-8"><meta name="referrer" content="no-referrer">'
+       . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+       . '<meta http-equiv="refresh" content="' . max(0, $delay) . ';url=' . h($url) . '"><title>' . h($quiet ? smSiteName() : $title) . '</title>'
+       . '<link rel="stylesheet" href="' . h(smAsset('app.css')) . '"><link rel="stylesheet" href="' . h(smLookUrl(smLook(smUser()))) . '">'
+       . '<main class="redir' . ($quiet ? ' redir--quiet' : '') . '">' . ($msg !== '' ? '<p class="redir__msg">' . h($msg) . '</p>' : '')
+       . '<p><a class="btn btn--primary" href="' . h($url) . '" rel="noopener noreferrer">' . h($msg !== '' ? t('Jetzt weiter') : t('Weiter')) . '</a>'
+       . ($msg !== '' ? ' <a class="btn" href="' . h(smBase()) . '">' . h(t('Abbrechen')) . '</a>' : '') . '</p></main>';
+    exit;
+}

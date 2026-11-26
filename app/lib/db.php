@@ -241,3 +241,12 @@ function smMaintenance(): void
     smQ('DELETE FROM throttle WHERE last < ?', [time() - 86400]);
     smQ('DELETE FROM usage_log WHERE day < ?', [date('Y-m-d', strtotime('-25 months'))]);
 }
+
+function smHasUsersSafe(): bool
+{
+    try {
+        return smHasUsers();
+    } catch (Throwable $e) {
+        return false;
+    }
+}

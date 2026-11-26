@@ -195,3 +195,84 @@ function smBackupRestore(array $d): string
     if (is_string($icon) && $icon !== '' && smLogoUrl() !== '') smSaveAppIconPng(base64_encode($icon));
     return '';
 }
+
+/* ---------- Einstellungen der Installation sichern (Administrator) ---------- */
+
+/** Welche Einstellungen der Installation in eine Sicherung gehören, und wie sie geprüft werden */
+function smConfigKeys(): array
+{
+    $int = function (int $min, int $max) { return function ($v) use ($min, $max) { return is_numeric($v) ? (string)max($min, min($max, (int)$v)) : null; }; };
+    $in = function (array $ok) { return function ($v) use ($ok) { return in_array((string)$v, $ok, true) ? (string)$v : null; }; };
+    $key = function ($v) { return is_string($v) && ($v === '' || preg_match('/^[\x21-\x7e]{8,300}$/', trim($v))) ? trim($v) : null; };
+    return [
+        'site_name'     => function ($v) { return is_string($v) ? trim(mb_substr($v, 0, 40)) : null; },
+        'accent'        => $in(array_keys(smAccents())),
+        'scroll'        => $in(['pages', 'endless']),
+        'monthly_limit' => $int(0, 1000000),
+        'cache_min'     => $int(0, 60),
+        'per_page'      => $int(5, 20),
+        'country'       => $in(array_keys(smCountries())),
+        'search_lang'   => $in(array_keys(smSearchLangs())),
+        'safesearch'    => $in(['off', 'moderate', 'strict']),
+        'public'        => $in(['0', '1']),
+        'public_hour'   => $int(1, 1000),
+        'auto_update'   => $in(['0', '1']),
+        'img_proxy'     => $in(['0', '1']),
+        'shortener'     => $in(['0', '1']),
+        'balance'       => $in(['0', '1']),
+        'answers'       => $in(['0', '1']),
+        'wiki'          => $in(['0', '1']),
+        'fallback_auto' => $in(['0', '1']),
+        'fallback_url'  => function ($v) { return is_string($v) && ($v === '' || (smCleanBangUrl($v) !== '' && strpos($v, '{q}') !== false)) ? $v : null; },
+        'prov_order'    => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
+        'multi_set'     => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
+        'warn_pct'      => $int(10, 100),
+        'weather_src'   => $in(array_keys(smWeatherSources())),
+        'api_key'       => $key,
+    ] + smProvConfigKeys($int, $key);
+}
+
+/** Prüfregeln für die Einstellungen der Suchdienste (p_tavily_key …) */
+function smProvConfigKeys(callable $int, callable $key): array
+{
+    $out = [];
+    foreach (smProvSettingKeys() as $k) {
+        $f = substr($k, strrpos($k, '_') + 1);
+        if ($f === 'key') $out[$k] = $key;
+        elseif ($f === 'start') $out[$k] = function ($v) { return is_string($v) && ($v === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $v)) ? $v : null; };
+        elseif ($f === 'cost') $out[$k] = function ($v) { return is_numeric($v) ? (string)max(0.01, min(1000, (float)$v)) : null; };
+        elseif ($f === 'on') $out[$k] = function ($v) { return in_array((string)$v, ['0', '1'], true) ? (string)$v : null; };
+        else $out[$k] = $int(0, 10000000);
+    }
+    return $out;
+}
+
+function smServeConfigExport(bool $withKey): void
+{
+    $s = [];
+    foreach (array_keys(smConfigKeys()) as $k) {
+        if (($k === 'api_key' || substr($k, -4) === '_key') && !$withKey) continue;
+        $s[$k] = smSetting($k);
+    }
+    smHeaders();
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('Content-Disposition: attachment; filename="suchmaschine-installation-' . date('Y-m-d') . '.json"');
+    echo json_encode(['format' => 'suchmaschine-config', 'version' => 1, 'app' => SM_VERSION, 'exported' => date('c'), 'prefs' => $s],
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+/** Übernimmt eine Sicherung der Installation. Unbekanntes und Ungültiges wird übergangen. Liefert die Zahl der Werte. */
+function smConfigImport(array $in): int
+{
+    $n = 0;
+    foreach (smConfigKeys() as $k => $check) {
+        if (!array_key_exists($k, $in)) continue;
+        $v = $check($in[$k]);
+        if ($v === null) continue;
+        smSetSetting($k, $v);
+        $n++;
+    }
+    return $n;
+}

@@ -58,7 +58,7 @@ case 'calc': ?>
         <div class="ia__qr"><img src="<?= h(smUrl(['a' => 'qr', 'd' => $c['text']])) ?>" alt="<?= h(t('QR-Code für %s', $c['text'])) ?>" width="220" height="220"></div>
         <p class="ia__qrtext"><?= h(mb_substr($c['text'], 0, 200)) ?></p>
         <p><a class="btn btn--small" href="<?= h(smUrl(['a' => 'qr', 'd' => $c['text'], 'dl' => '1'])) ?>" download="qr-code.svg"><?= h(t('Als SVG herunterladen')) ?></a>
-            <a class="btn btn--small btn--ghost" href="<?= h(smUrl(['a' => 'tools', 'qr' => $c['text']])) ?>#qr"><?= h(t('Bearbeiten')) ?></a></p>
+            <a class="btn btn--small btn--ghost" href="<?= h(smToolUrl('qr', ['qr' => $c['text']])) ?>"><?= h(t('Bearbeiten')) ?></a></p>
         <p class="muted small"><?= h(t('Wird auf diesem Server erzeugt, kein fremder Dienst sieht den Inhalt.')) ?></p>
 <?php break; case 'short': ?>
         <p class="ia__label"><?= h(t('Kurzlink')) ?></p>
@@ -150,7 +150,7 @@ case 'calc': ?>
         <p class="ia__label"><?= h(t('Ausgelost aus %d', count($c['names']))) ?></p>
         <p class="ia__big"><?= h(implode(', ', array_slice($c['names'], 0, $c['n']))) ?></p>
 <?php endif; ?>
-        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smUrl(['a' => 'tools', 'tool' => $toolId, 'ia' => $c['query']]) . '#' . $toolId : smUrl(['q' => $c['query']])) ?>"><?= h(t('Nochmal')) ?></a></p>
+        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smToolUrl($toolId, ['ia' => $c['query']]) : smUrl(['q' => $c['query']])) ?>"><?= h(t('Nochmal')) ?></a></p>
 <?php break; case 'weather': ?>
         <p class="ia__label"><?= h(t('Wetter')) ?><?php if (!empty($c['geo'])): ?> · <?= h(implode(', ', array_filter([$c['geo']['name'], $c['geo']['region'] !== $c['geo']['name'] ? $c['geo']['region'] : '', $c['geo']['country']]))) ?><?php endif; ?></p>
 <?php if ($c['error'] === 'noplace'): ?>

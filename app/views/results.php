@@ -107,7 +107,8 @@ require __DIR__ . '/_vars.php';
         <strong><?= h(t('Die Suche hat nicht geklappt.')) ?></strong> <?= h($error) ?>
         <p><a class="btn btn--small" href="<?= h(smSelf()) ?>"><?= h(t('Noch einmal versuchen')) ?></a>
 <?php if ($fb !== ''): ?> <a class="btn btn--small btn--primary" href="<?= h($fb) ?>"<?= $rel . $target ?>><?= h(t('Bei %s suchen', smFallbackName())) ?></a><?php endif; ?>
-<?php if ($flt['src'] !== ''): ?> <a class="btn btn--small" href="<?= h(smUrl(['src' => null] + $base)) ?>" data-load><?= h(t('Automatisch einen anderen Dienst nehmen')) ?></a><?php endif; ?></p>
+<?php if ($flt['src'] !== ''): ?> <a class="btn btn--small" href="<?= h(smUrl(['src' => null] + $base)) ?>" data-load><?= h(t('Automatisch einen anderen Dienst nehmen')) ?></a><?php endif; ?>
+<?php if ($me && $me['is_admin']): ?> <a class="btn btn--small" href="<?= h(smUrl(['a' => 'admin', 'tab' => smProvOrder() ? 'usage' : 'providers'])) ?>"><?= h(smProvOrder() ? t('Verbrauch ansehen') : t('Suchdienst einrichten')) ?></a><?php endif; ?></p>
     </div>
 <?php require __DIR__ . '/_srcbar.php'; ?>
 <?php elseif ($res): ?>

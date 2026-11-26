@@ -46,7 +46,12 @@ $flash = smFlash();
         <a class="top__link" href="<?= h(smUrl(['t' => 'images'])) ?>" data-tab-home="images"><?= h(t('Bilder')) ?></a>
         <a class="top__link" href="<?= h(smUrl(['t' => 'news'])) ?>" data-tab-home="news"><?= h(t('News')) ?></a>
 <?php endif; ?>
-        <button type="button" class="iconbtn" data-theme-toggle aria-label="<?= h(t('Design umschalten')) ?>"
+<?php if ($me || smSetting('public') === '1'): ?>
+        <a class="iconbtn<?= ($_GET['a'] ?? '') === 'tools' ? ' is-active' : '' ?>" href="<?= h(smUrl(['a' => 'tools'])) ?>" title="<?= h(t('Werkzeuge')) ?>" aria-label="<?= h(t('Werkzeuge')) ?>">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="5" cy="5" r="1.9"/><circle class="fill" cx="12" cy="5" r="1.9"/><circle class="fill" cx="19" cy="5" r="1.9"/><circle class="fill" cx="5" cy="12" r="1.9"/><circle class="fill" cx="12" cy="12" r="1.9"/><circle class="fill" cx="19" cy="12" r="1.9"/><circle class="fill" cx="5" cy="19" r="1.9"/><circle class="fill" cx="12" cy="19" r="1.9"/><circle class="fill" cx="19" cy="19" r="1.9"/></svg>
+        </a>
+<?php endif; ?>
+        <button type="button" class="iconbtn" data-theme-toggle data-path="<?= h(smBase()) ?>" aria-label="<?= h(t('Design umschalten')) ?>"
                 data-label-auto="<?= h(t('Design: automatisch')) ?>" data-label-light="<?= h(t('Design: hell')) ?>" data-label-dark="<?= h(t('Design: dunkel')) ?>">
             <svg class="ico ico--auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path class="fill" d="M12 3.5a8.5 8.5 0 0 1 0 17z"/></svg>
             <svg class="ico ico--light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -90,9 +95,11 @@ $flash = smFlash();
 <?= $content ?>
 <footer class="foot">
     <span><?= h(t('Ohne Werbung, ohne Tracking')) ?></span>
-    <span class="foot__sep">·</span>
 <?php $provs = smHasUsersSafe() ? smProvOrder() : []; ?>
-    <span><?= h(t('Ergebnisse von %s', $provs ? implode(', ', array_map(function ($i) { return smProviders()[$i]['name']; }, $provs)) : 'Brave Search')) ?></span>
+<?php if ($provs): ?>
+    <span class="foot__sep">·</span>
+    <span><?= h(t('Ergebnisse von %s', implode(', ', array_map(function ($i) { return smProviders()[$i]['name']; }, $provs)))) ?></span>
+<?php endif; ?>
 <?php if ($me && $me['is_admin'] && $provs): $f0 = smProvForecast($provs[0]); ?>
     <span class="foot__sep">·</span>
     <a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'usage'])) ?>" title="<?= h(t('Verbrauch im laufenden Zeitraum')) ?>"><?= h(smProviders()[$provs[0]]['badge'] . ': ' . smNumF($f0['used']) . ' / ' . ($f0['limit'] ?: '∞')) ?><?= count($provs) > 1 ? ' …' : '' ?></a>
