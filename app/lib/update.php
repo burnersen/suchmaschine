@@ -8,7 +8,7 @@ defined('SM_VERSION') || exit;
  * auszutauschen: ohne den geheimen Schlüssel gibt es keine gültige Unterschrift.
  * Leer = keine Unterschrift nötig, nur die Prüfsummen in der Datei. Wie man das einrichtet, steht in BUILD.md.
  */
-const SM_UPDATE_PUBKEY = '';
+const SM_UPDATE_PUBKEY = 'QPO+CSP5Y7S4S5WblMGZRnMl1VT9ypbCJhEVtM3zNoY=';
 
 /** Woher die Updates kommen. In data/config.php schaltet 'update_url' => '' sie ab. */
 function smUpdUrl(): string

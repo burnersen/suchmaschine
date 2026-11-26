@@ -89,6 +89,8 @@ Die Prüfsummen schützen vor kaputten Downloads, aber nicht davor, dass jemand 
 3. Den **öffentlichen** Schlüssel in `app/lib/update.php` bei `const SM_UPDATE_PUBKEY = '';` eintragen und committen.
 4. Ab dem nächsten Release legt der Workflow `suchmaschine-install.php.sig` daneben. Installationen mit dieser Version spielen danach nur noch Updates mit gültiger Unterschrift ein.
 
+Für dieses Repository ist das seit Version 1.5.4 eingerichtet, der öffentliche Schlüssel steht auch in [SECURITY.md](SECURITY.md).
+
 Reihenfolge beachten: erst das Secret, dann den öffentlichen Schlüssel. Fehlt das Secret, bricht der Release-Workflow absichtlich ab, statt ein Release zu bauen, das keiner einspielen kann. Lokal bauen geht auch ohne Schlüssel, die Datei lässt sich ganz normal installieren.
 
 ## Wo was im Quellcode steht
