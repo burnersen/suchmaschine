@@ -11,6 +11,19 @@ defined('SM_VERSION') || exit;
 const SM_UPDATE_PUBKEY = 'QPO+CSP5Y7S4S5WblMGZRnMl1VT9ypbCJhEVtM3zNoY=';
 
 /** Woher die Updates kommen. In data/config.php schaltet 'update_url' => '' sie ab. */
+/**
+ * Öffentlicher Schlüssel, mit dem Updates geprüft werden. Normal der des Projekts (oben).
+ * Wer eigene Releases baut (Fork), trägt in data/config.php seinen eigenen ein: 'update_pubkey' => '…',
+ * zusammen mit 'update_url' => 'https://api.github.com/repos/NAME/REPO/releases/latest'.
+ * 'update_pubkey' => '' heißt: keine Unterschrift verlangen, nur Prüfsummen (nicht empfohlen).
+ * Absichtlich nur in der Datei und nicht in der Verwaltung: Wer nur ein Admin-Passwort erbeutet, kann so keine fremden Updates einschleusen.
+ */
+function smUpdPubkey(): string
+{
+    $cfg = smConfig();
+    return array_key_exists('update_pubkey', $cfg) ? trim((string)$cfg['update_pubkey']) : SM_UPDATE_PUBKEY;
+}
+
 function smUpdUrl(): string
 {
     $cfg = smConfig();
@@ -74,8 +87,9 @@ function smUpdNewer(?array $i): bool
 }
 
 /** Prüft die Unterschrift einer heruntergeladenen Installationsdatei. '' = in Ordnung (oder keine nötig), sonst Grund. */
-function smUpdVerify(string $bin, string $sigB64, string $pubB64 = SM_UPDATE_PUBKEY): string
+function smUpdVerify(string $bin, string $sigB64, ?string $pubB64 = null): string
 {
+    $pubB64 = $pubB64 ?? smUpdPubkey();
     if ($pubB64 === '') return '';
     if (!function_exists('sodium_crypto_sign_verify_detached')) return t('Die PHP-Erweiterung sodium fehlt, darum lässt sich die Unterschrift des Updates nicht prüfen.');
     $pub = base64_decode($pubB64, true);
@@ -172,7 +186,7 @@ function smUpdInstall(): string
         $info = smUpdCheck();
         if (!smUpdNewer($info)) return t('Es ist schon die neueste Version installiert.');
         $bin = smHttpGet($info['url'], 20000000);
-        if (SM_UPDATE_PUBKEY !== '') {
+        if (smUpdPubkey() !== '') {
             if (($info['sig'] ?? '') === '') return t('Im neuesten Release fehlt die Unterschrift (suchmaschine-install.php.sig). Es wurde nichts verändert.');
             if (($e = smUpdVerify($bin, smHttpGet($info['sig'], 10000))) !== '') return $e;
         }
