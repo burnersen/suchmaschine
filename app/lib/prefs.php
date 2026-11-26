@@ -62,7 +62,8 @@ function smCleanPrefs(array $p): array
     foreach (['block', 'raise', 'lower'] as $k) $out[$k] = smCleanDomains($p[$k] ?? []);
     $out['bangs'] = smCleanBangs($p['bangs'] ?? []);
     $out['lenses'] = smCleanLenses($p['lenses'] ?? []);
-    $out['bang_off'] = array_values(array_intersect(array_keys(smBuiltinBangs()), is_array($p['bang_off'] ?? null) ? $p['bang_off'] : []));
+    $out['bang_off'] = smCleanBangOff($p['bang_off'] ?? []);
+    if (isset($p['look']) && is_array($p['look'])) $out['look'] = smLookClean($p['look']);
     $out['lens_off'] = array_values(array_intersect(array_keys(smBuiltinLenses()), is_array($p['lens_off'] ?? null) ? $p['lens_off'] : []));
     return $out;
 }

@@ -179,6 +179,44 @@ require_once dirname(__DIR__) . '/tools/js-strings.php';
 $jsMiss = smJsMissing(SM_APP . '/assets');
 check('Werkzeug-Apps: alle Texte haben eine englische Fassung', !$jsMiss, count($jsMiss) . ' fehlen, z. B. „' . implode('“, „', array_slice(array_keys($jsMiss), 0, 5)) . '“');
 
+/* ---------- Bangs: große Liste, Schichten, Formatierung ---------- */
+check('Bangs: Liste aus der Datei geladen', smBangSysCount() > 10000, (string)smBangSysCount());
+same('Bang !w (Extra) geht zu Wikipedia', 'https://de.wikipedia.org/w/index.php?search=Berlin%20Mitte', smBangTarget('!w Berlin Mitte', null)['to'] ?? null);
+same('Bang hinten', 'https://de.wikipedia.org/w/index.php?search=Berlin', smBangTarget('Berlin !w', null)['to'] ?? null);
+same('Bang aus Kagi: Leerzeichen als +', 'https://caniuse.com/?search=css%20grid', smBangTarget('!caniuse css grid', null)['to'] ?? null);
+same('Bang aus Kagi: ohne Suchbegriff zur Startseite', 'https://github.com/', smBangTarget('!gh', null)['to'] ?? null);
+check('Bang aus Kagi mit Zweitkürzel', strpos(smBangTarget('!bom avatar', null)['to'] ?? '', 'boxofficemojo.com') !== false);
+check('Bang mit Muster ($1, $2)', (smBangTarget('!rsr php hello world', null)['to'] ?? '') === 'https://reddit.com/r/php/search?q=hello+world&restrict_sr=on');
+$int = smBangTarget('!4chan test', null);
+check('Bang mit site: sucht hier', ($int['internal'] ?? false) && strpos($int['to'], 'site%3A4chan.org') !== false, json_encode($int));
+check('Werkzeug geht der Kagi-Liste vor (!qr)', strpos(smBangTarget('!qr hallo', null)['to'] ?? '', 'tool=qr') !== false);
+same('Unbekanntes Kürzel bleibt Suchtext', null, smBangTarget('!gibtsganzsichernicht x', null));
+same('Kürzel mit Umlaut erlaubt', 'tåg', smCleanBangTrigger('!TÅG'));
+same('Kürzel mit Schrägstrich abgelehnt', '', smCleanBangTrigger('/.j'));
+$me = ['prefs' => ['bangs' => [['t' => 'qr', 'n' => 'Mein QR', 'u' => 'https://example.org/qr?d={q}']], 'bang_off' => ['yt']]];
+same('Eigenes Bang geht dem Werkzeug vor', 'https://example.org/qr?d=hallo', smBangTarget('!qr hallo', $me)['to'] ?? null);
+same('Gelöschtes Bang ist aus', null, smBangTarget('!yt katzen', $me));
+$lower = function (string $t): bool { return smBangSys($t) !== null; };
+[$l] = smBangEdit(['own' => [], 'off' => []], 'bang_save', ['orig' => 'gh', 't' => 'gh', 'n' => 'GH', 'u' => 'https://example.org/{q}'], $lower);
+check('Bearbeitetes Mitgeliefertes ist „geändert“', !empty($l['own'][0]['e']));
+[$l] = smBangEdit($l, 'bang_save', ['t' => 'neu', 'n' => 'Neu', 'u' => 'https://example.org/{q}'], $lower);
+[$l] = smBangEdit($l, 'bang_del', ['t' => 'yt'], $lower);
+[$l] = smBangEdit($l, 'bang_save', ['orig' => 'w', 't' => 'wiki2', 'n' => 'W', 'u' => 'https://example.org/{q}'], $lower);
+check('Kürzel umbenannt: altes ausgeblendet', in_array('w', $l['off'], true) && in_array('yt', $l['off'], true));
+[$l] = smBangEdit($l, 'bang_restore', [], $lower);
+same('Grundzustand: nur selbst angelegte bleiben', ['neu', 'wiki2'], array_column($l['own'], 't'));
+same('Grundzustand: nichts mehr gelöscht', [], $l['off']);
+$r = smBangSearch('youtube', null, 'mine', '', 5);
+check('Bang-Suche nach Name findet YouTube', in_array('yt', array_column($r['rows'], 't'), true));
+check('Bang-Suche ohne Begriff zeigt die Extras', count(smBangSearch('', null)['rows']) >= 20);
+
+/* ---------- Aussehen ---------- */
+$lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
+same('Aussehen: Größe begrenzt', 150, $lk['fs']);
+same('Aussehen: unbekanntes Design → Standard', 'standard', $lk['pl']);
+check('Aussehen: CSS enthält zoom', strpos(smLookCss(smLookClean(['fs' => 120])), '--zoom:1.2') !== false);
+same('Import behält das Aussehen', 'dark', smCleanPrefs(['look' => ['mode' => 'dark']])['look']['mode'] ?? null);
+
 /* ---------- Übersetzungen ---------- */
 $en = require SM_APP . '/lang/en.php';
 foreach ($en as $de => $tr) {

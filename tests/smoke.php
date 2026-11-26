@@ -104,7 +104,10 @@ $pages = [
     '?a=appicon&s=192', '?a=qr&d=hallo', '?a=export',
 ];
 foreach (array_keys(smokeSettingsTabs()) as $t) $pages[] = '?a=settings&tab=' . $t;
-foreach (['users', 'providers', 'usage', 'config', 'look', 'backup', 'update'] as $t) $pages[] = '?a=admin&tab=' . $t;
+foreach (['users', 'providers', 'usage', 'config', 'backup', 'update'] as $t) $pages[] = '?a=admin&tab=' . $t;
+// Aussehen und Bangs: eigene Sicht, Sicht „für alle“, Bang-Suche, Teilliste, Vorschläge fürs Suchfeld
+foreach (['?a=settings&tab=look&for=all', '?a=settings&tab=bangs&for=all', '?a=settings&tab=bangs&bq=wiki', '?a=settings&tab=bangs&bf=off',
+          '?a=settings&tab=bangs&bf=dead&for=all', '?a=settings&tab=bangs&bq=yt&frag=1', '?a=settings&tab=bangs&edit=w', '?a=bangs&q=w', '?a=bangs&q='] as $p) $pages[] = $p;
 // Jedes Werkzeug aus der Übersicht, dazu jede Datei, die eine Werkzeugseite lädt (Bausteine, Apps, Stylesheet)
 [, $overview] = req($base . '?a=tools');
 preg_match_all('/data-tool="([a-z]+)"/', $overview, $tm);
@@ -141,6 +144,69 @@ foreach ($pages as $p) {
     if (preg_match('/<b>(Warning|Notice|Fatal error|Deprecated)<\/b>|Uncaught /', $html)) check('Seite ' . $p . ' ohne PHP-Meldung', false, 'PHP-Meldung im HTML');
     if ($p === '?a=admin&tab=config') $admin = $html;
 }
+
+// Verwaltung → Aussehen gibt es nur noch unter Einstellungen
+[$st, , $loc] = req($base . '?a=admin&tab=look');
+check('Verwaltung → Aussehen leitet weiter', $st === 303 && strpos($loc, 'tab=look') !== false && strpos($loc, 'for=all') !== false, 'HTTP ' . $st . ' ' . $loc);
+
+// Bangs: Vorschläge, anlegen, löschen, Grundzustand, für alle
+$j = json_decode(req($base . '?a=bangs&q=yt')[1], true);
+check('Bang-Vorschlag: !yt ist YouTube', ($j['exact']['n'] ?? '') === 'YouTube', json_encode($j));
+$j = json_decode(req($base . '?a=bangs&q=wikip')[1], true);
+check('Bang-Vorschläge: Liste', count($j['list'] ?? []) > 0, json_encode($j));
+$j = json_decode(req($base . '?a=bangs&q=qr')[1], true);
+check('Bang-Vorschlag: !qr ist das Werkzeug', ($j['exact']['d'] ?? '') !== '' && strpos(json_encode($j['exact']), 'QR') !== false, json_encode($j));
+[, $html] = req($base . '?a=settings&tab=bangs');
+// Ziel eines Bangs: Weiterleitung (intern) oder die kleine Weiter-Seite ohne Referrer (extern)
+$go = function (string $q) use ($base): string {
+    [$st, $body, $loc] = req($base . '?q=' . rawurlencode($q));
+    if ($st === 200 && preg_match('/http-equiv="refresh" content="0;url=([^"]+)"/', $body, $m)) return html_entity_decode($m[1], ENT_QUOTES);
+    return (string)$loc;
+};
+$bang = function (array $post, string $for = '') use ($base, $html) {
+    return req($base . '?a=settings&tab=bangs' . ($for !== '' ? '&for=' . $for : ''), ['csrf' => csrf($html)] + $post);
+};
+$bang(['do' => 'bang_cfg', 'bang_auto' => '', 'bang_check' => ''], 'all');
+check('Hintergrund ohne Arbeit antwortet', req($base . '?a=bangtick')[0] === 200);
+[$st] = $bang(['do' => 'bang_save', 't' => 'smk', 'n' => 'Smoke', 'u' => 'https://example.org/?q={q}']);
+check('Eigenes Bang anlegen', $st === 303);
+$loc = $go('!smk hallo welt');
+check('Eigenes Bang leitet weiter', $loc === 'https://example.org/?q=hallo%20welt', $loc);
+$bang(['do' => 'bang_del', 't' => 'yt']);
+$loc = $go('!yt katzen');
+check('Gelöschtes Bang ist normale Suche', strpos($loc, 'youtube') === false, $loc);
+$bang(['do' => 'bang_save', 'orig' => 'g', 't' => 'g', 'n' => 'Geändert', 'u' => 'https://example.com/s?x={q}']);
+$loc = $go('!g test');
+check('Geändertes Bang', $loc === 'https://example.com/s?x=test', (string)$loc);
+$bang(['do' => 'bang_restore']);
+$loc = $go('!yt katzen');
+check('Grundzustand: !yt wieder da', strpos((string)$loc, 'youtube.com') !== false, (string)$loc);
+$loc = $go('!g test');
+check('Grundzustand: !g wieder Google', strpos((string)$loc, 'google.com') !== false, (string)$loc);
+$loc = $go('!smk x');
+check('Grundzustand: eigenes Bang bleibt', $loc === 'https://example.org/?q=x', (string)$loc);
+$bang(['do' => 'bang_save', 't' => 'alle', 'n' => 'Reserviert', 'u' => 'https://example.org/?q={q}'], 'all');
+$bang(['do' => 'bang_save', 't' => 'fuer-alle', 'n' => 'Für alle', 'u' => 'https://example.net/?q={q}'], 'all');
+$loc = $go('!fuer-alle x');
+check('Bang für alle', $loc === 'https://example.net/?q=x', (string)$loc);
+$bang(['do' => 'bang_del', 't' => 'ddg'], 'all');
+$loc = $go('!ddg x');
+check('Für alle gelöscht', strpos((string)$loc, 'duckduckgo') === false, (string)$loc);
+[, $list] = req($base . '?a=settings&tab=bangs&bf=off&for=all');
+check('Gelöschte für alle werden angezeigt', strpos($list, '!ddg') !== false);
+$bang(['do' => 'bang_restore'], 'all');
+$loc = $go('!ddg x');
+check('Für alle wiederhergestellt', strpos((string)$loc, 'duckduckgo') !== false, (string)$loc);
+
+// Aussehen: für mich, als Standard, für alle erzwingen
+[, $html] = req($base . '?a=settings&tab=look');
+$look = ['csrf' => csrf($html), 'do' => 'look', 'mode' => 'dark', 'pl' => 'papier', 'pd' => 'schiefer', 'font' => 'inter', 'fs' => '130', 'ft' => '100', 'fd' => '100', 'lh' => '158', 'gap' => 'normal', 'width' => 'normal'];
+req($base . '?a=settings&tab=look', $look);
+[, $page] = req($base);
+check('Eigenes Aussehen: größere Schrift im CSS', preg_match('/a=look&amp;l=([^&"]+)/', $page, $lm) && strpos((string)base64_decode(strtr($lm[1], '-_', '+/')), '"fs":130') !== false);
+req($base . '?a=settings&tab=look&for=all', ['scope' => 'default', 'fs' => '90'] + $look);
+[, $page] = req($base);
+check('Standard für alle: Administrator sieht ihn sofort', preg_match('/a=look&amp;l=([^&"]+)/', $page, $lm) && strpos((string)base64_decode(strtr($lm[1], '-_', '+/')), '"fs":90') !== false);
 
 // Ein Formular abschicken: Einstellungen speichern und Kurzlink anlegen
 [, $html] = req($base . '?a=settings');

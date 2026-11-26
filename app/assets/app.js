@@ -58,13 +58,18 @@
         var clear = $('[data-clear]', form);
         var list = $('.sbox__list', form);
         var useHist = form.getAttribute('data-history') === '1';
+        var bangUrl = form.getAttribute('data-bangs');
+        var target = $('[data-bang-target]', form);
         var active = -1;
-        var items = [];
+        var items = [];     // {kind: 'hist', text} oder {kind: 'bang', t, n, d, dead}
+        var mode = '';
+        var bangCache = {};
+        var seq = 0, tSeq = 0;
 
         function sync() { form.classList.toggle('has-value', input.value.length > 0); }
-        input.addEventListener('input', function () { sync(); render(); });
+        input.addEventListener('input', function () { sync(); render(); showTarget(); });
         sync();
-        clear.addEventListener('click', function () { input.value = ''; sync(); input.focus(); render(); });
+        clear.addEventListener('click', function () { input.value = ''; sync(); input.focus(); render(); showTarget(); });
 
         form.addEventListener('submit', function (ev) {
             if (!input.value.trim()) { ev.preventDefault(); loading(false); input.focus(); return; }
@@ -72,7 +77,7 @@
             close();
         });
 
-        function close() { list.hidden = true; form.classList.remove('is-open'); input.setAttribute('aria-expanded', 'false'); active = -1; }
+        function close() { list.hidden = true; form.classList.remove('is-open'); input.setAttribute('aria-expanded', 'false'); active = -1; mode = ''; }
 
         function mark(text, q) {
             var span = document.createElement('span');
@@ -89,33 +94,118 @@
             return span;
         }
 
-        function render() {
-            if (!useHist || document.activeElement !== input) { close(); return; }
-            var q = input.value.trim();
-            var lq = q.toLowerCase();
-            items = hist().filter(function (x) { return !lq || (x.toLowerCase().indexOf(lq) !== -1 && x.toLowerCase() !== lq); }).slice(0, 8);
-            list.innerHTML = '';
-            active = -1;
-            if (!items.length) { close(); return; }
-            items.forEach(function (text, i) {
-                var li = document.createElement('li');
-                li.className = 'sbox__opt';
-                li.setAttribute('role', 'option');
-                li.id = 'sbox-opt-' + i;
-                li.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
-                li.appendChild(mark(text, q));
-                var del = document.createElement('button');
-                del.type = 'button';
-                del.className = 'sbox__del';
-                del.textContent = form.getAttribute('data-label-remove') || '×';
-                del.addEventListener('mousedown', function (ev) { ev.preventDefault(); ev.stopPropagation(); histDel(text); render(); });
-                li.appendChild(del);
-                li.addEventListener('mousedown', function (ev) { ev.preventDefault(); pick(text); });
-                list.appendChild(li);
-            });
+        /* ---- Bangs: das Wort mit „!“ an der Schreibmarke, Vorschläge vom Server, Ziel unter dem Feld ---- */
+        function bangAt() {
+            var v = input.value, pos = input.selectionStart === null || input.selectionStart === undefined ? v.length : input.selectionStart;
+            var start = v.lastIndexOf(' ', pos - 1) + 1, end = v.indexOf(' ', pos);
+            if (end < 0) end = v.length;
+            var w = v.slice(start, end);
+            return w.charAt(0) === '!' ? { w: w.slice(1).toLowerCase(), start: start, end: end } : null;
+        }
+        function bangGet(q, cb) {
+            if (!bangUrl) return;
+            if (bangCache.hasOwnProperty(q)) { cb(bangCache[q]); return; }
+            fetch(bangUrl + (bangUrl.indexOf('?') < 0 ? '?' : '&') + 'q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (j) { if (j) { bangCache[q] = j; cb(j); } })
+                .catch(function () {});
+        }
+        // Erstes oder letztes Wort ist ein Bang? Dann zeigen, wohin es geht
+        var tTimer = 0;
+        function showTarget() {
+            if (!target || !bangUrl) return;
+            clearTimeout(tTimer);
+            var words = input.value.trim().split(/\s+/), w = '', rest = '';
+            if (words[0] && words[0].charAt(0) === '!' && words[0].length > 1) { w = words[0]; rest = words.slice(1).join(' '); }
+            else if (words.length > 1 && words[words.length - 1].charAt(0) === '!' && words[words.length - 1].length > 1) { w = words[words.length - 1]; rest = words.slice(0, -1).join(' '); }
+            if (!w) { target.hidden = true; form.classList.remove('has-bang'); return; }
+            tTimer = setTimeout(function () {
+                var my = ++tSeq;
+                bangGet(w.slice(1).toLowerCase(), function (j) {
+                    if (my !== tSeq) return;
+                    var e = j.exact;
+                    target.innerHTML = '';
+                    if (!e) { target.hidden = true; form.classList.remove('has-bang'); return; }
+                    var go = document.createElement('span');
+                    go.className = 'sbox__go-to';
+                    go.textContent = (form.getAttribute('data-label-go') || '→') + ' ';
+                    var b = document.createElement('b');
+                    b.textContent = e.n;
+                    var d = document.createElement('small');
+                    d.textContent = ' ' + e.d;
+                    target.appendChild(go); target.appendChild(b); target.appendChild(d);
+                    if (e.dead) { var x = document.createElement('span'); x.className = 'tag tag--warn'; x.textContent = form.getAttribute('data-label-dead'); target.appendChild(document.createTextNode(' ')); target.appendChild(x); }
+                    if (!rest) { var h = document.createElement('span'); h.className = 'sbox__hint'; h.textContent = ' · ' + form.getAttribute('data-label-type'); target.appendChild(h); }
+                    target.hidden = false;
+                    form.classList.add('has-bang');
+                });
+            }, 80);
+        }
+
+        function open() {
             list.hidden = false;
             form.classList.add('is-open');
             input.setAttribute('aria-expanded', 'true');
+        }
+
+        function render() {
+            if (document.activeElement !== input) { close(); return; }
+            var bw = bangUrl ? bangAt() : null;
+            if (bw) {
+                var my = ++seq;
+                bangGet(bw.w, function (j) {
+                    if (my !== seq || document.activeElement !== input) return;
+                    items = (j.list || []).map(function (b) { return { kind: 'bang', t: b.t, n: b.n, d: b.d, dead: b.dead }; });
+                    draw(bw.w);
+                });
+                return;
+            }
+            if (!useHist) { close(); return; }
+            var q = input.value.trim();
+            var lq = q.toLowerCase();
+            items = hist().filter(function (x) { return !lq || (x.toLowerCase().indexOf(lq) !== -1 && x.toLowerCase() !== lq); }).slice(0, 8)
+                .map(function (x) { return { kind: 'hist', text: x }; });
+            draw(q);
+        }
+
+        function draw(q) {
+            list.innerHTML = '';
+            active = -1;
+            if (!items.length) { close(); return; }
+            mode = items[0].kind;
+            items.forEach(function (it, i) {
+                var li = document.createElement('li');
+                li.className = 'sbox__opt' + (it.kind === 'bang' ? ' sbox__opt--bang' : '');
+                li.setAttribute('role', 'option');
+                li.id = 'sbox-opt-' + i;
+                if (it.kind === 'bang') {
+                    var c = document.createElement('code');
+                    c.appendChild(mark('!' + it.t, '!' + q));
+                    li.appendChild(c);
+                    var n = document.createElement('span');
+                    n.className = 'sbox__text';
+                    n.textContent = it.n;
+                    li.appendChild(n);
+                    var d = document.createElement('small');
+                    d.className = 'sbox__dom' + (it.dead ? ' is-dead' : '');
+                    d.textContent = it.d;
+                    if (it.dead) d.title = form.getAttribute('data-label-dead');
+                    li.appendChild(d);
+                    li.addEventListener('mousedown', function (ev) { ev.preventDefault(); pickBang(it.t); });
+                } else {
+                    li.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+                    li.appendChild(mark(it.text, q));
+                    var del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'sbox__del';
+                    del.textContent = form.getAttribute('data-label-remove') || '×';
+                    del.addEventListener('mousedown', function (ev) { ev.preventDefault(); ev.stopPropagation(); histDel(it.text); render(); });
+                    li.appendChild(del);
+                    li.addEventListener('mousedown', function (ev) { ev.preventDefault(); pick(it.text); });
+                }
+                list.appendChild(li);
+            });
+            open();
         }
 
         function pick(text) {
@@ -123,6 +213,20 @@
             sync();
             close();
             if (typeof form.requestSubmit === 'function') { form.requestSubmit(); } else { histAdd(text); loading(true); form.submit(); }
+        }
+
+        // Bang übernehmen: Kürzel einsetzen, Leerzeichen dahinter, weiter tippen
+        function pickBang(t) {
+            var bw = bangAt(), v = input.value;
+            if (!bw) { bw = { start: 0, end: 0 }; }
+            var after = v.slice(bw.end).replace(/^\s+/, '');
+            input.value = v.slice(0, bw.start) + '!' + t + ' ' + after;
+            var pos = bw.start + t.length + 2;
+            input.setSelectionRange(pos, pos);
+            sync();
+            close();
+            showTarget();
+            input.focus();
         }
 
         var typed = input.value;
@@ -135,18 +239,36 @@
             if (active < -1) active = items.length - 1;
             $$('.sbox__opt', list).forEach(function (li, i) { li.classList.toggle('is-active', i === active); });
             input.setAttribute('aria-activedescendant', active >= 0 ? 'sbox-opt-' + active : '');
-            input.value = active >= 0 ? items[active] : typed;
-            sync();
+            if (mode === 'hist') { input.value = active >= 0 ? items[active].text : typed; sync(); }
         }
 
         input.addEventListener('focus', function () { typed = input.value; render(); });
-        input.addEventListener('blur', function () { setTimeout(close, 120); });
+        input.addEventListener('click', function () { if (bangAt()) render(); });
+        input.addEventListener('blur', function () { setTimeout(function () { if (document.activeElement !== input) close(); }, 120); });
         input.addEventListener('keydown', function (ev) {
             if (ev.key === 'ArrowDown') { ev.preventDefault(); if (list.hidden) render(); else move(1); }
             else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
             else if (ev.key === 'Escape') { if (!list.hidden) { ev.preventDefault(); close(); } else { input.blur(); } }
-            else if (ev.key === 'Delete' && ev.shiftKey && active >= 0) { ev.preventDefault(); histDel(items[active]); render(); }
+            else if (ev.key === 'Delete' && ev.shiftKey && active >= 0 && mode === 'hist') { ev.preventDefault(); histDel(items[active].text); render(); }
+            else if (mode === 'bang' && !list.hidden && (ev.key === 'Tab' || (ev.key === 'Enter' && active >= 0))) {
+                var it = items[active >= 0 ? active : 0];
+                // Enter ohne Auswahl, wenn das Kürzel schon stimmt: ganz normal abschicken
+                if (ev.key === 'Tab' && ev.shiftKey) return;
+                ev.preventDefault();
+                pickBang(it.t);
+            }
         });
+        // Knopf „!“: Bang an den Anfang setzen und die Liste öffnen
+        var bbtn = $('[data-bang-btn]', form);
+        if (bbtn) bbtn.addEventListener('click', function () {
+            var v = input.value.replace(/^\s+/, '');
+            if (v.charAt(0) !== '!') input.value = '!' + (v ? ' ' + v : '');
+            input.focus();
+            input.setSelectionRange(1, 1);
+            sync();
+            render();
+        });
+        showTarget();
     });
 
     // Verlauf löschen (Einstellungen)
@@ -257,12 +379,12 @@
         });
     }, { passive: true });
 
-    // Sicherheitsfragen
-    $$('form[data-confirm]').forEach(function (f) {
-        f.addEventListener('submit', function (ev) {
-            if (!window.confirm(f.getAttribute('data-confirm'))) { ev.preventDefault(); ev.stopImmediatePropagation(); loading(false); }
-        }, true);
-    });
+    // Sicherheitsfragen (auch für Formulare, die erst später auf die Seite kommen, und für einzelne Knöpfe mit data-confirm-btn)
+    document.addEventListener('submit', function (ev) {
+        var f = ev.target, b = ev.submitter;
+        var msg = b && b.getAttribute && b.getAttribute('data-confirm-btn') || (f.getAttribute && f.getAttribute('data-confirm'));
+        if (msg && !window.confirm(msg)) { ev.preventDefault(); ev.stopImmediatePropagation(); loading(false); }
+    }, true);
     // Schalter, die sofort speichern
     $$('form[data-autosubmit] input[type="checkbox"]').forEach(function (c) {
         c.addEventListener('change', function () { loading(true); c.form.submit(); });
@@ -1017,7 +1139,10 @@
             prev.style.setProperty('--ft', num('ft') / 100);
             prev.style.setProperty('--fd', num('fd') / 100);
             prev.style.setProperty('--lh', num('lh') / 100);
-            prev.style.fontSize = (16 * num('fs') / 100) + 'px';
+            // „Alles zusammen“ wirkt auf der Seite über zoom; die Seite selbst ist schon mit dem gespeicherten Wert gezoomt
+            prev.style.zoom = num('fs') / (+prev.getAttribute('data-zoom') || 100);
+            $$('[data-side-btn]', lookForm).forEach(function (b) { var on = b.getAttribute('data-side-btn') === side; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+            prev.classList.toggle('is-dark', side === 'dark');
             var gap = lookForm.querySelector('input[name=gap]:checked');
             prev.style.setProperty('--gap', gap ? { compact: .55, normal: 1, airy: 1.45 }[gap.value] : 1);
             $$('output[data-out]', lookForm).forEach(function (o) {
@@ -1093,7 +1218,25 @@
             sync();
         });
         lookForm.addEventListener('input', function (ev) { if (ev.target.type === 'range' && !ev.target.hasAttribute('data-sl')) paint(); });
-        lookForm.addEventListener('change', function (ev) { if (['font', 'gap', 'width', 'mode'].indexOf(ev.target.name) >= 0) paint(); });
+        lookForm.addEventListener('change', function (ev) {
+            if (ev.target.name === 'mode' && ev.target.value !== 'auto') side = ev.target.value;
+            if (['font', 'gap', 'width', 'mode'].indexOf(ev.target.name) >= 0) paint();
+        });
+        // Vorschau zwischen hell und dunkel umschalten, egal was gerade auf dem Gerät aktiv ist
+        var sideSeg = $('[data-prev-side]', lookForm);
+        if (sideSeg) {
+            sideSeg.hidden = false;
+            $$('[data-side-btn]', sideSeg).forEach(function (b) {
+                b.addEventListener('click', function () { side = b.getAttribute('data-side-btn'); paint(); });
+            });
+        }
+        // Wer im Bereich „Dunkles Design“ etwas anfasst, sieht die dunkle Vorschau
+        ['light', 'dark'].forEach(function (s) {
+            var box = sec(s);
+            if (!box) return;
+            box.addEventListener('pointerdown', function () { if (side !== s) { side = s; paint(); } });
+            box.addEventListener('focusin', function () { if (side !== s) { side = s; paint(); } });
+        });
         paint();
     })();
     /* ---------- Lesemodus: Drucken und als PDF speichern (mit Vorschau, Bilder nach Wahl) ---------- */
@@ -1338,4 +1481,56 @@
             } else if (ev.key === 'Escape') { find.value = ''; run(); }
         });
     }
+    /* ---------- Einstellungen → Bangs: Suche während des Tippens, Bearbeiten ohne Neuladen ---------- */
+    var bangFind = $('[data-bangfind]');
+    var bangRes = $('[data-bang-results]');
+    if (bangFind && bangRes) (function () {
+        var timer = 0, seq = 0;
+        function load() {
+            var p = new URLSearchParams(new FormData(bangFind));
+            var url = bangRes.getAttribute('data-frag') + '&' + p.toString();
+            var my = ++seq;
+            bangRes.classList.add('is-busy');
+            fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+                if (my !== seq) return;
+                bangRes.innerHTML = html;
+                bangRes.classList.remove('is-busy');
+                // Adresse mitführen, damit Neuladen und Zurück dieselbe Suche zeigen
+                if (window.history && history.replaceState) {
+                    var u = new URL(location.href);
+                    ['bq', 'bf'].forEach(function (k) { var v = p.get(k); if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); });
+                    u.searchParams.delete('edit');
+                    history.replaceState(null, '', u.pathname + u.search);
+                }
+            }).catch(function () { bangRes.classList.remove('is-busy'); });
+        }
+        bangFind.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(load, 180); });
+        bangFind.addEventListener('change', function (ev) { if (ev.target.tagName === 'SELECT') load(); });
+        bangFind.addEventListener('submit', function (ev) { ev.preventDefault(); load(); });
+        var bf = $('[data-bang-form]'), title = $('[data-bang-form-title]'), cancel = $('[data-bang-new]');
+        function fill(b) {
+            bf.elements.t.value = b ? b.t : '';
+            bf.elements.n.value = b ? b.n : '';
+            bf.elements.u.value = b ? b.u : '';
+            bf.elements.orig.value = b ? b.t : '';
+            title.textContent = title.getAttribute(b ? 'data-edit' : 'data-new');
+            if (cancel) cancel.hidden = !b;
+            $$('.bang.is-editing').forEach(function (r) { r.classList.remove('is-editing'); });
+        }
+        bangRes.addEventListener('click', function (ev) {
+            var a = ev.target.closest('[data-bang-edit]');
+            if (!a || !plainClick(ev)) return;
+            ev.preventDefault();
+            var row = a.closest('[data-bang]');
+            fill(JSON.parse(row.getAttribute('data-bang')));
+            row.classList.add('is-editing');
+            bf.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            bf.elements.u.focus();
+        });
+        if (cancel) cancel.addEventListener('click', function (ev) { if (!plainClick(ev)) return; ev.preventDefault(); fill(null); });
+    })();
+
+    /* ---------- Hintergrundarbeit (Bang-Liste aktualisieren, Erreichbarkeit prüfen): kurz nach dem Laden, ohne auf die Antwort zu warten ---------- */
+    var tick = body.getAttribute('data-tick');
+    if (tick && window.fetch) setTimeout(function () { fetch(tick, { credentials: 'same-origin', keepalive: true }).catch(function () {}); }, 2500);
 })();

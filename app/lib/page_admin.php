@@ -4,13 +4,15 @@ defined('SM_VERSION') || exit;
 
 function smAdminTabs(): array
 {
-    return ['users' => t('Konten'), 'providers' => t('Suchdienste'), 'usage' => t('Verbrauch'), 'config' => t('Einstellungen'), 'look' => t('Aussehen'),
+    return ['users' => t('Konten'), 'providers' => t('Suchdienste'), 'usage' => t('Verbrauch'), 'config' => t('Einstellungen'),
             'backup' => t('Sicherung'), 'update' => t('Update')];
 }
 
 function smPageAdmin(array $me, bool $post): void
 {
     $tab = (string)($_GET['tab'] ?? 'users');
+    // Aussehen für alle gibt es seit 2.1 nur noch an einer Stelle: Einstellungen → Aussehen → Standard für alle
+    if ($tab === 'look' && !$post) smRedirect(smUrl(['a' => 'settings', 'tab' => 'look', 'for' => 'all']));
     if (!isset(smAdminTabs()[$tab])) $tab = 'users';
 
     if ($post) {
@@ -36,11 +38,6 @@ function smPageAdmin(array $me, bool $post): void
                 break;
             case 'config':
                 $err = smSaveConfig();
-                break;
-            case 'look':
-                // Aussehen für alle Konten ohne eigenes Aussehen und für Besucher
-                smSetSetting('look', json_encode(smLookFromPost()));
-                $ok = t('Aussehen als Standard für alle gespeichert.');
                 break;
             case 'providers':
                 $err = smSaveProviders();

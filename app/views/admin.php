@@ -98,7 +98,7 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                 </div>
             </div>
             <p class="field"><span><?= h(t('Farben, Schrift und Größen')) ?></span>
-                <a class="btn btn--small" href="<?= h($aurl('look')) ?>"><?= h(t('Aussehen für alle festlegen')) ?> →</a>
+                <a class="btn btn--small" href="<?= h(smUrl(['a' => 'settings', 'tab' => 'look', 'for' => 'all'])) ?>"><?= h(t('Aussehen für alle festlegen')) ?> →</a>
                 <small class="muted"><?= h(t('Designs, eigene Farben, Schrift und Abstände. Gilt für alle Konten, die nichts Eigenes eingestellt haben, und für Besucher.')) ?></small></p>
         </section>
         <section class="panel">
@@ -151,10 +151,6 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
         </section>
         <div class="form__actions form__actions--sticky"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
     </form>
-<?php elseif ($tab === 'look'): $isDefault = true; $look = smLook(null); $lookUrl = $aurl('look'); ?>
-    <link rel="stylesheet" href="<?= h(smLookUrl($look, true)) ?>">
-    <p class="muted small page__lead"><?= h(t('Das Aussehen für alle Konten, die nichts Eigenes eingestellt haben, und für Besucher ohne Anmeldung. Jedes Konto kann es unter Einstellungen → Aussehen für sich ändern.')) ?></p>
-<?php require __DIR__ . '/_look.php'; ?>
 <?php elseif ($tab === 'providers'): require __DIR__ . '/_providers.php'; ?>
 
 <?php elseif ($tab === 'usage'): require __DIR__ . '/_usage.php'; ?>

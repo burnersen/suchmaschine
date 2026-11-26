@@ -11,11 +11,17 @@ $parts = ['bg' => t('Hintergrund'), 'card' => t('Flächen'), 'text' => t('Schrif
 ?>
     <form method="post" action="<?= h($lookUrl) ?>" class="form look" data-look data-pals="<?= h(json_encode($palJs)) ?>"
           data-warn="<?= h(t('Schwer zu lesen: %s')) ?>" data-names="<?= h(json_encode($parts)) ?>">
-        <?= smCsrfField($me) ?><input type="hidden" name="do" value="look"><?php if (!empty($isDefault)): ?><input type="hidden" name="default_only" value="1"><?php endif; ?>
+        <?= smCsrfField($me) ?><input type="hidden" name="do" value="look">
 
         <section class="panel look__prev">
-            <h2><?= h(t('Vorschau')) ?></h2>
-            <div class="lookprev" data-look-prev aria-hidden="true">
+            <div class="look__prevhead">
+                <h2><?= h(t('Vorschau')) ?></h2>
+                <div class="seg seg--small" role="group" aria-label="<?= h(t('Vorschau zeigen')) ?>" data-prev-side hidden>
+                    <button type="button" data-side-btn="light"><?= h(t('Hell')) ?></button>
+                    <button type="button" data-side-btn="dark"><?= h(t('Dunkel')) ?></button>
+                </div>
+            </div>
+            <div class="lookprev" data-look-prev data-zoom="<?= (int)$look['fs'] ?>" aria-hidden="true">
                 <div class="lookprev__bar"><span class="lookprev__box"><?= h(t('Suchbegriff')) ?></span><span class="lookprev__chip is-on"><?= h(t('Alle')) ?></span><span class="lookprev__chip"><?= h(t('News')) ?></span></div>
                 <div class="lookprev__res">
                     <span class="lookprev__site">beispiel.de › rezepte</span>
@@ -120,13 +126,12 @@ $parts = ['bg' => t('Hintergrund'), 'card' => t('Flächen'), 'text' => t('Schrif
 
         <div class="form__actions form__actions--sticky">
 <?php if (!empty($isDefault)): ?>
-            <button type="submit" class="btn btn--primary" name="scope" value="default"><?= h(t('Als Standard für alle speichern')) ?></button>
+            <button type="submit" class="btn btn--primary" name="scope" value="default" title="<?= h(t('Gilt für alle ohne eigenes Aussehen und für Besucher. Wer etwas Eigenes eingestellt hat, behält es.')) ?>"><?= h(t('Als Standard speichern')) ?></button>
+            <button type="submit" class="btn" name="scope" value="force" data-confirm-btn="<?= h(t('Wirklich für alle erzwingen? Alle Konten verlieren ihr eigenes Aussehen und bekommen dieses.')) ?>"><?= h(t('Für alle erzwingen')) ?></button>
+            <small class="muted"><?= h(t('„Als Standard speichern“: Konten mit eigenem Aussehen behalten es. „Für alle erzwingen“: setzt auch deren eigenes Aussehen zurück.')) ?></small>
 <?php else: ?>
             <button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button>
             <button type="submit" class="btn" name="reset" value="1"><?= h(t('Auf den Standard zurücksetzen')) ?></button>
-<?php if ($me['is_admin']): ?>
-            <button type="submit" class="btn" name="scope" value="default"><?= h(t('Als Standard für alle speichern')) ?></button>
-<?php endif; ?>
 <?php endif; ?>
         </div>
     </form>

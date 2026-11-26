@@ -208,7 +208,7 @@ $combos = $de ? [
 
     <section class="panel" id="bangs">
         <h2><?= h(t('Bangs')) ?></h2>
-        <p class="muted small"><?= h(t('Mit einem Bang springst du direkt zur Suche einer anderen Seite. Das Kürzel darf vorne oder hinten stehen: „!w Berlin“ oder „Berlin !w“. Bangs verbrauchen kein Guthaben.')) ?>
+        <p class="muted small"><?= h(t('Mit einem Bang springst du direkt zur Suche einer anderen Seite. Das Kürzel darf vorne oder hinten stehen: „!w Berlin“ oder „Berlin !w“. Bangs verbrauchen kein Guthaben.') . ' ' . t('Hier stehen die wichtigsten, dazu kommen über 10.000 weitere aus der Liste von Kagi. Tippe „!“ ins Suchfeld, um sie zu finden.')) ?>
 <?php if ($me): ?> <a href="<?= h(smUrl(['a' => 'settings', 'tab' => 'bangs'])) ?>"><?= h(t('Eigene Bangs anlegen')) ?></a><?php endif; ?></p>
         <div class="table-wrap">
         <table class="table table--help">

@@ -40,7 +40,8 @@ $flash = smFlash();
 <script src="<?= h(smAsset($js)) ?>" defer></script>
 <?php endforeach; ?>
 </head>
-<body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?>>
+<?php $tick = false; try { $tick = smHasUsersSafe() && smBangDue(); } catch (Throwable $e) {} ?>
+<body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?><?= $tick ? ' data-tick="' . h(smUrl(['a' => 'bangtick'])) . '"' : '' ?>>
 <div class="progress" aria-hidden="true"></div>
 <?php if (!$bare): ?>
 <header class="top<?= isset($q) ? ' top--results' : '' ?>">

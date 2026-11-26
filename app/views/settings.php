@@ -4,7 +4,9 @@ $lists = smDomainLists($me);
 ?>
 <main class="page">
     <h1 class="page__title"><?= h(t('Einstellungen')) ?></h1>
+<?php if (($for ?? '') !== 'all'): ?>
     <p class="muted small page__lead"><?= h(t('Alles hier gilt nur für dein Konto. Andere Konten sehen deine Listen, Bangs und Linsen nicht.')) ?></p>
+<?php endif; ?>
 
     <nav class="subnav">
 <?php foreach (smSettingsTabs() as $k => $v): ?>
@@ -58,13 +60,11 @@ $lists = smDomainLists($me);
     </section>
 
 <?php elseif ($tab === 'look'):
-    $isDefault = false;
-    $look = smLook($me);
-    $lookUrl = $surl('look'); ?>
+    $isDefault = $for === 'all';
+    $look = $isDefault ? smLook(null) : smLook($me);
+    $lookUrl = $surl('look', $isDefault ? ['for' => 'all'] : []); ?>
     <link rel="stylesheet" href="<?= h(smLookUrl($look, true)) ?>">
-<?php if ($me['is_admin']): ?>
-    <p class="muted small"><a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'look'])) ?>"><?= h(t('Standard für alle bearbeiten')) ?> →</a></p>
-<?php endif; ?>
+<?php if ($me['is_admin']) require __DIR__ . '/_scope.php'; ?>
 <?php require __DIR__ . '/_look.php'; ?>
 
 <?php elseif ($tab === 'domains'): ?>
@@ -84,48 +84,9 @@ $lists = smDomainLists($me);
         </form>
     </section>
 
-<?php elseif ($tab === 'bangs'): $own = smCleanBangs($me['prefs']['bangs'] ?? []); $off = array_flip((array)($me['prefs']['bang_off'] ?? [])); ?>
-    <section class="panel">
-        <h2><?= h(t('Eigene Bangs')) ?></h2>
-        <p class="muted small"><?= h(t('Ein Bang springt direkt zu einer anderen Seite, ohne eine Suche bei Brave zu verbrauchen. Einfach „!kürzel Suchbegriff“ eingeben. Ein eigenes Bang mit gleichem Kürzel ersetzt das mitgelieferte.')) ?></p>
-<?php if ($own): ?>
-        <ul class="list">
-<?php foreach ($own as $b): ?>
-            <li class="list__row">
-                <code>!<?= h($b['t']) ?></code>
-                <span class="list__main"><strong><?= h($b['n']) ?></strong><br><small class="muted list__url"><?= h($b['u']) ?></small></span>
-                <form method="post" action="<?= h($surl('bangs')) ?>" data-confirm="<?= h(t('Bang !%s löschen?', $b['t'])) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="bang_del"><input type="hidden" name="t" value="<?= h($b['t']) ?>">
-                    <button type="submit" class="btn btn--small btn--danger"><?= h(t('Löschen')) ?></button></form>
-            </li>
-<?php endforeach; ?>
-        </ul>
-<?php else: ?>
-        <p class="muted"><?= h(t('Noch keine eigenen Bangs.')) ?></p>
-<?php endif; ?>
-        <form method="post" action="<?= h($surl('bangs')) ?>" class="form" data-busy>
-            <?= smCsrfField($me) ?><input type="hidden" name="do" value="bang_add">
-            <div class="form__row form__row--bang">
-                <label class="field"><span><?= h(t('Kürzel')) ?></span><input type="text" name="t" required maxlength="25" placeholder="dict" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-                <label class="field"><span><?= h(t('Name')) ?></span><input type="text" name="n" maxlength="40" placeholder="Duden"></label>
-            </div>
-            <label class="field"><span><?= h(t('Adresse')) ?></span><input type="text" name="u" required maxlength="500" placeholder="https://www.duden.de/suchen/dudenonline/{q}" autocomplete="off" autocapitalize="off" spellcheck="false">
-                <small class="muted"><?= h(t('{q} wird durch den Suchbegriff ersetzt. Tipp: Auf der Zielseite etwas suchen und die Adresse kopieren, dann den Suchbegriff durch {q} ersetzen.')) ?></small></label>
-            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Bang speichern')) ?></button></div>
-        </form>
-    </section>
-    <section class="panel">
-        <h2><?= h(t('Mitgelieferte Bangs')) ?></h2>
-        <p class="muted small"><?= h(t('Was du hier ausschaltest, gilt nur für dich. Immer dabei: !i, !n und !v wechseln zu Bildern, News und Videos.')) ?></p>
-        <form method="post" action="<?= h($surl('bangs')) ?>" class="form" data-busy>
-            <?= smCsrfField($me) ?><input type="hidden" name="do" value="bang_builtin">
-            <div class="checks">
-<?php foreach (smBuiltinBangs() as $k => $b): ?>
-                <label class="check" title="<?= h($b[1]) ?>"><input type="checkbox" name="on[]" value="<?= h($k) ?>"<?= isset($off[$k]) ? '' : ' checked' ?>> <code>!<?= h($k) ?></code> <?= h($b[0]) ?></label>
-<?php endforeach; ?>
-            </div>
-            <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
-        </form>
-    </section>
+<?php elseif ($tab === 'bangs'): ?>
+<?php if ($me['is_admin']) require __DIR__ . '/_scope.php'; ?>
+<?php require __DIR__ . '/_bangs.php'; ?>
 
 <?php elseif ($tab === 'lenses'): $own = smCleanLenses($me['prefs']['lenses'] ?? []); $off = array_flip((array)($me['prefs']['lens_off'] ?? [])); ?>
     <section class="panel">

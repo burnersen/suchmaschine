@@ -46,6 +46,9 @@ function smRun(): void
     if ($a === '' && isset($_GET['n']) && is_string($_GET['n'])) smServeNote($_GET['n']);
     if ($a === 'noteget') smServeNoteGet();
 
+    // Hintergrundarbeit für die Bangs (Liste aktualisieren, Erreichbarkeit prüfen), angestoßen per JavaScript, ohne Anmeldung
+    if ($a === 'bangtick') smServeBangTick();
+
     $me = smUser();
 
     // Login per geheimem Token in der Adresse (?token=…, auch zusammen mit &q=… aus der Adressleiste).
@@ -102,7 +105,7 @@ function smRun(): void
     }
 
     $public = smSetting('public') === '1';
-    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img', 'qr', 'tools'], true))) {
+    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img', 'qr', 'tools', 'bangs'], true))) {
         if ($a === 'img' || $a === 'qr') {
             http_response_code(403);
             exit;
@@ -129,6 +132,9 @@ function smRun(): void
             return;
         case 'tools':
             smPageTools($me, $post);
+            return;
+        case 'bangs':
+            smServeBangSuggest($me);
             return;
         case 'export':
             smServeExport($me);
