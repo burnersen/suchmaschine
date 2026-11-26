@@ -112,7 +112,7 @@ function smToolsApi(?array $me, string $action): void
             /* ---------- Text-Schnipsel ---------- */
             case 'note_create':
                 if (smSetting('shortener') !== '1') $fail(t('Kurzlinks und Text-Schnipsel sind ausgeschaltet.'));
-                [$id, $err] = smNoteCreate($me['id'], is_string($d['data'] ?? null) ? $d['data'] : '', (int)($d['hours'] ?? 24), (int)($d['views'] ?? 1), !empty($d['pass']), $s('label', 80));
+                [$id, $err] = smNoteCreate($me['id'], is_string($d['data'] ?? null) ? $d['data'] : '', (int)($d['hours'] ?? 24), (int)($d['views'] ?? 1), !empty($d['pass']), $s('label', 80), $s('auth', 64));
                 if ($err !== '') $fail($err);
                 $send(['ok' => true, 'id' => $id, 'url' => smOrigin() . '?n=' . $id]);
             case 'note_list':

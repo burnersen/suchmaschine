@@ -285,8 +285,11 @@ function smNoteCleanup(): void
  * Schnipsel ablegen. $data = verschlüsselter Inhalt als JSON-Text {v, iv, ct, salt?} (Base64). Der Server prüft nur Form und Größe.
  * Liefert [id, Fehlertext]
  */
-function smNoteCreate(int $uid, string $data, int $hours, int $views, bool $hasPass, string $label): array
+function smNoteCreate(int $uid, string $data, int $hours, int $views, bool $hasPass, string $label, string $auth = ''): array
 {
+    // Mit Passwort: der Browser leitet aus dem Passwort zusätzlich einen Prüfwert ab. Nur dessen Prüfsumme liegt hier,
+    // so verbraucht ein falsches Passwort keinen Abruf und der Server kennt das Passwort trotzdem nie.
+    if ($hasPass && !preg_match('/^[a-f0-9]{64}$/', $auth)) return ['', t('Der verschlüsselte Inhalt ist ungültig.')];
     smNoteCleanup();
     if (strlen($data) > SM_NOTE_MAX_BYTES) return ['', t('Der Text ist zu lang.')];
     $d = json_decode($data, true);
@@ -297,18 +300,19 @@ function smNoteCreate(int $uid, string $data, int $hours, int $views, bool $hasP
     $hours = max(1, min(SM_NOTE_MAX_DAYS * 24, $hours));
     $views = max(0, min(100, $views));
     $id = rtrim(strtr(base64_encode(random_bytes(12)), '+/', '-_'), '=');
-    smQ('INSERT INTO notes (id, user_id, data, created, expires, views_left, has_pass, label) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [$id, $uid, $data, time(), time() + $hours * 3600, $views, $hasPass ? 1 : 0, mb_substr(trim($label), 0, 80)]);
+    smQ('INSERT INTO notes (id, user_id, data, created, expires, views_left, has_pass, label, auth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [$id, $uid, $data, time(), time() + $hours * 3600, $views, $hasPass ? 1 : 0, mb_substr(trim($label), 0, 80), $hasPass ? hash('sha256', $auth) : '']);
     return [$id, ''];
 }
 
-/** Schnipsel abholen (öffentlich). Verbraucht einen Abruf, beim letzten wird er sofort gelöscht. null = weg. */
-function smNoteFetch(string $id): ?array
+/** Schnipsel abholen (öffentlich). Verbraucht einen Abruf, beim letzten wird er sofort gelöscht. null = weg, 'pass' = Passwort falsch. */
+function smNoteFetch(string $id, string $auth = '')
 {
     if (!preg_match('/^[A-Za-z0-9_-]{16}$/', $id)) return null;
     smNoteCleanup();
     $row = smQ('SELECT * FROM notes WHERE id = ?', [$id])->fetch();
     if (!$row) return null;
+    if ((int)$row['has_pass'] === 1 && !hash_equals((string)$row['auth'], hash('sha256', $auth))) return 'pass';
     $left = (int)$row['views_left'];
     if ($left === 1) smQ('DELETE FROM notes WHERE id = ?', [$id]);
     elseif ($left > 1) smQ('UPDATE notes SET views_left = views_left - 1 WHERE id = ?', [$id]);
@@ -319,8 +323,10 @@ function smNoteFetch(string $id): ?array
 function smNoteExists(string $id): ?array
 {
     if (!preg_match('/^[A-Za-z0-9_-]{16}$/', $id)) return null;
-    $row = smQ('SELECT expires, views_left, has_pass FROM notes WHERE id = ? AND expires >= ?', [$id, time()])->fetch();
-    return $row ? ['expires' => (int)$row['expires'], 'left' => (int)$row['views_left'], 'pass' => (int)$row['has_pass'] === 1] : null;
+    $row = smQ('SELECT expires, views_left, has_pass, data FROM notes WHERE id = ? AND expires >= ?', [$id, time()])->fetch();
+    if (!$row) return null;
+    $d = json_decode((string)$row['data'], true);
+    return ['expires' => (int)$row['expires'], 'left' => (int)$row['views_left'], 'pass' => (int)$row['has_pass'] === 1, 'salt' => is_array($d) ? (string)($d['salt'] ?? '') : ''];
 }
 
 function smNoteList(int $uid): array
@@ -343,7 +349,7 @@ function smServeNote(string $id): void
 {
     $info = smNoteExists($id);
     if (!$info) http_response_code(404);
-    smRender('note', ['title' => t('Text-Schnipsel'), 'bare' => true, 'noteId' => $id, 'info' => $info]);
+    smRender('note', ['title' => t('Text-Schnipsel'), 'bare' => true, 'noteId' => $id, 'info' => $info, 'scripts' => ['tools/noteopen.js']]);
     exit;
 }
 
@@ -357,7 +363,14 @@ function smServeNoteGet(): void
         http_response_code(403);
         exit(json_encode(['ok' => false]));
     }
-    $r = smNoteFetch((string)($_POST['id'] ?? ''));
+    $id = (string)($_POST['id'] ?? '');
+    $tk = 'note|' . $id;
+    if (($w = smThrottleWait($tk)) > 0) exit(json_encode(['ok' => false, 'message' => t('Zu viele Versuche. Bitte in %d Sekunden noch einmal.', $w)]));
+    $r = smNoteFetch($id, (string)($_POST['auth'] ?? ''));
+    if ($r === 'pass') {
+        smThrottleFail($tk);
+        exit(json_encode(['ok' => false, 'pass' => true, 'message' => t('Das Passwort stimmt nicht.')]));
+    }
     if (!$r) exit(json_encode(['ok' => false, 'message' => t('Diesen Text-Schnipsel gibt es nicht mehr. Er wurde schon abgeholt oder ist abgelaufen.')]));
     exit(json_encode(['ok' => true] + $r, JSON_UNESCAPED_SLASHES));
 }

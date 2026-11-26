@@ -126,7 +126,8 @@ function smMigrate(PDO $pdo, int $from): void
         $pdo->exec("CREATE TABLE IF NOT EXISTS short_days (code TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (code, day))");
         // Text-Schnipsel: nur verschlüsselt (Schlüssel bleibt im Link hinter dem #, der Server sieht ihn nie)
         $pdo->exec("CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, data TEXT NOT NULL, created INTEGER NOT NULL,
-            expires INTEGER NOT NULL, views_left INTEGER NOT NULL DEFAULT 1, has_pass INTEGER NOT NULL DEFAULT 0, label TEXT NOT NULL DEFAULT '')");
+            expires INTEGER NOT NULL, views_left INTEGER NOT NULL DEFAULT 1, has_pass INTEGER NOT NULL DEFAULT 0, label TEXT NOT NULL DEFAULT '',
+            auth TEXT NOT NULL DEFAULT '')");
         $pdo->exec("CREATE INDEX IF NOT EXISTS notes_user ON notes (user_id)");
     }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);

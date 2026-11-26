@@ -24,7 +24,7 @@ function smToolGroups(): array
         t('Sicherheit und Teilen') => [
             'passwort'  => ['🔑', t('Passwort-Generator'), t('Passwörter, Passphrasen, PINs und Tokens, mit Stärke-Check'), ['app' => ['tools/words', 'tools/pw'], 'kw' => 'passwort password passphrase pin sicher generator stärke entropie']],
             'kurzlinks' => ['🔗', t('Kurzlinks'), t('Lange Adressen kurz machen, mit Wunschname, Ablauf und Statistik'), ['app' => ['cf/qr', 'cf/render', 'tools/share'], 'kw' => 'kurzlink shortener url kürzen link qr dynamisch']],
-            'schnipsel' => ['📝', t('Text-Schnipsel'), t('Verschlüsselte Notiz per Link, auf Wunsch nach dem Lesen weg'), ['app' => ['tools/share'], 'new' => true, 'kw' => 'notiz einmal geheim verschlüsselt teilen burn after reading pastebin']],
+            'schnipsel' => ['📝', t('Text-Schnipsel'), t('Verschlüsselte Notiz per Link, auf Wunsch nach dem Lesen weg'), ['app' => ['cf/qr', 'cf/render', 'tools/share'], 'new' => true, 'kw' => 'notiz einmal geheim verschlüsselt teilen burn after reading pastebin']],
         ],
         t('Rechnen und Umrechnen') => [
             'rechner'   => ['🧮', t('Rechner'), t('Rechnet beim Tippen, mit Verlauf und wissenschaftlichen Funktionen'), ['app' => ['tools/calc'], 'kw' => 'rechner taschenrechner rechnen sinus wurzel']],

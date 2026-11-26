@@ -57,6 +57,8 @@ function smServeManifest(): void
     echo json_encode([
         'id' => './', 'name' => $name, 'short_name' => $n !== '' ? mb_substr($n, 0, 12) : t('Suchmaschine'),
         'start_url' => './', 'scope' => './', 'display' => 'standalone',
+        // Am Handy im Teilen-Menü: geteilte Adressen landen bei den Kurzlinks
+        'share_target' => ['action' => './', 'method' => 'GET', 'params' => ['title' => 'share_title', 'text' => 'share_text', 'url' => 'share_url']],
         'lang' => smLang(), 'background_color' => '#ffffff', 'theme_color' => '#ffffff',
         // PNG-Symbole: Startbildschirme von Android und iPhone nehmen kein SVG
         'icons' => [

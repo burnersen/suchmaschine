@@ -110,6 +110,13 @@ function smRun(): void
         smRedirect(smUrl(['a' => 'login', 'next' => smSelf() !== smBase() ? smSelf() : null]));
     }
 
+    // Aus dem Teilen-Menü des Handys: geteilte Adresse kürzen (oder geteilten Text suchen)
+    if ($a === '' && (isset($_GET['share_url']) || isset($_GET['share_text']))) {
+        $shared = trim((string)($_GET['share_url'] ?? '') !== '' ? (string)$_GET['share_url'] : (string)($_GET['share_text'] ?? ''));
+        if (preg_match('~https?://\S+~', $shared, $sm)) smRedirect(smToolUrl('kurzlinks', ['url' => $sm[0]]));
+        smRedirect(smUrl(['q' => mb_substr($shared, 0, 400)]));
+    }
+
     switch ($a) {
         case 'img':
             smServeImgProxy();

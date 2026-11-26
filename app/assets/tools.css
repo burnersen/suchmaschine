@@ -357,7 +357,7 @@
 .cf-layer .toasts { bottom: calc(1.2rem + var(--sab)); }
 
 /* ---------- Werkzeug-Seiten der Suchmaschine ---------- */
-.page--tools { max-width: 1240px; }
+.page--tools { max-width: min(1240px, calc(100% - max(0px, var(--gutter) - 16px))); }
 .page--tools .tool--single:not(.tool--app) { max-width: 760px; }
 .tool__top { display: flex; align-items: center; gap: 10px; }
 .tool__top .tool__title { flex: 1; min-width: 0; }
@@ -422,3 +422,10 @@
 .cf .pw-list { display: flex; flex-direction: column; gap: 2px; max-height: 22rem; overflow: auto; font-size: .9rem; }
 .cf .pw-li { display: flex; gap: .7rem; padding: .3rem .5rem; border-radius: .5rem; cursor: pointer; }
 .cf .pw-li:hover { background: var(--hover); }
+
+/* ---------- Kurzlinks und Schnipsel ---------- */
+.cf .short-row { align-items: flex-start; cursor: default; }
+.cf .short-row .t { font-size: .98rem; }
+.cf .short-row.is-new { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+.cf .short-row.is-off { opacity: .7; }
+.cf .hrow { background: var(--card); }
