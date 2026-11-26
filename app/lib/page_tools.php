@@ -89,7 +89,7 @@ function smToolInfo(string $id): ?array
 /** Adresse eines Werkzeugs */
 function smToolUrl(string $id, array $more = []): string
 {
-    return smUrl(['a' => 'tools', 'tool' => $id] + $more);
+    return smUrl(['a' => 'tools', 'tool' => $id !== '' ? $id : null] + $more);
 }
 
 /** Werkzeuge: Übersicht, ein einzelnes Werkzeug oder die Schnittstelle der Apps (?api=…) */
@@ -129,6 +129,7 @@ function smPageTools(?array $me, bool $post): void
     $info = $tool !== '' ? smToolInfo($tool) : null;
     if ($tool !== '' && empty($info[4]['app']) || in_array($tool, ['rechner', 'einheiten', 'waehrung', 'timer', 'countdown', 'ip'], true)) {
         // Werkzeuge mit Formular: aus den Feldern die Anfrage bauen und mit derselben Rechnung wie im Suchfeld beantworten
+        if ($tool === 'wetter') $GLOBALS['sm_weather_more'] = true;
         $ia = isset($_GET['ia']) && is_string($_GET['ia']) ? mb_substr(trim($_GET['ia']), 0, 3000) : smToolQuery($tool);
         $_GET['ia'] = $ia;
         if ($ia !== '') {

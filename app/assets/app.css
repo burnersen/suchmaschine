@@ -1136,3 +1136,15 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .short-page__to { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; overflow-wrap: anywhere; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); }
 .note-page__text { white-space: pre-wrap; overflow-wrap: anywhere; font: 15px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 14px; border-radius: 12px; background: var(--surface-2); max-height: 60vh; overflow: auto; text-align: left; }
 .note-page, .short-page { max-width: 560px; }
+
+/* ---------- Wetter unter Werkzeuge: Warnungen, Stunden, 7 Tage (seit 2.0) ---------- */
+.wx__alert { margin: 12px 0 0; padding: 12px 14px; border-radius: 14px; border: 1px solid color-mix(in srgb, #d97706 50%, transparent); background: color-mix(in srgb, #f59e0b 12%, var(--bg)); }
+.wx__alert--severe, .wx__alert--extreme { border-color: color-mix(in srgb, var(--error) 55%, transparent); background: color-mix(in srgb, var(--error) 10%, var(--bg)); }
+.wx__alert small { display: block; color: var(--text-2); margin-top: 2px; }
+.wx__alert p { margin: 6px 0 0; font-size: 14px; }
+.wx__ok { color: var(--ok); margin-top: 12px; }
+.wx__hours { list-style: none; margin: 0; padding: 0 0 6px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+.wx__hours li { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 54px; padding: 8px 4px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line-2); font-size: 14px; }
+.wx__hours .wx__ico { font-size: 22px; }
+.wx__week .wx__ico { font-size: 20px; vertical-align: -3px; }
+

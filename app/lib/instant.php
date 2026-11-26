@@ -563,7 +563,11 @@ function smCardWeather(string $place, ?array $me): array
     // Gewählte Quelle zuerst. Klappt es nicht (Bright Sky kennt z. B. nur Mitteleuropa), kommen die anderen dran.
     foreach (array_unique(array_merge([$src], array_keys(smWeatherSources()))) as $try) {
         $w = $try === 'brightsky' ? smWeatherBrightSky($geo) : ($try === 'openmeteo' ? smWeatherOpenMeteo($geo) : smWeatherWttr($geo));
-        if ($w) return array_merge($card, $w, ['src' => $try, 'wanted' => $src]);
+        if ($w) {
+            // Unter Werkzeuge: dazu Stunden, 7 Tage, UV, Sonne und Unwetterwarnungen des DWD
+            if (!empty($GLOBALS['sm_weather_more'])) $w['more'] = smWeatherMore($geo);
+            return array_merge($card, $w, ['src' => $try, 'wanted' => $src]);
+        }
     }
     $card['error'] = t('Die Wetterdienste antworten gerade nicht. Bitte später noch einmal versuchen.');
     return $card;
@@ -625,6 +629,48 @@ function smWmo(int $c): string
     if (($c >= 71 && $c <= 77) || $c === 85 || $c === 86) return 'snow';
     if ($c >= 95) return 'thunder';
     return 'cloudy';
+}
+
+/** Mehr Wetter für die Werkzeug-Seite: nächste 24 Stunden, 7 Tage, UV-Index, Sonnenauf- und -untergang (Open-Meteo), Warnungen (DWD über Bright Sky) */
+function smWeatherMore(array $g): array
+{
+    $out = ['hours' => [], 'week' => [], 'alerts' => [], 'uv' => null, 'rise' => '', 'set' => ''];
+    $d = smFetchJson('https://api.open-meteo.com/v1/forecast?' . http_build_query([
+        'latitude' => $g['lat'], 'longitude' => $g['lon'], 'timezone' => 'auto', 'forecast_days' => 7, 'models' => 'icon_seamless',
+        'hourly' => 'temperature_2m,precipitation_probability,weather_code,is_day',
+        'daily' => 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max,sunrise,sunset',
+    ]), 1800);
+    if (is_array($d['hourly']['time'] ?? null)) {
+        $now = gmdate('Y-m-d\TH:00', time() + (int)($d['utc_offset_seconds'] ?? 0));   // Uhrzeit am Ort
+        foreach ($d['hourly']['time'] as $i => $tm) {
+            if ($tm < $now || count($out['hours']) >= 24) continue;
+            $look = smWmo((int)($d['hourly']['weather_code'][$i] ?? 3));
+            if ($look === 'clear' && empty($d['hourly']['is_day'][$i])) $look = 'night';
+            $out['hours'][] = ['h' => substr((string)$tm, 11, 5), 'temp' => (float)($d['hourly']['temperature_2m'][$i] ?? 0), 'prob' => (int)($d['hourly']['precipitation_probability'][$i] ?? 0), 'look' => $look];
+        }
+    }
+    if (is_array($d['daily']['time'] ?? null)) {
+        foreach ($d['daily']['time'] as $i => $day) {
+            $out['week'][] = ['date' => strtotime((string)$day), 'min' => (float)($d['daily']['temperature_2m_min'][$i] ?? 0), 'max' => (float)($d['daily']['temperature_2m_max'][$i] ?? 0),
+                'rain' => (float)($d['daily']['precipitation_sum'][$i] ?? 0), 'prob' => (int)($d['daily']['precipitation_probability_max'][$i] ?? 0),
+                'look' => smWmo((int)($d['daily']['weather_code'][$i] ?? 3)), 'uv' => (float)($d['daily']['uv_index_max'][$i] ?? 0)];
+        }
+        $out['uv'] = $d['daily']['uv_index_max'][0] ?? null;
+        $out['rise'] = substr((string)($d['daily']['sunrise'][0] ?? ''), 11, 5);
+        $out['set'] = substr((string)($d['daily']['sunset'][0] ?? ''), 11, 5);
+    }
+    if (($g['cc'] ?? '') === 'DE') {
+        $a = smFetchJson('https://api.brightsky.dev/alerts?' . http_build_query(['lat' => $g['lat'], 'lon' => $g['lon']]), 900);
+        $de = smLang() === 'de';
+        foreach ((array)($a['alerts'] ?? []) as $x) {
+            if (!is_array($x)) continue;
+            $out['alerts'][] = ['level' => (string)($x['severity'] ?? 'minor'), 'event' => (string)($de ? ($x['event_de'] ?? '') : ($x['event_en'] ?? '')),
+                'head' => (string)($de ? ($x['headline_de'] ?? '') : ($x['headline_en'] ?? '')), 'text' => (string)($de ? ($x['description_de'] ?? '') : ($x['description_en'] ?? '')),
+                'todo' => (string)($de ? ($x['instruction_de'] ?? '') : ($x['instruction_en'] ?? '')),
+                'from' => strtotime((string)($x['onset'] ?? $x['effective'] ?? '')) ?: 0, 'to' => strtotime((string)($x['expires'] ?? '')) ?: 0];
+        }
+    }
+    return $out;
 }
 
 function smWeatherOpenMeteo(array $g): ?array

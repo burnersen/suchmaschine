@@ -231,6 +231,38 @@ for ($mo = 1; $mo <= 12; $mo++): $first = mktime(0, 0, 0, $mo, 1, $c['year']); $
 <?php endforeach; ?>
             </ol>
         </div>
+<?php if (!empty($c['more'])): $mo = $c['more']; ?>
+<?php foreach ($mo['alerts'] as $al): ?>
+        <div class="wx__alert wx__alert--<?= h($al['level']) ?>"><strong>⚠️ <?= h($al['head'] !== '' ? $al['head'] : $al['event']) ?></strong>
+            <small><?= h($al['from'] ? date(smLang() === 'de' ? 'd.m. H:i' : 'm/d H:i', $al['from']) : '') ?><?= $al['to'] ? ' – ' . h(date(smLang() === 'de' ? 'd.m. H:i' : 'm/d H:i', $al['to'])) : '' ?></small>
+            <?php if ($al['text'] !== ''): ?><p><?= h($al['text']) ?></p><?php endif; ?><?php if ($al['todo'] !== ''): ?><p class="muted small"><?= h($al['todo']) ?></p><?php endif; ?></div>
+<?php endforeach; ?>
+<?php if (!$mo['alerts'] && ($c['geo']['cc'] ?? '') === 'DE'): ?>
+        <p class="small wx__ok">✓ <?= h(t('Keine Unwetterwarnungen des DWD für diesen Ort.')) ?></p>
+<?php endif; ?>
+<?php if ($mo['uv'] !== null || $mo['rise'] !== ''): ?>
+        <p class="small"><?php if ($mo['uv'] !== null): $uv = (float)$mo['uv']; ?><?= h(t('UV-Index heute: %s (%s)', smFmtNumber(round($uv, 1)), $uv < 3 ? t('niedrig') : ($uv < 6 ? t('mäßig') : ($uv < 8 ? t('hoch') : ($uv < 11 ? t('sehr hoch') : t('extrem')))))) ?><?php endif; ?>
+            <?php if ($mo['rise'] !== ''): ?><?= $mo['uv'] !== null ? ' · ' : '' ?>🌅 <?= h($mo['rise']) ?> · 🌇 <?= h($mo['set']) ?><?php endif; ?></p>
+<?php endif; ?>
+<?php if ($mo['hours']): ?>
+        <p class="ia__label"><?= h(t('Die nächsten 24 Stunden')) ?></p>
+        <ol class="wx__hours">
+<?php foreach ($mo['hours'] as $hh): [$hi, $ht] = smWeatherLook($hh['look']); ?>
+            <li title="<?= h($ht) ?>"><small><?= h($hh['h']) ?></small><span class="wx__ico"><?= $hi ?></span><strong><?= h(smFmtNumber(round($hh['temp']))) ?>°</strong><small class="muted">💧<?= (int)$hh['prob'] ?></small></li>
+<?php endforeach; ?>
+        </ol>
+<?php endif; ?>
+<?php if (count($mo['week']) > 4): ?>
+        <p class="ia__label"><?= h(t('7 Tage')) ?></p>
+        <table class="table ia__table wx__week">
+<?php foreach ($mo['week'] as $i => $wd): [$wi, $wt] = smWeatherLook($wd['look']); ?>
+            <tr><td><strong><?= h($i === 0 ? t('Heute') : smShortDay($wd['date']) . ' ' . date(smLang() === 'de' ? 'j.n.' : 'n/j', $wd['date'])) ?></strong></td><td><span class="wx__ico" title="<?= h($wt) ?>"><?= $wi ?></span> <?= h($wt) ?></td>
+                <td><?= h(smFmtNumber(round($wd['max']))) ?>° / <span class="muted"><?= h(smFmtNumber(round($wd['min']))) ?>°</span></td><td class="muted">💧 <?= (int)$wd['prob'] ?> %<?= $wd['rain'] > 0 ? ' · ' . h(smFmtNumber($wd['rain'])) . ' mm' : '' ?></td><td class="muted">UV <?= h(smFmtNumber(round($wd['uv']))) ?></td></tr>
+<?php endforeach; ?>
+        </table>
+<?php endif; ?>
+        <p class="muted small"><?= h(t('Stunden, 7 Tage und UV: Open-Meteo.com (CC BY 4.0). Warnungen: Deutscher Wetterdienst über Bright Sky.')) ?></p>
+<?php endif; ?>
         <p class="muted small"><?= !empty($c['wanted']) && $c['wanted'] !== $c['src'] ? h(t('%s hat für diesen Ort keine Daten, darum:', smWeatherSources()[$c['wanted']])) . ' ' : '' ?><?= h(t('Quelle: %s', $c['credit'])) ?><?= $c['station'] !== '' ? ' · ' . h(t('Station %s', $c['station'])) : '' ?></p>
 <?php endif; ?>
         <p class="ia__switch small"><?= h(t('Andere Quelle:')) ?>

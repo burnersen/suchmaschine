@@ -120,6 +120,10 @@ function smBangTarget(string $q, ?array $me): ?array
             return ['to' => smUrl(['q' => $rest !== '' ? $rest : null, 't' => $tab, 'src' => smProviderBangs()[$t]]), 'internal' => true];
         }
         $bangs = smBangs($me);
+        // Werkzeuge: „!qr Hallo“, „!pw“, „!kurz https://…“, „!json {…}“, „!dns example.org“ (eigene Bangs gleichen Namens gehen vor)
+        if (!isset($bangs[$t]) && ($tb = smToolBang($t)) !== null) {
+            return ['to' => smToolUrl($tb[0], $rest !== '' && $tb[1] !== '' ? [$tb[1] => mb_substr($rest, 0, 2000)] : []), 'internal' => true];
+        }
         if (!isset($bangs[$t])) continue;
         $url = $bangs[$t][1];
         if ($rest === '') {
@@ -199,3 +203,20 @@ function smApiQuery(string $q, string $ft, ?array $lens): string
     $room = 399 - mb_strlen($extra);
     return trim(mb_substr($q, 0, max(20, $room))) . ' ' . $extra;
 }
+
+/** Abkürzung für ein Werkzeug: [Werkzeug, Name des Feldes für den Rest der Suche] oder null */
+function smToolBang(string $t): ?array
+{
+    $alias = ['qr' => ['qr', 'text'], 'scan' => ['scanner', ''], 'scanner' => ['scanner', ''], 'pw' => ['passwort', ''], 'passwort' => ['passwort', ''], 'password' => ['passwort', ''],
+        'kurz' => ['kurzlinks', 'url'], 'short' => ['kurzlinks', 'url'], 'notiz' => ['schnipsel', 'text'], 'note' => ['schnipsel', 'text'], 'tools' => ['', ''], 'werkzeuge' => ['', ''],
+        'calc' => ['rechner', 'x'], 'rechner' => ['rechner', 'x'], 'mwst' => ['prozent', ''], 'vat' => ['prozent', ''], 'timer' => ['timer', 'min'], 'stoppuhr' => ['timer', ''],
+        'wetter' => ['wetter', 'ort'], 'weather' => ['wetter', 'ort'], 'ip' => ['ip', ''], 'iban' => ['nummern', 'q'], 'ean' => ['nummern', 'q'], 'isbn' => ['nummern', 'q'],
+        'farbe' => ['farben', ''], 'color' => ['farben', ''], 'ts' => ['zeitstempel', ''], 'unix' => ['zeitstempel', ''], 'b64' => ['kodieren', ''], 'base64' => ['kodieren', ''],
+        'tz' => ['weltzeit', ''], 'zeitzone' => ['weltzeit', '']];
+    if (isset($alias[$t])) return $alias[$t][0] === '' ? ['', ''] : $alias[$t];
+    $info = smToolInfo($t);
+    if ($info === null) return null;
+    $field = in_array($t, ['json', 'jwt', 'cron', 'linkcheck'], true) ? 'text' : (in_array($t, ['down', 'header', 'ssl', 'dns', 'whois', 'vorschau'], true) ? 'q' : '');
+    return [$t, $field];
+}
+
