@@ -10,6 +10,9 @@ $acts = ['raise' => t('Hochstufen'), 'lower' => t('Herabstufen'), 'block' => t('
 <?php if ($dom !== ''): ?>
                     <a href="<?= h(smUrl(['q' => 'site:' . $dom . ($qNoSite !== '' ? ' ' . $qNoSite : '')] + array_diff_key($base, ['q' => 1]))) ?>" data-load><?= h(t('Nur auf dieser Domain suchen')) ?></a>
 <?php endif; ?>
+<?php if ($me): ?>
+                    <a href="<?= h(smUrl(['a' => 'read', 'u' => $r['url']])) ?>" class="resmenu__read"><?= h(t('Ohne Werbung lesen')) ?></a>
+<?php endif; ?>
                     <a href="https://web.archive.org/web/2/<?= h($r['url']) ?>" rel="noopener noreferrer" target="_blank"><?= h(t('Archiv: web.archive.org')) ?></a>
                     <a href="https://archive.today/newest/<?= h($r['url']) ?>" rel="noopener noreferrer" target="_blank"><?= h(t('Archiv: archive.today')) ?></a>
                     <button type="button" data-qr="<?= h($r['url']) ?>" data-qr-src="<?= h(smUrl(['a' => 'qr', 'd' => $r['url']])) ?>"><?= h(t('Als QR-Code anzeigen')) ?></button>

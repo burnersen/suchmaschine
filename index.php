@@ -20,7 +20,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 date_default_timezone_set('Europe/Berlin');
 
-define('SM_VERSION', '1.3.0');
+define('SM_VERSION', '1.4.0');
 define('SM_ROOT', __DIR__);
 define('SM_APP', SM_ROOT . '/app');
 define('SM_DATA_DIR', SM_ROOT . '/data');
@@ -45,6 +45,8 @@ require SM_APP . '/lib/qr.php';
 require SM_APP . '/lib/backup.php';
 require SM_APP . '/lib/tools.php';
 require SM_APP . '/lib/imgproxy.php';
+require SM_APP . '/lib/look.php';
+require SM_APP . '/lib/reader.php';
 require SM_APP . '/lib/update.php';
 require SM_APP . '/lib/pages.php';
 

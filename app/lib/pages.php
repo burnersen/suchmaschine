@@ -13,6 +13,8 @@ function smRun(): void
     if ($a === 'manifest') smServeManifest();
     if ($a === 'logo') smServeLogo();
     if ($a === 'appicon') smServeAppIcon();
+    if ($a === 'look') smServeLook();
+    if ($a === 'font') smServeFont();
     if ($a === '' && isset($_GET['lang']) && in_array($_GET['lang'], ['de', 'en'], true)) {
         smLangCookie($_GET['lang']);
         smRedirect(smBase());
@@ -133,6 +135,9 @@ function smRun(): void
         case 'lucky':
             smPageLucky($me);
             return;
+        case 'read':
+            smPageRead($me, $post);
+            return;
         default:
             smPageSearch($me);
             smAutoUpdate();
@@ -174,7 +179,7 @@ function smSafeNext(string $next): string
 
 function smServeAsset(): void
 {
-    $types = ['app.css' => 'text/css; charset=utf-8', 'app.js' => 'text/javascript; charset=utf-8', 'icon.svg' => 'image/svg+xml',
+    $types = ['app.css' => 'text/css; charset=utf-8', 'app.js' => 'text/javascript; charset=utf-8', 'pdf.js' => 'text/javascript; charset=utf-8', 'icon.svg' => 'image/svg+xml',
               'icon-180.png' => 'image/png', 'icon-192.png' => 'image/png', 'icon-512.png' => 'image/png'];
     $f = isset($_GET['f']) && is_string($_GET['f']) ? $_GET['f'] : '';
     if (!isset($types[$f]) || !is_file(SM_APP . '/assets/' . $f)) {
@@ -393,7 +398,9 @@ function smPageSearch(?array $me): void
         if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
         if (!$me && $flt['src'] === 'multi') throw new SmSearchError(t('„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.'));
         $apiQ = smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null);
-        $opt = $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src']];
+        $xdays = ['pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']] ?? 0;
+        $opt = $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src'],
+                         'older' => $xdays >= 7 ? $xdays : 0];
         $res = smSearch($tab, $apiQ, $opt, $me ? $me['id'] : 0);
         // News: gar nichts im eingestellten Zeitraum? Dann gleich den nächstgrößeren nehmen (kostet nur in diesem Fall eine Suche mehr)
         $from = $fresh;
@@ -409,11 +416,32 @@ function smPageSearch(?array $me): void
         }
         // Fortsetzung beim Erweitern: was schon im kleineren Zeitraum gezeigt wurde, weglassen
         if ($flt['xf'] !== '') $res = smDropNewer($res, ['pd' => 86400, 'pw' => 7 * 86400, 'pm' => 31 * 86400][$flt['xf']]);
+        // Nachladen bei News: Bleibt nach dem Aussortieren nichts übrig (oder ist die letzte Seite leer), gleich mit dem nächsten Zeitraum weiter.
+        // So gibt es keine leeren Abschnitte. Höchstens zwei Schritte, damit eine leere Suche nicht alle Dienste abklappert.
+        for ($hop = 0; $hop < 2 && $tab === 'news' && ($part || $flt['xf'] !== '') && $flt['auto'] && !$res['results'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== ''; $hop++) {
+            $flt['xf'] = $fresh;
+            $fresh = $nx;
+            $page = 1;
+            $xdays = ['pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']];
+            $res = smSearch($tab, $apiQ, ['freshness' => $fresh, 'page' => 1, 'older' => $xdays >= 7 ? $xdays : 0] + $opt, $me ? $me['id'] : 0);
+            $res = smDropNewer($res, $xdays * 86400);
+            $flt['fresh'] = $fresh;
+            $flt['f_q'] = $fresh;
+            $vars['fresh'] = $fresh;
+            $vars['page'] = 1;
+        }
         // Eigene Domain-Listen, Sortierung und Filter erst jetzt: der Zwischenspeicher bleibt für alle gleich
         $res = smApplyDomainLists($res, smDomainLists($me));
         if ($flt['sort'] === 'date') $res = smSortByDate($res);
         if ($tab === 'web' && $flt['dl'] !== '0') $res = smDomainLimit($res, 3);
-        if ($tab === 'images') $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === 'res');
+        if ($tab === 'images') {
+            // Alle (bis 200) filtern, dann die gewünschte Seite herausschneiden: 50 pro Seite oder Nachladen, kostet keine weitere Suche
+            $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === 'res');
+            $all = $res['results'];
+            $res['results'] = array_slice($all, ($page - 1) * 50, 50);
+            $res['more'] = count($all) > $page * 50;
+            $res['img_first'] = ($page - 1) * 50;
+        }
         // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
         if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && ($res['source'] ?? '') !== 'brave' && smSetting('wiki') === '1') {
             $res['infobox'] = smWikiCard($q);
@@ -469,7 +497,7 @@ function smPageLucky(?array $me): void
 
 function smSettingsTabs(): array
 {
-    return ['search' => t('Suche'), 'domains' => t('Domains'), 'bangs' => t('Bangs'), 'lenses' => t('Linsen'), 'account' => t('Konto')];
+    return ['search' => t('Suche'), 'look' => t('Aussehen'), 'domains' => t('Domains'), 'bangs' => t('Bangs'), 'lenses' => t('Linsen'), 'account' => t('Konto')];
 }
 
 function smPageSettings(array $me, bool $post): void
@@ -513,6 +541,21 @@ function smPageSettings(array $me, bool $post): void
                 break;
             case 'logout_others':
                 $ok = t('%d andere Geräte abgemeldet.', smLogoutOthers($me));
+                break;
+            case 'look':
+                // Der Knopf oben (hell/dunkel) soll die neue Wahl nicht überdecken
+                setcookie('sm_theme', '', ['expires' => time() - 3600, 'path' => '/']);
+                if (($_POST['scope'] ?? '') === 'default' && $me['is_admin']) {
+                    smSetSetting('look', json_encode(smLookFromPost()));
+                    $ok = t('Aussehen als Standard für alle gespeichert.');
+                    if (!empty($_POST['default_only'])) break;
+                    unset($p['look']);   // Wer den Standard festlegt, sieht ihn auch selbst
+                } elseif (!empty($_POST['reset'])) {
+                    unset($p['look']);
+                    $ok = t('Aussehen auf den Standard zurückgesetzt.');
+                } else {
+                    $p['look'] = smLookFromPost();
+                }
                 break;
             case 'domains':
                 foreach (['block', 'raise', 'lower'] as $k) $p[$k] = smCleanDomains((string)($_POST[$k] ?? ''));
@@ -1014,4 +1057,64 @@ function smServeAppIcon(): void
     header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
     readfile($file);
     exit;
+}
+
+/* ---------- Ohne Werbung lesen ---------- */
+
+/**
+ * ?a=read&u=…: Lesemodus. Nur mit Konto. Nichts wird gespeichert, die Quelle steht immer dabei, Paywalls werden nicht umgangen.
+ * Höchstens 60 Seiten pro Stunde und Konto, damit niemand die Suchmaschine zum Abgrasen fremder Seiten benutzt.
+ */
+function smPageRead(array $me, bool $post): void
+{
+    $u = trim((string)($_GET['u'] ?? $_POST['u'] ?? ''));
+    $u = smLink($u);
+    if ($u === '' || strlen($u) > 2000) smRedirect(smBase());
+    $view = ($_GET['v'] ?? '') === 'all' ? 'all' : '';
+    $k = hash('sha256', 'read|' . $me['id'] . '|' . date('YmdH'));
+    $row = smQ('SELECT fails FROM throttle WHERE k = ?', [$k])->fetch();
+    $err = '';
+    $r = null;
+    if ($row && (int)$row['fails'] >= 60) {
+        $err = t('Für diese Stunde sind genug Seiten im Lesemodus geöffnet worden. Bitte später wieder.');
+    } else {
+        smQ('INSERT INTO throttle (k, fails, last) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET fails = fails + 1, last = excluded.last', [$k, time()]);
+        $html = null;
+        $fcUsed = false;
+        // Auf Wunsch über Firecrawl (für Seiten, die nur mit JavaScript laufen oder Abrufe vom Server sperren). Kostet 1 Credit.
+        if ($post && ($_POST['do'] ?? '') === 'firecrawl') {
+            $why = smProvBlock('firecrawl', 'web', $me['id']);
+            if ($why !== '') {
+                $err = 'Firecrawl: ' . smBlockText('firecrawl', $why);
+            } elseif (!smProvReserve('firecrawl', 'read', $me['id'], 1)) {
+                $err = 'Firecrawl: ' . smBlockText('firecrawl', 'limit');
+            } else {
+                $res = smHttpMulti(['x' => ['url' => smProvBase('firecrawl', 'https://api.firecrawl.dev/') . 'v2/scrape', 'method' => 'POST',
+                    'headers' => ['Accept: application/json', 'Content-Type: application/json', 'Authorization: Bearer ' . trim(smProvGet('firecrawl', 'key'))],
+                    'body' => json_encode(['url' => $u, 'formats' => ['rawHtml'], 'onlyMainContent' => false, 'blockAds' => true, 'timeout' => 30000])]], 40)['x'];
+                $d = json_decode($res['body'], true);
+                if ($res['status'] === 200 && is_string($d['data']['rawHtml'] ?? null)) {
+                    $html = $d['data']['rawHtml'];
+                    $fcUsed = true;
+                    $real = $d['data']['metadata']['creditsUsed'] ?? null;
+                    if (is_numeric($real) && (float)$real !== 1.0) smUsageAdd('firecrawl', 'read', $me['id'], (float)$real - 1, 0);
+                } else {
+                    smUsageAdd('firecrawl', 'read', $me['id'], -1, -1);
+                    $err = smProvErrorText('firecrawl', $res, is_array($d) ? $d : null)[0];
+                }
+            }
+        }
+        if ($err === '') {
+            $r = smReadPage($u, $html);
+            $r['firecrawl'] = $fcUsed;
+        }
+    }
+    if ($r && $r['ok'] && $view === 'all' && !empty($r['alt'])) {
+        $r['blocks'] = $r['alt'];
+        $r['kind'] = 'article';
+        $r['was_recipe'] = true;
+    }
+    header('X-Robots-Tag: noindex, nofollow, noarchive');
+    smRender('read', ['me' => $me, 'prefs' => smPrefs($me), 'u' => $u, 'r' => $r, 'error' => $err, 'view' => $view,
+                      'title' => ($r['title'] ?? '') !== '' ? $r['title'] . ' – ' . t('Lesemodus') : t('Lesemodus')]);
 }

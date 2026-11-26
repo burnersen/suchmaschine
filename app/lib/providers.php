@@ -476,18 +476,23 @@ function smBlockText(string $id, string $why): string
  * Liefert [Liste, übersprungene Dienste mit Grund]. Mit Lastverteilung rücken Dienste, die schneller verbrauchen,
  * als ihr Kontingent bis zum Reset erlaubt, nach hinten.
  */
-function smProvPick(string $kind, int $userId, ?string $forced, int $page): array
+function smProvPick(string $kind, int $userId, ?string $forced, int $page, int $older = 0): array
 {
     $list = [];
     $skip = [];
     $ids = $forced !== null ? [$forced] : smProvOrder(false);
+    // Ältere News (über eine Woche): Brave hat dort fast nichts mehr im Index. Exa, Firecrawl und Tavily können einen genauen Zeitraum.
+    if ($forced === null && $older >= 7) {
+        $range = array_values(array_intersect(['exa', 'firecrawl', 'tavily'], $ids));
+        $ids = array_values(array_unique(array_merge($range, $ids)));
+    }
     foreach ($ids as $id) {
         $why = smProvBlock($id, $kind, $userId);
         if ($why === '' && $page > 1 && !smProviders()[$id]['paging']) $why = 'paging';
         if ($why === '') { $list[] = $id; continue; }
         if (!in_array($why, ['off', 'kind'], true) || $forced !== null) $skip[$id] = $why;
     }
-    if ($forced === null && count($list) > 1 && smSetting('balance') === '1') {
+    if ($forced === null && count($list) > 1 && smSetting('balance') === '1' && $older < 7) {
         $pace = [];
         foreach ($list as $i => $id) $pace[$id] = [smProvForecast($id)['pace'] > 1.0 ? 1 : 0, $i];
         $first = $list[0];
@@ -506,12 +511,14 @@ function smProvPick(string $kind, int $userId, ?string $forced, int $page): arra
 function smSearchParams(string $kind, string $q, array $o): array
 {
     return [
-        'kind' => $kind, 'q' => $q, 'page' => max(1, min(10, (int)($o['page'] ?? 1))),
+        'kind' => $kind, 'q' => $q, 'page' => $kind === 'images' ? 1 : max(1, min(10, (int)($o['page'] ?? 1))),
         'country' => (string)($o['country'] ?? 'ALL'), 'lang' => (string)($o['search_lang'] ?? 'en'),
         'safe' => (string)($o['safesearch'] ?? 'moderate'), 'fresh' => isset(smFreshness()[$o['freshness'] ?? '']) ? (string)($o['freshness'] ?? '') : '',
         'exact' => !empty($o['exact']), 'count' => !empty($o['endless']) ? 20 : max(5, min(20, (int)smSetting('per_page'))),
         'answer' => $kind === 'web' && smSetting('answers') === '1' && max(1, (int)($o['page'] ?? 1)) === 1,
         'ui' => smLang(),
+        // Ältere News: nur Meldungen, die mindestens so viele Tage alt sind (genauer Zeitraum bei Exa, Firecrawl, Tavily)
+        'older' => $kind === 'news' ? max(0, min(365, (int)($o['older'] ?? 0))) : 0,
     ];
 }
 
@@ -534,7 +541,7 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
         return $hit;
     }
 
-    [$list, $skip] = smProvPick($kind, $userId, $forced, $params['page']);
+    [$list, $skip] = smProvPick($kind, $userId, $forced, $params['page'], $params['older']);
     $errors = [];
     foreach ($list as $id) {
         try {
@@ -793,6 +800,11 @@ function smProvRequest(string $id, array $p, string $key): array
 {
     $json = ['Accept: application/json', 'Content-Type: application/json'];
     $days = ['pd' => 1, 'pw' => 7, 'pm' => 31, 'py' => 365][$p['fresh']] ?? 0;
+    // Genauer Zeitraum für ältere News: von vor $days bis vor $older Tagen (auf die Stunde gerundet, damit der Zwischenspeicher greift)
+    $older = (int)($p['older'] ?? 0);
+    $hour = intdiv(time(), 3600) * 3600;
+    $from = $hour - max($days, $older + 1) * 86400;
+    $to = $hour - $older * 86400;
     $country = $p['country'] !== 'ALL' && $p['country'] !== '' ? $p['country'] : '';
     switch ($id) {
         case 'brave':
@@ -800,14 +812,15 @@ function smProvRequest(string $id, array $p, string $key): array
             switch ($p['kind']) {
                 case 'images':
                     $path = 'images/search';
-                    $q['count'] = 100;
+                    $q['count'] = 200;   // mehr gibt Brave nicht, Blättern kann die Bildersuche nicht
                     $q['safesearch'] = $p['safe'] === 'off' ? 'off' : 'strict';   // Bilder kennen nur off/strict
                     unset($q['ui_lang']);
                     break;
                 case 'news':
                 case 'videos':
                     $path = $p['kind'] . '/search';
-                    $q['count'] = 20;
+                    // News: 50 auf einmal, das ist meist alles vom Tag in einer einzigen Anfrage
+                    $q['count'] = $p['kind'] === 'news' ? 50 : 20;
                     $q['offset'] = $p['page'] - 1;
                     break;
                 default:
@@ -823,7 +836,9 @@ function smProvRequest(string $id, array $p, string $key): array
         case 'tavily':
             $b = ['query' => $p['q'], 'search_depth' => 'basic', 'max_results' => 10, 'topic' => $p['kind'] === 'news' ? 'news' : 'general',
                   'include_answer' => $p['answer'] ? 'basic' : false, 'include_published_date' => true];
-            if ($days) $b['time_range'] = ['1' => 'day', '7' => 'week', '31' => 'month', '365' => 'year'][(string)$days];
+            if ($older > 0) { $b['start_date'] = gmdate('Y-m-d', $from); $b['end_date'] = gmdate('Y-m-d', $to); }
+            elseif ($days) $b['time_range'] = ['1' => 'day', '7' => 'week', '31' => 'month', '365' => 'year'][(string)$days];
+            if ($p['kind'] === 'news') $b['max_results'] = 20;
             if ($country !== '' && $p['kind'] !== 'news' && ($cn = smTavilyCountry($country)) !== '') $b['country'] = $cn;
             if ($p['safe'] === 'strict') $b['safe_search'] = true;
             return ['url' => smProvBase('tavily', 'https://api.tavily.com/') . 'search', 'method' => 'POST',
@@ -831,8 +846,9 @@ function smProvRequest(string $id, array $p, string $key): array
 
         case 'exa':
             $b = ['query' => $p['q'], 'type' => 'auto', 'numResults' => 10, 'contents' => ['text' => ['maxCharacters' => 320]]];
-            if ($p['kind'] === 'news') $b['category'] = 'news';
-            if ($days) $b['startPublishedDate'] = gmdate('Y-m-d\TH:i:s\Z', time() - $days * 86400);
+            if ($p['kind'] === 'news') { $b['category'] = 'news'; $b['numResults'] = 25; }
+            if ($older > 0) { $b['startPublishedDate'] = gmdate('Y-m-d\TH:i:s\Z', $from); $b['endPublishedDate'] = gmdate('Y-m-d\TH:i:s\Z', $to); }
+            elseif ($days) $b['startPublishedDate'] = gmdate('Y-m-d\TH:i:s\Z', time() - $days * 86400);
             if ($country !== '') $b['userLocation'] = $country;
             return ['url' => smProvBase('exa', 'https://api.exa.ai/') . 'search', 'method' => 'POST',
                     'headers' => array_merge($json, ['x-api-key: ' . $key]), 'body' => json_encode($b)];
@@ -847,7 +863,9 @@ function smProvRequest(string $id, array $p, string $key): array
 
         case 'firecrawl':
             $b = ['query' => mb_substr($p['q'], 0, 500), 'limit' => 10, 'sources' => [['type' => $p['kind'] === 'news' ? 'news' : 'web']], 'timeout' => 14000];
-            if ($days) $b['tbs'] = 'qdr:' . ['1' => 'd', '7' => 'w', '31' => 'm', '365' => 'y'][(string)$days];
+            if ($older > 0) $b['tbs'] = 'cdr:1,cd_min:' . date('n/j/Y', $from) . ',cd_max:' . date('n/j/Y', $to);
+            elseif ($days) $b['tbs'] = 'qdr:' . ['1' => 'd', '7' => 'w', '31' => 'm', '365' => 'y'][(string)$days];
+            if ($p['kind'] === 'news') $b['limit'] = 20;
             if ($country !== '') $b['country'] = $country;
             if ($p['safe'] === 'strict') $b['safe'] = true;
             return ['url' => smProvBase('firecrawl', 'https://api.firecrawl.dev/') . 'v2/search', 'method' => 'POST',

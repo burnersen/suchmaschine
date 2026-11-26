@@ -455,7 +455,7 @@ function smExternalRedirect(string $url, string $title, string $msg = '', int $d
        . '<meta charset="utf-8"><meta name="referrer" content="no-referrer">'
        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
        . '<meta http-equiv="refresh" content="' . max(0, $delay) . ';url=' . h($url) . '"><title>' . h($quiet ? smSiteName() : $title) . '</title>'
-       . '<link rel="stylesheet" href="' . h(smAsset('app.css')) . '">'
+       . '<link rel="stylesheet" href="' . h(smAsset('app.css')) . '"><link rel="stylesheet" href="' . h(smLookUrl(smLook(smUser()))) . '">'
        . '<main class="redir' . ($quiet ? ' redir--quiet' : '') . '">' . ($msg !== '' ? '<p class="redir__msg">' . h($msg) . '</p>' : '')
        . '<p><a class="btn btn--primary" href="' . h($url) . '" rel="noopener noreferrer">' . h($msg !== '' ? t('Jetzt weiter') : t('Weiter')) . '</a>'
        . ($msg !== '' ? ' <a class="btn" href="' . h(smBase()) . '">' . h(t('Abbrechen')) . '</a>' : '') . '</p></main>';

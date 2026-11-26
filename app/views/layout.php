@@ -28,6 +28,7 @@ $flash = smFlash();
 <link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?>" href="<?= h(smUrl(['a' => 'opensearch'])) ?>">
 <?php endif; ?>
 <link rel="stylesheet" href="<?= h(smAsset('app.css')) ?>">
+<link rel="stylesheet" href="<?= h(smLookUrl(smLook($me ?? null))) ?>">
 <script src="<?= h(smAsset('app.js')) ?>" defer></script>
 </head>
 <body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?>>
