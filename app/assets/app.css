@@ -793,7 +793,8 @@ input[type="file"] { font-size: 14px; max-width: 100%; }
 .ia__big .btn { vertical-align: middle; margin-left: 8px; }
 .ia__form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ia__form input[type="text"] { width: 140px; height: 40px; }
-.ia__form select { height: 40px; }
+.ia__form select { height: 40px; width: auto; flex: 0 1 auto; min-width: 96px; }
+.ia__form > span { color: var(--text-3); }
 .ia__web { margin-top: 6px !important; font-size: 14px; }
 .ia__qr { display: grid; place-items: start; }
 .ia__qr img { width: 220px; height: 220px; border-radius: 12px; border: 1px solid var(--line); background: #fff; padding: 6px; image-rendering: pixelated; }
@@ -1114,3 +1115,5 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .timer__sound { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .timer__sound label { display: flex; align-items: center; gap: 8px; }
 .timer__sound select { width: auto; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+.form__sub { margin: 10px 0 -4px; padding-top: 14px; border-top: 1px solid var(--line-2); font-size: 15px; font-weight: 600; }
+.prov__steps { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; color: var(--text-2); display: grid; gap: 4px; }

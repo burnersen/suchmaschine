@@ -228,6 +228,7 @@ function smConfigKeys(): array
         'multi_set'     => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
         'warn_pct'      => $int(10, 100),
         'weather_src'   => $in(array_keys(smWeatherSources())),
+        'look'          => function ($v) { $a = is_string($v) ? json_decode($v, true) : null; return is_array($a) ? json_encode(smLookClean($a)) : null; },
         'api_key'       => $key,
     ] + smProvConfigKeys($int, $key);
 }

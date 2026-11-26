@@ -21,6 +21,7 @@ case 'calc': ?>
         <p class="ia__big"><output><?= h(smFmtNumber($c['result'], 2)) ?></output> <?= h($c['to']) ?></p>
         <p class="muted small">1 <?= h($c['from']) ?> = <?= h(smFmtNumber($c['rate'], 6)) ?> <?= h($c['to']) ?> · 1 <?= h($c['to']) ?> = <?= h(smFmtNumber(1 / $c['rate'], 6)) ?> <?= h($c['from']) ?>
             · <?= h(t('Referenzkurs der EZB vom %s (über frankfurter.app), wird einmal am Tag aktualisiert.', $c['date'] !== '' ? smDate((int)strtotime($c['date'])) : '–')) ?></p>
+<?php if (empty($inTools)): /* unter Werkzeuge steht das Formular schon über der Karte */ ?>
         <form class="ia__form" method="get" action="<?= h(smBase()) ?>">
             <input type="text" inputmode="decimal" name="fx_a" value="<?= h($nf($c['amount'])) ?>" aria-label="<?= h(t('Betrag')) ?>">
             <select name="fx_f" aria-label="<?= h(t('Von')) ?>"><?php foreach ($c['list'] as $cc): ?><option<?= $cc === $c['from'] ? ' selected' : '' ?>><?= h($cc) ?></option><?php endforeach; ?></select>
@@ -28,6 +29,7 @@ case 'calc': ?>
             <select name="fx_t" aria-label="<?= h(t('Nach')) ?>"><?php foreach ($c['list'] as $cc): ?><option<?= $cc === $c['to'] ? ' selected' : '' ?>><?= h($cc) ?></option><?php endforeach; ?></select>
             <button type="submit" class="btn btn--small"><?= h(t('Umrechnen')) ?></button>
         </form>
+<?php endif; ?>
 <?php endif; ?>
 <?php break; case 'unit': ?>
         <p class="ia__label"><?= h(t('Einheiten umrechnen')) ?></p>

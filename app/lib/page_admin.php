@@ -4,7 +4,7 @@ defined('SM_VERSION') || exit;
 
 function smAdminTabs(): array
 {
-    return ['users' => t('Konten'), 'providers' => t('Suchdienste'), 'usage' => t('Verbrauch'), 'config' => t('Einstellungen'),
+    return ['users' => t('Konten'), 'providers' => t('Suchdienste'), 'usage' => t('Verbrauch'), 'config' => t('Einstellungen'), 'look' => t('Aussehen'),
             'backup' => t('Sicherung'), 'update' => t('Update')];
 }
 
@@ -36,6 +36,11 @@ function smPageAdmin(array $me, bool $post): void
                 break;
             case 'config':
                 $err = smSaveConfig();
+                break;
+            case 'look':
+                // Aussehen für alle Konten ohne eigenes Aussehen und für Besucher
+                smSetSetting('look', json_encode(smLookFromPost()));
+                $ok = t('Aussehen als Standard für alle gespeichert.');
                 break;
             case 'providers':
                 $err = smSaveProviders();

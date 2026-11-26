@@ -49,7 +49,7 @@ same('Rechner: Klammern', '58,5', card('(12,5 + 7) * 3')['result'] ?? null);
 same('Rechner: Prozent aufschlagen', '238', card('200 + 19%')['result'] ?? null);
 same('Rechner: Prozent von', '12', card('15% von 80')['result'] ?? null);
 same('Rechner: Wurzel', '4', card('sqrt 16')['result'] ?? null);
-same('Rechner: Potenz', '1024', card('2^10')['result'] ?? null);
+same('Rechner: Potenz (mit Tausenderpunkt)', '1.024', card('2^10')['result'] ?? null);
 check('Rechner: Division durch null gibt keine Zahl', !isset(card('1/0')['result']) || card('1/0')['result'] !== '0');
 same('Rechner: normaler Suchbegriff ist keine Rechnung', null, smInstant('katzen videos', null));
 
@@ -129,7 +129,7 @@ foreach (array_merge(glob(SM_APP . '/lib/*.php'), glob(SM_APP . '/views/*.php'))
 preg_match_all("~\\bt\\('((?:[^'\\\\]|\\\\.)*)'~", $code, $m);
 foreach (array_unique($m[1]) as $s) {
     $s = stripslashes($s);
-    if (!isset($en[$s]) && preg_match('/[a-zäöüß]/i', $s) && !preg_match('/^[A-Za-z0-9 .:,\/\-]+$/', $s)) $missing[] = $s;
+    if (!isset($en[$s]) && preg_match('/[a-zäöüß]/i', $s)) $missing[] = $s;
 }
 check('Übersetzung: alle Texte haben eine englische Fassung', !$missing, count($missing) . ' fehlen, z. B. „' . implode('“, „', array_slice($missing, 0, 5)) . '“');
 

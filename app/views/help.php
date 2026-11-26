@@ -257,9 +257,9 @@ $combos = $de ? [
     <section class="panel" id="token">
         <h2><?= h(t('Login-Token und Browser')) ?></h2>
         <ul class="bullets">
-            <li><?= h(t('Unter Einstellungen → Konto erzeugst du einen langen geheimen Login-Token (oder legst einen eigenen fest, mindestens 32 Zeichen).')) ?></li>
+            <li><?= h(t('Unter Einstellungen → Browser erzeugst du einen langen geheimen Login-Token (oder legst einen eigenen fest, mindestens 32 Zeichen).')) ?></li>
             <li><?= h(t('Wer die Suchmaschine mit ?token=… aufruft, ist sofort angemeldet und bleibt es 365 Tage. Der Token verschwindet dabei sofort aus der Adresse.')) ?></li>
-            <li><?= h(t('Als Standardsuche: die Such-Adresse mit Token in den Browser eintragen, oder in Firefox auf der Konto-Seite die Suchmaschine über das Lupen-Symbol hinzufügen.')) ?></li>
+            <li><?= h(t('Als Standardsuche: die Such-Adresse mit Token in den Browser eintragen, oder in Firefox auf der Seite Einstellungen → Browser die Suchmaschine über das Lupen-Symbol hinzufügen.')) ?></li>
             <li><?= h(t('Bangs und Sofort-Antworten funktionieren auch direkt aus der Adressleiste.')) ?></li>
             <li><?= h(t('Token weitergegeben? Neu erzeugen und „Alle anderen Geräte abmelden“.')) ?></li>
         </ul>

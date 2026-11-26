@@ -4,13 +4,14 @@ defined('SM_VERSION') || exit;
 
 function smSettingsTabs(): array
 {
-    return ['search' => t('Suche'), 'look' => t('Aussehen'), 'domains' => t('Domains'), 'bangs' => t('Bangs'), 'lenses' => t('Linsen'), 'account' => t('Konto')];
+    return ['search' => t('Suche'), 'look' => t('Aussehen'), 'domains' => t('Domains'), 'bangs' => t('Bangs'), 'lenses' => t('Linsen'), 'browser' => t('Browser'), 'account' => t('Konto')];
 }
 
 function smPageSettings(array $me, bool $post): void
 {
     $tab = (string)($_GET['tab'] ?? 'search');
     if (!isset(smSettingsTabs()[$tab])) $tab = 'search';
+    if ($tab === 'look' && ($_GET['default'] ?? '') === '1' && $me['is_admin'] && !$post) smRedirect(smUrl(['a' => 'admin', 'tab' => 'look']));
 
     if ($post) {
         $do = (string)($_POST['do'] ?? '');
@@ -160,7 +161,7 @@ function smPageSettings(array $me, bool $post): void
     if ($tab === 'lenses' && isset($_GET['edit'])) {
         foreach (smCleanLenses($me['prefs']['lenses'] ?? []) as $l) if ($l['id'] === $_GET['edit']) $edit = $l;
     }
-    $token = in_array($tab, ['search', 'account'], true) ? smTokenGet($me['id']) : '';
+    $token = $tab === 'browser' ? smTokenGet($me['id']) : '';
     smRender('settings', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Einstellungen'), 'tab' => $tab, 'edit' => $edit,
         'token' => $token, 'osToken' => $token]);
 }
