@@ -88,13 +88,20 @@ case 'calc': ?>
         <p><button type="button" class="btn btn--small" data-reroll="random"><?= h(t('Neue Zahl')) ?></button> <span class="muted small"><?= h(t('Auch: „zufallszahl 1-6“, „random 10 to 20“')) ?></span></p>
 <?php break; case 'timer': ?>
         <p class="ia__label"><?= h($c['watch'] ? t('Stoppuhr') : t('Timer')) ?></p>
-        <div class="timer" data-timer data-sec="<?= (int)$c['sec'] ?>" data-done="<?= h(t('Zeit ist um!')) ?>">
+<?php $snd = []; foreach (smSounds() as $sk => $sn) $snd[$sk] = smUrl(['a' => 'asset', 'f' => 'sounds/' . $sk . '.mp3', 'v' => SM_VERSION]); ?>
+        <div class="timer" data-timer data-sec="<?= (int)$c['sec'] ?>" data-done="<?= h(t('Zeit ist um!')) ?>" data-sounds="<?= h(json_encode($snd)) ?>">
             <p class="ia__big timer__show" data-timer-show><?= $c['watch'] ? '00:00' : h(sprintf('%02d:%02d', intdiv($c['sec'], 60), $c['sec'] % 60)) ?></p>
             <p><button type="button" class="btn btn--primary btn--small" data-timer-start data-label-pause="<?= h(t('Pause')) ?>" data-label-go="<?= h(t('Start')) ?>"><?= h(t('Start')) ?></button>
-               <button type="button" class="btn btn--small" data-timer-reset><?= h(t('Zurücksetzen')) ?></button></p>
+               <button type="button" class="btn btn--small" data-timer-reset><?= h(t('Zurücksetzen')) ?></button>
+               <button type="button" class="btn btn--small btn--danger" data-timer-mute hidden><?= h(t('Ton aus')) ?></button></p>
+<?php if (!$c['watch']): ?>
+            <p class="timer__sound" data-timer-sound hidden><label><?= h(t('Ton')) ?>
+                <select data-sound-pick><?php foreach (smSounds() as $sk => $sn): ?><option value="<?= h($sk) ?>"><?= h($sn) ?></option><?php endforeach; ?><option value=""><?= h(t('kein Ton')) ?></option></select></label>
+                <button type="button" class="btn btn--small" data-sound-test><?= h(t('Ton testen')) ?></button></p>
+<?php endif; ?>
             <noscript><p class="muted small"><?= h(t('Der Timer braucht JavaScript.')) ?></p></noscript>
         </div>
-        <p class="muted small"><?= h(t('Auch: „timer 90 s“, „timer 1,5 h“, „stoppuhr“. Am Ende piept es, solange der Tab offen ist.')) ?></p>
+        <p class="muted small"><?= h(t('Auch: „timer 90 s“, „timer 1,5 h“, „stoppuhr“. Am Ende klingt der gewählte Ton, bis du „Ton aus“ drückst (höchstens eine Minute), solange der Tab offen ist. Am Handy den Lautlos-Schalter beachten.')) ?></p>
 <?php break; case 'countdown': ?>
         <p class="ia__label"><?= h(t('Countdown bis %s', $c['label'])) ?></p>
         <p class="ia__big" data-countdown data-ts="<?= (int)$c['ts'] ?>" data-l-days="<?= h(t('Tage')) ?>" data-l-done="<?= h(t('Geschafft!')) ?>"><?= h(t('%d Tage', max(0, (int)ceil(($c['ts'] - time()) / 86400)))) ?></p>

@@ -196,6 +196,8 @@ function smServeAsset(): void
     $types = ['app.css' => 'text/css; charset=utf-8', 'app.js' => 'text/javascript; charset=utf-8', 'pdf.js' => 'text/javascript; charset=utf-8', 'icon.svg' => 'image/svg+xml',
               'icon-180.png' => 'image/png', 'icon-192.png' => 'image/png', 'icon-512.png' => 'image/png'];
     $f = isset($_GET['f']) && is_string($_GET['f']) ? $_GET['f'] : '';
+    // Töne für Timer und Co. (selbst erzeugt, siehe app/assets/sounds/LIESMICH.txt)
+    if (preg_match('~^sounds/[a-z]{2,20}\.mp3$~', $f)) $types[$f] = 'audio/mpeg';
     if (!isset($types[$f]) || !is_file(SM_APP . '/assets/' . $f)) {
         http_response_code(404);
         exit;
