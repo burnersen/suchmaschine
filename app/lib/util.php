@@ -81,7 +81,7 @@ function smHeaders(bool $html = false): void
     if (smIsHttps()) header('Strict-Transport-Security: max-age=31536000');
     if ($html) {
         header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; "
-            . "img-src 'self' data: blob: https://imgs.search.brave.com; font-src 'self'; connect-src 'self'; manifest-src 'self'; "
+            . "img-src 'self' data: blob: https://imgs.search.brave.com; font-src 'self'; media-src 'self'; connect-src 'self'; manifest-src 'self'; "
             . "frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     } else {
         header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");

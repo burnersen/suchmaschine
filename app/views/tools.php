@@ -119,7 +119,7 @@ case 'rechner': ?>
             </div>
         </form>
 <?php $result('timer'); ?>
-        <p class="muted small"><?= h(t('Am Ende piept es dreimal, auf dem Handy vibriert es. Die Zeit steht auch im Tab-Titel.')) ?></p>
+        <p class="muted small"><?= h(t('Sechs Töne zur Auswahl, mit „Ton testen“ vorher anhören. Auf dem Handy vibriert es zusätzlich, die Zeit steht auch im Tab-Titel.')) ?></p>
 <?php break; case 'countdown': ?>
         <?= $form('countdown') ?>
             <div class="form__row form__row--tool">

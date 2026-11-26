@@ -719,20 +719,68 @@
         }
         tick(); setInterval(tick, 1000);
     });
+    /* Töne: echte Audiodateien vom eigenen Server. Browser erlauben Ton nur nach einem Fingertipp, darum wird er beim Start
+       (oder beim Testen) freigeschaltet. Ohne Datei bleibt als Rückfall ein erzeugter Piepton. */
+    var actx = null, player = null;
+    function unlockSound(url) {
+        try {
+            var A = window.AudioContext || window.webkitAudioContext;
+            if (A && !actx) actx = new A();
+            if (actx && actx.state === 'suspended') actx.resume();
+        } catch (e) {}
+        if (!player && window.Audio) player = new Audio();
+        if (player && url) {
+            if (player.getAttribute('data-src') !== url) { player.src = url; player.setAttribute('data-src', url); player.load(); }
+            var was = player.muted;
+            player.muted = true;
+            var p = player.play();
+            var undo = function () { player.pause(); player.currentTime = 0; player.muted = was; };
+            if (p && p.then) p.then(undo, function () { player.muted = was; }); else undo();
+        }
+    }
     function beep() {
         try {
-            var A = window.AudioContext || window.webkitAudioContext, ctx = new A();
+            if (!actx) return;
             [0, 0.35, 0.7].forEach(function (t) {
-                var o = ctx.createOscillator(), gn = ctx.createGain();
-                o.frequency.value = 880; o.connect(gn); gn.connect(ctx.destination);
-                gn.gain.setValueAtTime(0.25, ctx.currentTime + t); gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
-                o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.3);
+                var o = actx.createOscillator(), gn = actx.createGain();
+                o.frequency.value = 880; o.connect(gn); gn.connect(actx.destination);
+                gn.gain.setValueAtTime(0.25, actx.currentTime + t); gn.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + t + 0.3);
+                o.start(actx.currentTime + t); o.stop(actx.currentTime + t + 0.3);
             });
         } catch (e) {}
+    }
+    function playOnce(url) {
+        if (!url) return;
+        if (player) {
+            player.muted = false;
+            player.currentTime = 0;
+            var p = player.play();
+            if (p && p.catch) p.catch(beep);
+        } else beep();
     }
     $$('[data-timer]').forEach(function (tm) {
         var total = parseInt(tm.getAttribute('data-sec'), 10) || 0, watch = total === 0;
         var show = $('[data-timer-show]', tm), go = $('[data-timer-start]', tm), reset = $('[data-timer-reset]', tm);
+        var sounds = JSON.parse(tm.getAttribute('data-sounds') || '{}'), pick = $('[data-sound-pick]', tm), mute = $('[data-timer-mute]', tm);
+        var ringIv = 0, ringEnd = 0;
+        if (pick) {
+            $('[data-timer-sound]', tm).hidden = false;
+            try { var saved = localStorage.getItem('sm_sound'); if (saved !== null) pick.value = saved; } catch (e) {}
+            pick.addEventListener('change', function () { try { localStorage.setItem('sm_sound', pick.value); } catch (e) {} unlockSound(sounds[pick.value]); });
+            $('[data-sound-test]', tm).addEventListener('click', function () { unlockSound(sounds[pick.value]); setTimeout(function () { playOnce(sounds[pick.value]); }, 60); });
+        }
+        var soundUrl = function () { return pick ? sounds[pick.value] || '' : ''; };
+        function stopRing() { clearInterval(ringIv); ringIv = 0; if (player) player.pause(); if (mute) mute.hidden = true; }
+        function ring() {
+            var url = soundUrl();
+            if (!url) return;
+            stopRing();
+            ringEnd = Date.now() + 60000;
+            playOnce(url);
+            ringIv = setInterval(function () { if (Date.now() > ringEnd) { stopRing(); return; } playOnce(url); }, 3500);
+            if (mute) mute.hidden = false;
+        }
+        if (mute) mute.addEventListener('click', stopRing);
         var left = total * 1000, run = false, last = 0, iv = 0, title = document.title;
         function fmt(ms) {
             var s = Math.round(ms / 1000), h = Math.floor(s / 3600);
@@ -742,7 +790,7 @@
         function step() {
             var now = Date.now(); left += watch ? now - last : -(now - last); last = now;
             if (!watch && left <= 0) {
-                left = 0; stop(); draw(); tm.classList.add('is-done'); show.textContent = tm.getAttribute('data-done'); document.title = '⏰ ' + title; beep();
+                left = 0; stop(); draw(); tm.classList.add('is-done'); show.textContent = tm.getAttribute('data-done'); document.title = '⏰ ' + title; ring();
                 if ('vibrate' in navigator) navigator.vibrate([300, 150, 300]);
                 return;
             }
@@ -750,12 +798,14 @@
         }
         function stop() { run = false; clearInterval(iv); go.textContent = go.getAttribute('data-label-go'); }
         go.addEventListener('click', function () {
+            stopRing();
             if (run) { stop(); document.title = title; return; }
+            if (!watch) unlockSound(soundUrl());   // jetzt, beim Fingertipp, damit der Ton am Ende spielen darf
             if (!watch && left <= 0) left = total * 1000;
             tm.classList.remove('is-done');
             run = true; last = Date.now(); iv = setInterval(step, watch ? 100 : 250); go.textContent = go.getAttribute('data-label-pause');
         });
-        reset.addEventListener('click', function () { stop(); left = watch ? 0 : total * 1000; tm.classList.remove('is-done'); document.title = title; draw(); });
+        reset.addEventListener('click', function () { stopRing(); stop(); left = watch ? 0 : total * 1000; tm.classList.remove('is-done'); document.title = title; draw(); });
     });
 
     /* ---------- QR-Generator unter Werkzeuge: Vorschau beim Tippen ---------- */

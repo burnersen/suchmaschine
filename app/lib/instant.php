@@ -769,6 +769,12 @@ function smServeShort(string $code): void
     exit;
 }
 
+/** Töne für Timer und Hinweise: Kürzel => Name (Dateien in app/assets/sounds/, selbst erzeugt, frei verwendbar) */
+function smSounds(): array
+{
+    return ['glocke' => t('Glocke'), 'gong' => t('Gong'), 'dingdong' => t('Ding-Dong'), 'sanft' => t('Sanfte Tonfolge'), 'vogel' => t('Vogelzwitschern'), 'wecker' => t('Wecker')];
+}
+
 /* ---------- Datumsrechner, Alter, Feiertage, Losen und Gruppen (seit 1.4.1) ---------- */
 
 /** Datum aus „12.05.1940“, „12.5.40“, „2026-11-26“, „heute“, „morgen“, „gestern“. Liefert Mitternacht oder null. */

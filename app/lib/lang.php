@@ -442,6 +442,18 @@ function smEnglish(): array
 function smEnglishMore(): array
 {
     return [
+        'Glocke' => 'Bell',
+        'Gong' => 'Gong',
+        'Ding-Dong' => 'Ding-dong',
+        'Sanfte Tonfolge' => 'Gentle chime',
+        'Vogelzwitschern' => 'Birdsong',
+        'Wecker' => 'Alarm clock',
+        'Ton' => 'Sound',
+        'kein Ton' => 'no sound',
+        'Ton testen' => 'Test sound',
+        'Ton aus' => 'Sound off',
+        'Auch: „timer 90 s“, „timer 1,5 h“, „stoppuhr“. Am Ende klingt der gewählte Ton, bis du „Ton aus“ drückst (höchstens eine Minute), solange der Tab offen ist. Am Handy den Lautlos-Schalter beachten.' => 'Also: “timer 90 s”, “timer 1.5 h”, “stopwatch”. At the end the chosen sound plays until you press “Sound off” (at most one minute), as long as the tab is open. Mind the silent switch on phones.',
+        'Sechs Töne zur Auswahl, mit „Ton testen“ vorher anhören. Auf dem Handy vibriert es zusätzlich, die Zeit steht auch im Tab-Titel.' => 'Six sounds to choose from, listen first with “Test sound”. Phones also vibrate, and the time shows in the tab title.',
         '%d Gruppen, zufällig eingeteilt' => '%d groups, randomly assigned',
         '%d Jahre' => '%d years',
         '%s Tage' => '%s days',

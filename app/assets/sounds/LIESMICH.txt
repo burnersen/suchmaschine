@@ -1,0 +1,7 @@
+Töne der Suchmaschine (glocke, gong, dingdong, sanft, vogel, wecker)
+
+Alle Töne sind rein rechnerisch erzeugt (Sinusschwingungen mit Ausklingen, kein Sample, keine fremde Aufnahme).
+Es gibt daran keine Rechte Dritter. Sie stehen unter derselben Lizenz wie die Suchmaschine (AGPL-3.0) und dürfen
+zusätzlich frei verwendet werden (CC0 1.0, gemeinfrei), auch in anderen Projekten und gewerblich.
+
+Format: MP3, mono, 96 kbit/s.

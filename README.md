@@ -226,6 +226,8 @@ Unter **Werkzeuge** (Menü oben rechts oder Startseite) stehen alle kleinen Helf
 
 Alles funktioniert auch ohne JavaScript. Mit JavaScript laufen Timer und Stoppuhr live, und der Rechner hat ein Tastenfeld zum Antippen.
 
+**Töne:** Für den Timer gibt es sechs Töne (Glocke, Gong, Ding-Dong, sanfte Tonfolge, Vogelzwitschern, Wecker) mit „Ton testen“. Sie sind rein rechnerisch erzeugt, ohne fremde Aufnahmen, und liegen als MP3 in `app/assets/sounds/`. Frei verwendbar (CC0), auch in anderen Projekten.
+
 ### Filter, Sortierung, Ergebnis-Menü
 
 - **Nach Datum sortieren (neueste zuerst):** streng chronologisch, Treffer ohne Datum ans Ende. Bei aktivem Zeitfilter automatisch.
