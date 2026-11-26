@@ -99,6 +99,51 @@ case 'calc': ?>
         <p class="ia__label"><?= h(t('Countdown bis %s', $c['label'])) ?></p>
         <p class="ia__big" data-countdown data-ts="<?= (int)$c['ts'] ?>" data-l-days="<?= h(t('Tage')) ?>" data-l-done="<?= h(t('Geschafft!')) ?>"><?= h(t('%d Tage', max(0, (int)ceil(($c['ts'] - time()) / 86400)))) ?></p>
         <p><?= h(smLongDate($c['ts'])) ?></p>
+<?php break; case 'datecalc': ?>
+<?php if ($c['mode'] === 'diff'): ?>
+        <p class="ia__label"><?= h(t('Datumsrechner')) ?></p>
+        <p class="ia__big"><?= h(t('%s Tage', smFmtNumber(abs($c['days'])))) ?></p>
+        <p><?= h(smLongDate($c['a'])) ?> → <?= h(smLongDate($c['b'])) ?></p>
+        <p class="muted small"><?= h(t('Das sind %d Wochen und %d Tage, davon %d Werktage (Montag bis Freitag, ohne Feiertage). Der Endtag zählt nicht mit.', $c['weeks'], $c['rest'], $c['work'])) ?></p>
+<?php elseif ($c['mode'] === 'add'): ?>
+        <p class="ia__label"><?= h(t('Datumsrechner')) ?></p>
+        <p class="ia__big"><?= h(smLongDate($c['b'])) ?></p>
+        <p class="muted small"><?= h(smDate($c['a'])) ?> <?= h($c['sign']) ?> <?= h($c['n'] . ' ' . ['day' => t('Tage'), 'week' => t('Wochen'), 'month' => t('Monate'), 'year' => t('Jahre')][$c['unit']]) ?>
+            · <?= h($c['days'] === 0 ? t('das ist heute') : ($c['days'] > 0 ? t('in %d Tagen', $c['days']) : t('vor %d Tagen', -$c['days']))) ?> · <?= h(t('KW %d', (int)date('W', $c['b']))) ?></p>
+<?php else: ?>
+        <p class="ia__label"><?= h(t('Alter')) ?></p>
+        <p class="ia__big"><?= h(t('%d Jahre', $c['years'])) ?></p>
+        <p><?= h(t('Geboren am %s', smLongDate($c['a']))) ?></p>
+        <p class="muted small"><?= h($c['until'] === 0 ? t('Heute ist der Geburtstag! Herzlichen Glückwunsch zum %d.', $c['years']) : t('Nächster Geburtstag: %s, in %d Tagen (wird %d)', smLongDate($c['next']), $c['until'], $c['turns'])) ?>
+            · <?= h(t('%s Tage auf der Welt', smFmtNumber($c['lived']))) ?></p>
+<?php endif; ?>
+<?php break; case 'holidays': ?>
+        <p class="ia__label"><?= h(t('Feiertage %d', $c['year'])) ?> · <?= h($c['state'] !== '' ? smStates()[$c['state']] : t('alle Bundesländer')) ?></p>
+<?php if ($c['next']): ?>        <p><?= h(t('Nächster Feiertag: %s, %s', $c['next']['name'], smLongDate($c['next']['ts']))) ?> <span class="muted">(<?= h(t('in %d Tagen', max(0, smDayDiff(mktime(0, 0, 0), $c['next']['ts'])))) ?>)</span></p><?php endif; ?>
+        <table class="table ia__table">
+<?php foreach ($c['list'] as $hd): ?>
+            <tr<?= $hd['ts'] < mktime(0, 0, 0) ? ' class="is-past"' : '' ?>><td><?= h(smLongDate($hd['ts'])) ?></td><td><strong><?= h($hd['name']) ?></strong>
+<?php if ($c['state'] === '' && $hd['where'] !== ''): ?><br><small class="muted"><?= h(t('nur in: %s', $hd['where'])) ?></small><?php endif; ?>
+<?php if ($hd['note'] !== ''): ?><br><small class="muted"><?= h($hd['note']) ?></small><?php endif; ?></td></tr>
+<?php endforeach; ?>
+        </table>
+        <p class="muted small"><?= h(t('Gesetzliche Feiertage, ohne Gewähr. Regionale Besonderheiten (z. B. Augsburger Friedensfest) fehlen.')) ?></p>
+<?php break; case 'pick': ?>
+<?php if ($c['mode'] === 'teams'): ?>
+        <p class="ia__label"><?= h(t('%d Gruppen, zufällig eingeteilt', count($c['groups']))) ?></p>
+        <div class="ia__teams">
+<?php foreach ($c['groups'] as $gi => $g): ?>
+            <div class="ia__team"><strong><?= h(t('Gruppe %d', $gi + 1)) ?></strong><ul><?php foreach ($g as $n): ?><li><?= h($n) ?></li><?php endforeach; ?></ul></div>
+<?php endforeach; ?>
+        </div>
+<?php elseif ($c['mode'] === 'order'): ?>
+        <p class="ia__label"><?= h(t('Zufällige Reihenfolge')) ?></p>
+        <ol class="ia__order"><?php foreach ($c['names'] as $n): ?><li><?= h($n) ?></li><?php endforeach; ?></ol>
+<?php else: ?>
+        <p class="ia__label"><?= h(t('Ausgelost aus %d', count($c['names']))) ?></p>
+        <p class="ia__big"><?= h(implode(', ', array_slice($c['names'], 0, $c['n']))) ?></p>
+<?php endif; ?>
+        <p><a class="btn btn--small" href="<?= h(!empty($inTools) ? smUrl(['a' => 'tools', 'tool' => $toolId, 'ia' => $c['query']]) . '#' . $toolId : smUrl(['q' => $c['query']])) ?>"><?= h(t('Nochmal')) ?></a></p>
 <?php break; case 'weather': ?>
         <p class="ia__label"><?= h(t('Wetter')) ?><?php if (!empty($c['geo'])): ?> · <?= h(implode(', ', array_filter([$c['geo']['name'], $c['geo']['region'] !== $c['geo']['name'] ? $c['geo']['region'] : '', $c['geo']['country']]))) ?><?php endif; ?></p>
 <?php if ($c['error'] === 'noplace'): ?>
@@ -132,5 +177,7 @@ case 'calc': ?>
 <?php if ($c['geo']['cc'] === 'DE'): ?><a class="chip" href="https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html" rel="noopener noreferrer" target="_blank"><?= h(t('DWD-Unwetterwarnungen')) ?> ↗</a><?php endif; ?>
 <?php endif; ?></p>
 <?php break; endswitch; ?>
+<?php if (empty($inTools)): ?>
         <p class="ia__web"><a href="<?= h($web) ?>" data-load><?= h(t('Trotzdem im Web suchen')) ?> →</a></p>
+<?php endif; ?>
     </section>

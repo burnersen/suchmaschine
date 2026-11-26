@@ -1038,4 +1038,41 @@
             });
         });
     })();
+    /* ---------- Werkzeuge: Tastenfeld für den Rechner, passende Einheiten, Datumsrechner ---------- */
+    $$('[data-calc]').forEach(function (f) {
+        var pad = $('[data-keypad]', f), inp = $('[data-calc-in]', f);
+        if (!pad || !inp) return;
+        pad.hidden = false;
+        pad.addEventListener('click', function (ev) {
+            var b = ev.target.closest('[data-key]');
+            if (!b) return;
+            var k = b.getAttribute('data-key');
+            if (k === 'C') inp.value = '';
+            else if (k === '⌫') inp.value = inp.value.slice(0, -1);
+            else inp.value += k;
+        });
+    });
+    $$('[data-units]').forEach(function (f) {
+        var from = f.querySelector('select[name=from]'), to = f.querySelector('select[name=to]');
+        function sync() {
+            var grp = from.options[from.selectedIndex].getAttribute('data-grp');
+            $$('optgroup', to).forEach(function (og) { var on = og.getAttribute('data-grp') === grp; og.hidden = !on; og.disabled = !on; });
+            if (to.options[to.selectedIndex].getAttribute('data-grp') !== grp) {
+                var first = to.querySelector('option[data-grp="' + grp + '"]:not([value="' + from.value + '"])') || to.querySelector('option[data-grp="' + grp + '"]');
+                if (first) to.value = first.value;
+            }
+        }
+        from.addEventListener('change', sync);
+        sync();
+    });
+    $$('[data-datemode]').forEach(function (f) {
+        function sync() {
+            var m = (f.querySelector('input[name=m]:checked') || {}).value || 'diff';
+            $$('[data-dm]', f).forEach(function (el) { el.hidden = el.getAttribute('data-dm').split(' ').indexOf(m) < 0; });
+            var l = $('[data-dm-label]', f);
+            if (l) l.textContent = l.getAttribute(m === 'age' ? 'data-l-age' : 'data-l-other');
+        }
+        f.addEventListener('change', sync);
+        sync();
+    });
 })();

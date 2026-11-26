@@ -210,10 +210,21 @@ Direkt im Suchfeld, beantwortet bevor ein Suchdienst gefragt wird. Unter jeder A
 | `passwort`, `passwort 32`, `passphrase` | Passwort-Generator, läuft nur im Browser |
 | `qr https://…` | QR-Code als SVG, auf dem eigenen Server erzeugt |
 | `kurz https://…` | eigener Kurzlink (`…/?s=abc123`) |
+| `tage zwischen 1.1.2026 und 24.12.2026`, `heute + 6 wochen` | Datumsrechner mit Wochen und Werktagen |
+| `alter 12.05.1940` | Alter, nächster Geburtstag, Tage auf der Welt |
+| `feiertage 2027 bayern`, `feiertage nrw` | gesetzliche Feiertage nach Bundesland |
+| `losen: Anna, Bernd, Carla`, `teams 3: …`, `reihenfolge: …` | auslosen, Gruppen bilden, Reihenfolge mischen |
 
 ### Werkzeuge
 
-Unter **Werkzeuge** (Menü oben rechts oder Startseite): **Passwort-Generator** (Länge, Groß/Klein, Zahlen, Sonderzeichen, ohne Verwechsler, merkbare Wort-Passwörter, Kopier-Knopf, Stärke-Anzeige), **QR-Code-Generator** mit SVG-Download und deine **Kurzlinks** mit Aufrufzahlen. Kurzlinks funktionieren für jeden ohne Anmeldung und leiten direkt weiter.
+Unter **Werkzeuge** (Menü oben rechts oder Startseite) stehen alle kleinen Helfer an einem Ort, oben als Kachel-Übersicht, jeweils mit eigenen Eingabefeldern. Niemand muss wissen, was man ins Suchfeld tippt. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben.
+
+- **Rechnen und Umrechnen:** Rechner mit Tastenfeld, Einheiten (Länge, Gewicht, Temperatur, Volumen, Fläche, Geschwindigkeit, Zeit, Datenmengen), Währungen nach EZB-Kurs
+- **Zeit und Datum:** Timer mit Ton und Stoppuhr, Countdown, **Datumsrechner** (Tage zwischen zwei Daten samt Werktagen, Datum plus/minus Tage, Wochen, Monate, Jahre), **Alter und nächster Geburtstag**, **Feiertage nach Bundesland**, Kalenderwoche, Datum und Uhrzeit
+- **Zufall und Spiele:** Würfel, Münze, Zufallszahl, **Losen und Gruppen bilden** (Namen eingeben, einen auslosen, in Gruppen aufteilen oder die Reihenfolge mischen)
+- **Alltag:** Wetter, **Passwort-Generator** (Länge, Groß/Klein, Zahlen, Sonderzeichen, ohne Verwechsler, merkbare Wort-Passwörter, Kopier-Knopf, Stärke-Anzeige), **QR-Code-Generator** mit SVG-Download, deine **Kurzlinks** mit Aufrufzahlen (funktionieren für jeden ohne Anmeldung) und die eigene IP-Adresse
+
+Alles funktioniert auch ohne JavaScript. Mit JavaScript laufen Timer und Stoppuhr live, und der Rechner hat ein Tastenfeld zum Antippen.
 
 ### Filter, Sortierung, Ergebnis-Menü
 

@@ -141,7 +141,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 **Instant answers (free):** `(12.5 + 7) * 3`, `200 + 19%`, `15% of 80` (own parser, no `eval`) · `100 usd in eur` (ECB rates, cached daily) · `10 km in miles`, `20 °c in f`, `1 gib in mb` · `weather london` (German Weather Service via Bright Sky, Open-Meteo or wttr.in) · `my ip` · `week`, `week 12` · `date` · `dice`, `2d20`, `coin`, `random 1-49` · `timer 5 min`, `stopwatch`, `countdown christmas` · `password 32`, `passphrase` · `qr https://…` · `short https://…`.
 
-**Tools:** password generator (runs in the browser only), QR code generator with SVG download, your own short links (`…/?s=abc123`).
+**Tools:** all helpers in one place with their own forms and a tile overview: calculator with keypad, units, currencies, timer and stopwatch, countdown, **date calculator and age**, **public holidays by German state**, calendar week, weather, dice, coin, random number, **draw lots and make groups**, password generator (runs in the browser only), QR code generator with SVG download, your own short links (`…/?s=abc123`) and your IP address. In the search box: `days between 2026-01-01 and 2026-12-24`, `age 1940-05-12`, `holidays 2027 bavaria`, `teams 3: Anna, Ben, Clara, …`.
 
 **Filters and results:** strict sort by date (newest first, undated last), **max. 3 results per domain** (on by default), **"Reset all filters"**, a large **×** in the search box, and in the **⋮ menu**: search only this domain, archive at web.archive.org and archive.today, show as QR code, copy address.
 
