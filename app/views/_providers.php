@@ -46,8 +46,15 @@ $without = array_values(array_diff($order, $withKey));
 <?php endforeach; ?>
             </ol>
             <p class="muted small"><?= h(t('Bilder und Videos fragt die Suchmaschine automatisch nur bei Diensten, die das können (im Moment nur Brave), in dieser Reihenfolge. Kann ein anderer Dienst das auch, wird er genauso mitbenutzt.')) ?></p>
+<?php foreach (['web' => t('Websuche'), 'images' => t('Bildersuche')] as $kk => $kn):
+    [$pl, $ps] = smProvPick($kk, (int)$me['id'], null, 1);
+    $names = function (array $ids) { return array_map(function ($x) { return smProviders()[$x]['badge']; }, $ids); }; ?>
+            <p class="small provnow"><strong><?= h($kn) ?>:</strong>
+<?php if ($pl): ?> <?= h(implode(' → ', $names($pl))) ?><?php else: ?> <span class="prov__err"><?= h(t('gerade kein Dienst verfügbar')) ?></span><?php endif; ?>
+<?php foreach ($ps as $sid => $why): ?><br><span class="muted"><?= h(t('%s: %s', smProviders()[$sid]['badge'], smBlockText($sid, $why))) ?></span><?php endforeach; ?></p>
+<?php endforeach; ?>
 <?php if (smSetting('balance') === '1'): ?>
-            <p class="muted small"><?= h(t('Die Lastverteilung (unten unter „Zusammenspiel“) ist an: Verbraucht ein Dienst sein Kontingent zu schnell, gehen Suchen schon früher an den nächsten.')) ?></p>
+            <p class="muted small"><?= h(t('Die Lastverteilung (unten unter „Zusammenspiel“) ist an: Verbraucht ein Dienst sein Kontingent deutlich zu schnell, gehen Suchen schon früher an den nächsten. Soll immer deine Reihenfolge gelten, schalte sie aus.')) ?></p>
 <?php endif; ?>
             <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Reihenfolge speichern')) ?></button></div>
         </section>

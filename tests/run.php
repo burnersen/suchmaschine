@@ -215,6 +215,18 @@ check('Nicht erreichbar: nur wirklich ausgefallene', in_array('yt', $dead, true)
 smQ("DELETE FROM bang_check");
 same('Nicht erreichbar: leer, wenn alles antwortet', [], smBangSearch('', null, 'mine', 'dead', 300)['rows']);
 
+/* ---------- Reihenfolge der Suchdienste ---------- */
+foreach (['brave' => 'BSAtest', 'tavily' => 'tvly-test', 'exa' => 'exa-test'] as $pid => $pk) smProvSet($pid, 'key', $pk);
+smSetSetting('prov_order', 'exa,tavily,brave');
+smSetSetting('balance', '1');
+same('Reihenfolge: Websuche fragt zuerst den obersten Dienst', ['exa', 'tavily', 'brave'], smProvPick('web', 0, null, 1)[0]);
+same('Reihenfolge: Bilder nur bei Diensten, die Bilder können', ['brave'], smProvPick('images', 0, null, 1)[0]);
+smUsageAdd('exa', 'web', 0, 20);
+same('Lastverteilung: ein paar Suchen am Anfang ändern die Reihenfolge nicht', 'exa', smProvPick('web', 0, null, 1)[0][0] ?? null);
+smSetSetting('prov_order', 'tavily,exa,brave');
+same('Reihenfolge: Umsortieren wirkt sofort', 'tavily', smProvPick('web', 0, null, 1)[0][0] ?? null);
+foreach (['brave', 'tavily', 'exa'] as $pid) smProvSet($pid, 'key', '');
+
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
 same('Aussehen: Größe begrenzt', 150, $lk['fs']);

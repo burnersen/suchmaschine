@@ -1499,4 +1499,9 @@ return [
     'Die Lastverteilung (unten unter „Zusammenspiel“) ist an: Verbraucht ein Dienst sein Kontingent zu schnell, gehen Suchen schon früher an den nächsten.' => 'Load balancing (below under “Working together”) is on: if a service uses its quota too fast, searches go to the next one earlier.',
     'Reihenfolge speichern' => 'Save order',
     'Web' => 'Web',
+    'Websuche' => 'Web search',
+    'Bildersuche' => 'Image search',
+    'gerade kein Dienst verfügbar' => 'no service available right now',
+    'Die Lastverteilung (unten unter „Zusammenspiel“) ist an: Verbraucht ein Dienst sein Kontingent deutlich zu schnell, gehen Suchen schon früher an den nächsten. Soll immer deine Reihenfolge gelten, schalte sie aus.' => 'Load balancing (below under “Working together”) is on: if a service uses its quota much too fast, searches go to the next one earlier. To always follow your order, turn it off.',
+    '%s: %s' => '%s: %s',
 ];

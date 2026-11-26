@@ -1222,3 +1222,4 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .provsort__btns .btn { min-width: 40px; padding: 0 10px; -webkit-tap-highlight-color: transparent; }
 .provsort__btns .btn:disabled { opacity: .3; cursor: default; }
 .form__row--3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.provnow { margin: 6px 0; line-height: 1.5; }
