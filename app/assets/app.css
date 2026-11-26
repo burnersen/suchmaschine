@@ -1206,3 +1206,19 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
     input[type=color] { min-width: 40px; min-height: 40px; }
     input[type=checkbox], input[type=radio] { min-width: 22px; min-height: 22px; }
 }
+
+/* ---------- 2.1.4: Suchdienste zum Verschieben ---------- */
+.provsort { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.provsort__item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.provsort__item.is-off { opacity: .6; }
+.provsort__item.is-drag { opacity: .45; border-style: dashed; }
+.provsort__item.is-moved { border-color: var(--accent); }
+.provsort__grip { font-size: 20px; color: var(--text-3); cursor: grab; padding: 6px 2px; touch-action: none; }
+.provsort__nr { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.provsort__main { flex: 1; min-width: 0; line-height: 1.4; }
+.provsort__kinds .tag { font-size: 11px; padding: 0 7px; }
+.tag--no { background: none; color: var(--text-3); text-decoration: line-through; font-weight: 400; }
+.provsort__btns { display: flex; gap: 4px; }
+.provsort__btns .btn { min-width: 40px; padding: 0 10px; -webkit-tap-highlight-color: transparent; }
+.provsort__btns .btn:disabled { opacity: .3; cursor: default; }
+.form__row--3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }

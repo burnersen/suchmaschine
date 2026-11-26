@@ -1537,4 +1537,54 @@
     /* ---------- Hintergrundarbeit (Bang-Liste aktualisieren, Erreichbarkeit prüfen): kurz nach dem Laden, ohne auf die Antwort zu warten ---------- */
     var tick = body.getAttribute('data-tick');
     if (tick && window.fetch) setTimeout(function () { fetch(tick, { credentials: 'same-origin', keepalive: true }).catch(function () {}); }, 2500);
+    /* ---------- Verwaltung → Suchdienste: Reihenfolge durch Ziehen (Maus und Finger) oder mit den Pfeilen ---------- */
+    $$('[data-provsort]').forEach(function (list) {
+        function renumber() {
+            var all = $$('.provsort__item', list);
+            all.forEach(function (li, i) {
+                $('.provsort__nr', li).textContent = i + 1;
+                $('[data-prio]', li).value = i + 1;
+                $('[data-move="-1"]', li).disabled = i === 0;
+                $('[data-move="1"]', li).disabled = i === all.length - 1;
+            });
+        }
+        function moved(li) { li.classList.add('is-moved'); renumber(); }
+        list.addEventListener('click', function (ev) {
+            var b = ev.target.closest('[data-move]');
+            if (!b) return;
+            var li = b.closest('.provsort__item'), d = +b.getAttribute('data-move');
+            if (d < 0 && li.previousElementSibling) list.insertBefore(li, li.previousElementSibling);
+            if (d > 0 && li.nextElementSibling) list.insertBefore(li.nextElementSibling, li);
+            moved(li);
+            // Fokus bleibt auf dem Pfeil; ist der jetzt aus (ganz oben/unten), auf den anderen
+            (b.disabled ? $('[data-move="' + (-d) + '"]', li) : b).focus();
+        });
+        renumber();
+        // Ziehen mit Pointer-Events: geht mit Maus, Finger und Stift gleich
+        var drag = null;
+        list.addEventListener('pointerdown', function (ev) {
+            var li = ev.target.closest('.provsort__item');
+            if (!li || ev.target.closest('button, input, a') || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+            // Am Handy nur am Griff, damit man die Seite noch normal scrollen kann
+            if (ev.pointerType !== 'mouse' && !ev.target.closest('.provsort__grip')) return;
+            drag = li;
+            li.classList.add('is-drag');
+            li.setPointerCapture(ev.pointerId);
+            ev.preventDefault();
+        });
+        list.addEventListener('pointermove', function (ev) {
+            if (!drag) return;
+            var over = document.elementFromPoint(ev.clientX, ev.clientY);
+            var li = over && over.closest('.provsort__item');
+            if (!li || li === drag || li.parentNode !== list) return;
+            var r = li.getBoundingClientRect();
+            list.insertBefore(drag, ev.clientY > r.top + r.height / 2 ? li.nextElementSibling : li);
+            renumber();
+        });
+        function end() { if (!drag) return; drag.classList.remove('is-drag'); moved(drag); drag = null; }
+        list.addEventListener('pointerup', end);
+        list.addEventListener('pointercancel', end);
+        // Das eingebaute Ziehen des Browsers (draggable) nicht zusätzlich starten
+        list.addEventListener('dragstart', function (ev) { ev.preventDefault(); });
+    });
 })();
