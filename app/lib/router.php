@@ -15,6 +15,7 @@ function smRun(): void
     if ($a === 'appicon') smServeAppIcon();
     if ($a === 'look') smServeLook();
     if ($a === 'font') smServeFont();
+    if ($a === 'myip') smServeMyIp();
     if ($a === '' && isset($_GET['lang']) && in_array($_GET['lang'], ['de', 'en'], true)) {
         smLangCookie($_GET['lang']);
         smRedirect(smBase());

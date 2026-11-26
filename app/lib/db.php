@@ -163,6 +163,7 @@ function smDefaults(): array
         'warn_pct'      => '80',    // Warnhinweis für Administratoren ab diesem Verbrauch
         'weather_src'   => 'brightsky',
         'shortener'     => '1',
+        'ipv4_host'     => '',      // eigene Subdomain nur mit IPv4 (A-Eintrag), um die IPv4 auch bei IPv6-Verbindung zu zeigen
         'anon_quota'    => '',
     ];
 }

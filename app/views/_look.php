@@ -13,7 +13,7 @@ $parts = ['bg' => t('Hintergrund'), 'card' => t('Flächen'), 'text' => t('Schrif
           data-warn="<?= h(t('Schwer zu lesen: %s')) ?>" data-names="<?= h(json_encode($parts)) ?>">
         <?= smCsrfField($me) ?><input type="hidden" name="do" value="look"><?php if (!empty($isDefault)): ?><input type="hidden" name="default_only" value="1"><?php endif; ?>
 
-        <section class="panel">
+        <section class="panel look__prev">
             <h2><?= h(t('Vorschau')) ?></h2>
             <div class="lookprev" data-look-prev aria-hidden="true">
                 <div class="lookprev__bar"><span class="lookprev__box"><?= h(t('Suchbegriff')) ?></span><span class="lookprev__chip is-on"><?= h(t('Alle')) ?></span><span class="lookprev__chip"><?= h(t('News')) ?></span></div>

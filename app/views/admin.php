@@ -110,6 +110,9 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                 <span><?= h(t('Bilder in voller Auflösung über diesen Server laden')) ?><br><small class="muted"><?= h(t('Für die große Bildvorschau und den Vollbild-Modus holt der Server das Originalbild und reicht es weiter. Kostet keine Suche bei Brave, nur etwas Datenverkehr. Die fremde Seite sieht dabei nur den Server, nicht den Besucher. Aus: nur Braves Vorschaubilder.')) ?></small></span></label>
             <label class="switch"><input type="checkbox" name="shortener" value="1"<?= smSetting('shortener') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Kurzlinks erlauben')) ?><br><small class="muted"><?= h(t('Angemeldete Konten können unter Werkzeuge eigene Kurzlinks (…/?s=abc123) anlegen.')) ?></small></span></label>
+            <label class="field"><span><?= h(t('Eigene IPv4-Subdomain (freiwillig)')) ?></span>
+                <input type="text" name="ipv4_host" value="<?= h(smSetting('ipv4_host')) ?>" placeholder="v4.example.org" autocomplete="off" spellcheck="false" autocapitalize="off">
+                <small class="muted"><?= h(t('Kommt jemand per IPv6, sieht der Server seine IPv4 nicht. Mit einer Subdomain, die nur einen A-Eintrag (IPv4) hat und auf denselben Ordner zeigt, ermittelt „Meine IP-Adresse“ sie trotzdem, ohne fremden Dienst. Leer = auf Klick über ipify.org.')) ?></small></label>
             <label class="field"><span><?= h(t('Wetter: Standardquelle')) ?></span>
                 <select name="weather_src"><?php foreach (smWeatherSources() as $k => $v): ?><option value="<?= h($k) ?>"<?= $k === smSetting('weather_src') ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?></select></label>
         </section>

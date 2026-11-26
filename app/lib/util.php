@@ -80,8 +80,11 @@ function smHeaders(bool $html = false): void
     header('X-Robots-Tag: noindex, nofollow, noarchive');
     if (smIsHttps()) header('Strict-Transport-Security: max-age=31536000');
     if ($html) {
+        // Für „IPv4/IPv6 auch anzeigen“: eigene IPv4-Subdomain und ipify.org (wird nur auf Klick gefragt)
+        $v4 = smHasUsersSafe() ? smSetting('ipv4_host') : '';
+        $connect = "'self' https://api4.ipify.org https://api6.ipify.org" . ($v4 !== '' ? ' https://' . $v4 : '');
         header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; "
-            . "img-src 'self' data: blob: https://imgs.search.brave.com; font-src 'self'; media-src 'self'; connect-src 'self'; manifest-src 'self'; "
+            . "img-src 'self' data: blob: https://imgs.search.brave.com; font-src 'self'; media-src 'self'; connect-src " . $connect . "; manifest-src 'self'; "
             . "frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     } else {
         header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
@@ -148,6 +151,39 @@ function smRender(string $view, array $vars = [], bool $layout = true): void
 function smClientIp(): string
 {
     return (string)($_SERVER['REMOTE_ADDR'] ?? '');
+}
+
+/** Hostname wie „v4.example.org“ (klein, ohne Schema, Pfad, Port) oder '' */
+function smCleanHostname(string $h): string
+{
+    $h = strtolower(trim($h));
+    return strlen($h) <= 253 && preg_match('/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/', $h) ? $h : '';
+}
+
+/**
+ * Die eigene Adresse in der anderen Version (IPv4 bei einer IPv6-Verbindung und umgekehrt) kann der Server nicht sehen.
+ * Der Browser fragt dafür eine Adresse, die nur über diese Version erreichbar ist:
+ * zuerst die eigene IPv4-Subdomain (Verwaltung → Einstellungen), sonst auf Klick ipify.org.
+ */
+function smIpOtherSources(bool $v6): array
+{
+    $own = $v6 && smHasUsersSafe() ? smSetting('ipv4_host') : '';
+    return [
+        'own' => $own !== '' ? 'https://' . $own . smBase() . '?a=myip' : '',
+        'ext' => $v6 ? 'https://api4.ipify.org?format=json' : 'https://api6.ipify.org?format=json',
+    ];
+}
+
+/** ?a=myip: nur die eigene IP als JSON. Für die IPv4-Subdomain, darf von der Hauptadresse aus abgerufen werden. */
+function smServeMyIp(): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('Access-Control-Allow-Origin: *');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Robots-Tag: noindex');
+    echo json_encode(['ip' => smClientIp()]);
+    exit;
 }
 
 /** Ein Treffer-Ort (Hostname) ohne „www.“ */

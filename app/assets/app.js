@@ -207,6 +207,31 @@
         if (toolCard && toolCard.classList.contains('toolcard')) location.replace(toolCard.href);
     }
 
+    /* ---------- Meine IP: die andere Version (IPv4 bei IPv6-Verbindung und umgekehrt) im Browser ermitteln ---------- */
+    $$('[data-ip-other]').forEach(function (box) {
+        var own = box.getAttribute('data-own'), ext = box.getAttribute('data-ext');
+        var out = $('[data-ip-out]', box), msg = $('[data-ip-msg]', box), ask = $('[data-ip-ask]', box);
+        function ask4(url) {
+            msg.textContent = '';
+            return fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+                .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+                .then(function (j) {
+                    var ip = String(j.ip || '');
+                    if (!/^[0-9a-fA-F:.]{3,45}$/.test(ip)) throw new Error();
+                    $('output', out).textContent = ip;
+                    $('[data-copy-text]', out).setAttribute('data-copy-text', ip);
+                    out.hidden = false;
+                    ask.hidden = true;
+                });
+        }
+        function fail() { msg.textContent = box.getAttribute('data-fail'); }
+        box.hidden = false;
+        $('[data-ip-go]', box).addEventListener('click', function () { ask4(ext).catch(fail); });
+        // Eigene Subdomain: kein fremder Dienst, darum gleich fragen. Klappt das nicht, bleibt der Knopf für ipify.org.
+        if (own) ask4(own).catch(function () { ask.hidden = false; });
+        else ask.hidden = false;
+    });
+
     /* ---------- Menüs schließen, wenn man daneben klickt ---------- */
     document.addEventListener('click', function (ev) {
         $$('details.menu[open], details.tools[open], details.pop[open], details.resmenu[open]').forEach(function (d) {
