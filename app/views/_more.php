@@ -18,7 +18,7 @@ if ($moreUrl !== ''): ?>
         <a class="btn more__btn" href="<?= h($moreUrl) ?>"><?= h($moreLabel) ?></a>
         <div class="more__pull" aria-hidden="true">
             <span class="more__bar"><i></i></span>
-            <span class="more__hint"><?= h(t('Weiterziehen für mehr')) ?></span>
+            <span class="more__hint"><?= h(t('Unten angekommen? Kräftig weiterziehen für mehr')) ?></span>
             <span class="spinner"></span>
         </div>
     </div>

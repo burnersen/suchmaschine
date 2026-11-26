@@ -151,7 +151,7 @@ Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die S
 ### Nachladen und News
 
 - **Endlos scrollen oder seitenweise** gilt jetzt für alle Reiter: Alle, Bilder, News und Videos.
-- **Nachladen mit Widerstand:** Unter der Liste liegt eine kurze Zugzone mit Balken. Erst wer bewusst über das Ende hinaus weiterzieht, bekommt die nächsten Treffer. Den letzten Eintrag in Ruhe lesen kostet also keine Suche. Ein Knopf lädt sofort.
+- **Nachladen mit Widerstand:** Normales Runterscrollen lädt nichts nach. Erst wer ganz unten angekommen ist und dann bewusst weiterzieht (am Handy ein deutlicher Wisch, am Rechner mehrere Rasten am Mausrad), bekommt die nächsten Treffer. Ein Balken zeigt, wie weit es noch ist, loslassen setzt ihn zurück. Den letzten Eintrag in Ruhe lesen kostet also nichts. Der Knopf „Weitere Treffer“ lädt sofort.
 - **Bilder:** 200 auf einmal mit einer einzigen Suche, Blättern und Nachladen kosten danach nichts mehr.
 - **News:** Brave holt 50 Meldungen auf einmal, meist der ganze Tag in einer Anfrage. Am Ende geht es mit der letzten Woche weiter. Ältere News hat Brave kaum im Index, die kommen von **Exa mit genauem Zeitraum** (sonst Firecrawl oder Tavily). Leere Abschnitte gibt es nicht mehr.
 

@@ -117,7 +117,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 ## New in 1.4
 
 - **Appearance** (Settings → Appearance, per account, with an installation default): 17 light and dark designs, including muted ones (Paper, Mist, Sage, Slate, Dusk), the colour mixer from “Kaufen” with sliders, colour code, live preview, contrast warning and automatic matching, five built-in fonts served from your own server (Atkinson Hyperlegible, Lexend, Source Sans 3, Inter, Literata, all SIL OFL, nothing from Google), sizes, line spacing, spacing and list width.
-- **Endless or paged for all tabs.** **Loading with resistance:** a short pull zone below the list, more results only load when you deliberately pull past the end. **Images:** 200 per request, paging is free afterwards.
+- **Endless or paged for all tabs.** **Loading with resistance:** plain scrolling loads nothing; only after reaching the bottom and deliberately pulling on (a clear swipe on phones, several wheel notches) do more results load. **Images:** 200 per request, paging is free afterwards.
 - **News:** Brave fetches 50 at once, older news comes from Exa with an exact date range (or Firecrawl/Tavily). No empty sections.
 
 ## Reader mode and PDF

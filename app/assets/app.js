@@ -351,10 +351,12 @@
         });
     }
 
-    /* ---------- Endlos-Scrollen mit kurzem Widerstand ----------
-       Unter der Liste liegt eine Zugzone. Erst wenn man bewusst über das Ende hinaus weiterzieht, bis die Zone ganz zu sehen ist,
-       kommen die nächsten Treffer. Wer nur den letzten Eintrag lesen will, löst nichts aus (jedes Nachladen kostet eine Suche).
-       Der Balken zeigt, wie weit es noch ist. Der Knopf lädt sofort. */
+    /* ---------- Endlos-Scrollen mit Widerstand ----------
+       Jedes Nachladen kostet eine Suche, darum soll es nicht aus Versehen passieren. Nachgeladen wird erst,
+       wenn man ganz unten angekommen ist (die Seite scrollt nicht weiter) und dann bewusst weiterzieht:
+       am Handy ein deutlicher Wisch nach oben, mit Mausrad oder Touchpad mehrere Rasten, mit der Tastatur mehrmals ↓ oder Leertaste.
+       Schwung vom normalen Scrollen zählt nicht: Die ersten Bewegungen direkt nach dem Ankommen werden übergangen.
+       Lässt man vorher los, läuft der Balken zurück. Der Knopf lädt sofort. */
     function sizeTiles(list) {
         list.forEach(function (a) {
             var w = parseInt(a.getAttribute('data-w'), 10), h = parseInt(a.getAttribute('data-h'), 10);
@@ -369,16 +371,81 @@
         if (!more || !window.fetch) return;
         var pull = $('.more__pull', more), bar = $('.more__bar i', more), btn = $('.more__btn', more);
         more.classList.add('is-pull');
-        var busy = false, scrolled = false;
+        var busy = false;
+        var PULL_WHEEL = 1400, PULL_TOUCH = 0.25, PULL_KEYS = 4;   // Mausrad in Pixeln, Wisch in Bildschirmhöhen, Tastendrücke
+        var SETTLE = 450, IDLE = 700;                               // ms Ruhe nach dem Ankommen, ms bis der Balken zurückläuft
+        var arrived = 0, acc = 0, idleT = 0, touchY = null, touchOk = false;
+        function atBottom() {
+            var doc = document.documentElement;
+            return window.innerHeight + window.scrollY >= Math.max(doc.scrollHeight, body.scrollHeight) - 4;
+        }
+        function settled() { return arrived && Date.now() - arrived >= SETTLE; }
+        function show(p) {
+            if (bar) bar.style.transform = 'scaleX(' + Math.max(0, Math.min(1, p)).toFixed(3) + ')';
+            more.classList.toggle('is-near', p > 0);
+        }
+        function reset() { acc = 0; show(0); }
+        function add(p) {
+            if (busy) return;
+            acc = Math.min(1, acc + p);
+            show(acc);
+            clearTimeout(idleT);
+            if (acc >= 1) { load(); return; }
+            idleT = setTimeout(reset, IDLE);
+        }
+        function onScroll() {
+            if (busy) return;
+            if (atBottom()) { if (!arrived) arrived = Date.now(); }
+            else { arrived = 0; reset(); }
+        }
+        function onWheel(ev) {
+            if (busy || ev.deltaY <= 0) return;
+            if (!atBottom()) { arrived = 0; return; }
+            if (!arrived) arrived = Date.now();
+            if (!settled()) { arrived = Date.now(); return; }   // noch Schwung vom Scrollen: Ruhezeit beginnt neu
+            add((ev.deltaMode === 1 ? ev.deltaY * 40 : ev.deltaMode === 2 ? ev.deltaY * window.innerHeight : ev.deltaY) / PULL_WHEEL);
+        }
+        function onTouchStart(ev) {
+            touchOk = !busy && atBottom() && settled() && ev.touches.length === 1;
+            touchY = touchOk ? ev.touches[0].clientY : null;
+        }
+        function onTouchMove(ev) {
+            if (!touchOk || touchY === null) return;
+            var dy = touchY - ev.touches[0].clientY;   // Finger nach oben = weiterziehen
+            acc = 0;
+            add(Math.max(0, dy) / (window.innerHeight * PULL_TOUCH));
+        }
+        function onTouchEnd() {
+            touchY = null;
+            if (!busy && acc < 1) reset();
+        }
+        function onKey(ev) {
+            if (busy || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+            var t = ev.target;
+            if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+            if (['ArrowDown', 'PageDown', ' ', 'End'].indexOf(ev.key) < 0 || !atBottom()) return;
+            if (!settled()) { if (!arrived) arrived = Date.now(); return; }
+            add(1 / PULL_KEYS);
+        }
+        function stop() {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('wheel', onWheel);
+            window.removeEventListener('touchstart', onTouchStart);
+            window.removeEventListener('touchmove', onTouchMove);
+            window.removeEventListener('touchend', onTouchEnd);
+            window.removeEventListener('keydown', onKey);
+        }
         function load() {
             if (busy) return;
             busy = true;
+            clearTimeout(idleT);
+            show(1);
             more.classList.remove('is-error');
             more.classList.add('is-busy');
             fetch(more.getAttribute('data-more'), { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
                 .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
                 .then(function (html) {
-                    window.removeEventListener('scroll', onScroll);
+                    stop();
                     var tpl = document.createElement('template');
                     tpl.innerHTML = html;
                     var next = tpl.content.querySelector('.more');
@@ -396,21 +463,19 @@
                 })
                 .catch(function () {
                     busy = false;
+                    reset();
                     more.classList.remove('is-busy');
                     more.classList.add('is-error');
                 });
         }
-        function onScroll() {
-            scrolled = true;
-            if (busy || !pull) return;
-            var r = pull.getBoundingClientRect(), h = r.height || 1;
-            var p = Math.max(0, Math.min(1, (window.innerHeight - r.top) / h));
-            if (bar) bar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
-            more.classList.toggle('is-near', p > 0);
-            if (p >= .98 && scrolled) load();
-        }
         window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('wheel', onWheel, { passive: true });
+        window.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchend', onTouchEnd, { passive: true });
+        window.addEventListener('keydown', onKey);
         if (btn) btn.addEventListener('click', function (ev) { if (!plainClick(ev)) return; ev.preventDefault(); load(); });
+        onScroll();
     }
     initMore($('.more[data-more]'));
 
