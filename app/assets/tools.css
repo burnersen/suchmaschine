@@ -429,3 +429,20 @@
 .cf .short-row.is-new { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
 .cf .short-row.is-off { opacity: .7; }
 .cf .hrow { background: var(--card); }
+
+/* ---------- Netz-Werkzeuge ---------- */
+.cf .status-big svg { width: 1.6rem; height: 1.6rem; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cf .hops > div { flex-wrap: wrap; }
+.cf .lp { border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; background: var(--card); max-width: 34rem; }
+.cf .lp img:not(.lp__ico) { width: 100%; max-height: 18rem; object-fit: cover; display: block; background: var(--card2); }
+.cf .lp__body { padding: .7rem .9rem .8rem; display: flex; flex-direction: column; gap: .25rem; }
+.cf .lp__site { display: flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--faint); }
+.cf .lp__ico { width: 16px; height: 16px; border-radius: 3px; }
+.cf .lp__title { font-weight: 700; line-height: 1.3; }
+.cf .lp__desc { font-size: .86rem; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cf .lp--chat { border-left: 4px solid #25d366; background: color-mix(in srgb, #25d366 6%, var(--card)); }
+.cf .lp--chat img:not(.lp__ico) { max-height: 12rem; }
+.cf .lp--search { border: 0; background: none; }
+.cf .lp--search img:not(.lp__ico) { display: none; }
+.cf .lp--search .lp__title { color: var(--link); font-weight: 400; font-size: 1.15rem; }
+.cf .lp--search .lp__body { padding: 0; }
