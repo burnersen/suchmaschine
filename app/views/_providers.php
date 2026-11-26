@@ -57,9 +57,16 @@ $without = array_values(array_diff($order, $withKey));
             <p class="small prov__api"><?= h(t('Laut %s noch %s %s übrig (zuletzt abgeglichen: %s). Der Zähler hier richtet sich danach.', $p['name'], smNumF($f['api_left']), $p['unit'], smDate((int)$api['at']) . ' ' . date('H:i', (int)$api['at']))) ?></p>
 <?php else: ?>
             <div class="form__row">
-                <label class="field field--short"><span><?= h(t('Schon verbraucht in diesem Zeitraum')) ?></span>
-                    <input type="number" name="used[<?= h($id) ?>]" min="0" step="any" value="<?= h(rtrim(rtrim(number_format(smProvAdjust($id), 3, '.', ''), '0'), '.')) ?>">
-                    <small class="muted"><?= h(t('Was laut Dashboard schon weg war, bevor die Suchmaschine mitgezählt hat, z. B. wenn du den Key mitten im Monat einträgst. Gilt bis zum nächsten Reset.')) ?></small></label>
+<?php $setAt = (int)smProvGet($id, 'usedset'); ?>
+                <label class="field field--short"><span><?= h(t('Verbrauch laut Dashboard')) ?></span>
+                    <input type="text" inputmode="decimal" name="used[<?= h($id) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', smNumF($f['used']))) ?>" autocomplete="off">
+                    <small class="muted"><?= h(t('Trag hier ein, was das Dashboard von %s gerade als verbraucht anzeigt (in %s). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $p['name'], $p['unit'])) ?>
+<?php if ($id === 'exa'): ?>
+                        <?= h(t('Exa zeigt Dollar an: 3,13 $ sind hier 313.')) ?>
+<?php endif; ?>
+<?php if ($setAt > 0 && $setAt >= strtotime($f['cycle']['from'])): ?>
+                        <?= h(t('Zuletzt nach Dashboard gesetzt: %s.', smDate($setAt) . ' ' . date('H:i', $setAt))) ?>
+<?php endif; ?></small></label>
             </div>
 <?php endif; ?>
             <div class="form__row form__row--4">

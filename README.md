@@ -61,7 +61,7 @@ Bei normaler privater Nutzung nichts. Die Suchmaschine kann fünf Such-APIs nutz
 
 - Pro Dienst stellst du in der Verwaltung ein **eigenes Limit** ein. Voreingestellt ist immer das Freikontingent **minus 50 als Puffer**. Ist ein Limit erreicht, nimmt die Suchmaschine automatisch den nächsten Dienst.
 - **Reset-Datum:** Brave und Firecrawl melden selbst, wann ihr Kontingent neu startet, das übernimmt die Suchmaschine automatisch. Firecrawl und Tavily melden außerdem ihr Restguthaben, der Zähler gleicht sich daran an. Für Exa und parallel.ai trägst du einen **Stichtag** ein (der Tag im Monat, an dem das Kontingent neu startet, ohne Stichtag gilt der Monatserste).
-- **Schon verbraucht:** Trägst du einen Key mitten im Monat ein, gibst du in der Verwaltung an, was laut Dashboard schon weg ist. Gilt bis zum nächsten Reset.
+- **Verbrauch laut Dashboard:** Bei Diensten, die ihren Verbrauch nicht selbst melden, trägst du in der Verwaltung jederzeit ein, was das Dashboard gerade als verbraucht zeigt. Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter, praktisch auch, wenn du den Key mitten im Monat einträgst.
 - Schalte bei allen Anbietern **automatisches Aufladen aus** und setz dort, wo es geht, ein Ausgabenlimit von 0. Dann kann nichts abgebucht werden.
 - Ein **Zwischenspeicher** sorgt dafür, dass Neuladen, Zurück-Knopf und Blättern nichts kosten: bei Brave bis 60 Minuten (mehr erlauben Braves Bedingungen nicht), bei den anderen standardmäßig 8 Stunden.
 - **Sofort-Antworten** (Rechner, Währungen, Wetter …), **Bangs** und **Werkzeuge** kosten gar nichts, weil sie keinen Suchdienst fragen.
@@ -76,7 +76,7 @@ Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** e
 1. Auf [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com) ein Konto anlegen.
 2. Den Plan **„Search“** wählen. Brave möchte eine **Kreditkarte** sehen (gegen Missbrauch), abgerechnet wird über Guthaben ohne Abo. **Automatische Aufladung ausgeschaltet lassen.**
 3. Unter **„API Keys“** einen Key erzeugen (beginnt mit `BSA`).
-4. Das Reset-Datum schickt Brave bei jeder Suche mit, ein Stichtag ist nicht nötig. Den bisherigen Verbrauch im laufenden Monat (Dashboard unter „Usage“) kannst du unter „Schon verbraucht“ eintragen.
+4. Das Reset-Datum schickt Brave bei jeder Suche mit, ein Stichtag ist nicht nötig. Den bisherigen Verbrauch im laufenden Monat (Dashboard unter „Usage“) kannst du unter „Verbrauch laut Dashboard“ eintragen.
 
 **Tavily**
 1. Auf [app.tavily.com](https://app.tavily.com) anmelden (Google, GitHub oder E-Mail).
@@ -134,6 +134,9 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Werkzeuge neu sortiert:** eine Übersicht mit Kacheln nach Gruppen (Rechnen, Zeit und Datum, Zufall, Teilen und Sicherheit, Wetter und Netz), jedes Werkzeug öffnet sich auf einer **eigenen Seite** statt in einer langen Liste. Unten gibt es passende weitere Werkzeuge. Erreichbar überall über das **Kachel-Symbol oben rechts**, auch für Besucher, wenn Suchen ohne Anmeldung erlaubt ist.
 - **Einstellungen aufgeräumt:** Login-Token und „Als Standardsuche im Browser“ stehen jetzt zusammen unter **Einstellungen → Browser**. Das Aussehen für alle bearbeitet der Administrator unter **Verwaltung → Aussehen**.
 - **API-Keys holen, Schritt für Schritt** direkt in der Verwaltung bei jedem Suchdienst, ohne in die README schauen zu müssen.
+- **1.5.1:** Währungskurse einmal am Tag nach der EZB plus Knopf „Kurse jetzt abrufen“. „Meine IP-Adresse“ zeigt auf Wunsch auch die IPv4 bei IPv6-Verbindung (und umgekehrt), am besten über eine eigene IPv4-Subdomain (Verwaltung → Einstellungen), sonst auf Klick über ipify.org. Die Vorschau beim Aussehen bleibt beim Scrollen sichtbar.
+- **1.5.2:** Endlos-Scrollen lädt nur noch nach, wenn man unten angekommen ist und bewusst weiterzieht.
+- **1.5.3:** „Verbrauch laut Dashboard“ setzt den Zähler eines Suchdienstes genau auf den Stand aus dem Dashboard und zählt von da weiter (für alle Dienste, die ihren Verbrauch nicht selbst melden).
 - Kleinigkeiten: Der Name oben auf der Ergebnisseite wird nicht mehr abgeschnitten, die Währungskarte ist kompakter, Reiter auf dem Handy zeigen, dass man wischen kann. Ist noch kein Suchdienst eingerichtet, kommt der Administrator direkt zur Einrichtung, statt weitergeleitet zu werden.
 - **Für Entwickler:** Code nach Themen aufgeteilt, englische Texte in `app/lang/en.php`, automatische Tests, Prüfung bei jedem Push, wiederholbarer Bau, Updates auf Wunsch mit Unterschrift. Für Nutzer bleibt es **eine einzige Installationsdatei**. Wie das zusammengebaut wird: [BUILD.md](BUILD.md).
 
@@ -177,7 +180,7 @@ Die Rechte an den Inhalten bleiben bei den jeweiligen Seiten. Wer ein PDF weiter
 
 - **Neueste zuerst** ist Standard bei „Alle“ und bei News. Jedes Konto stellt das unter *Einstellungen → Suche* für sich um, der Administrator legt unter *Verwaltung → Einstellungen* den Standard für alle fest. In der Trefferliste lässt es sich jederzeit über „Sortierung“ umschalten.
 - **News aus den letzten 24 Stunden.** Am Ende der Liste geht es automatisch mit der letzten Woche weiter, dann mit dem letzten Monat und dem letzten Jahr. Gibt es gar keine aktuellen News, wird gleich erweitert. Zeitraum und Erweitern sind pro Konto einstellbar.
-- **Reset-Datum vom Dienst:** Brave (bei jeder Suche) und Firecrawl (eigene Abfrage, höchstens alle 6 Stunden, kostenlos) melden selbst, wann ihr Kontingent neu startet. Firecrawl und Tavily melden auch ihr Restguthaben. Dafür gibt es ein neues Feld **„Schon verbraucht“** für Dienste, die das nicht können.
+- **Reset-Datum vom Dienst:** Brave (bei jeder Suche) und Firecrawl (eigene Abfrage, höchstens alle 6 Stunden, kostenlos) melden selbst, wann ihr Kontingent neu startet. Firecrawl und Tavily melden auch ihr Restguthaben. Dafür gibt es ein Feld für Dienste, die das nicht können (seit 1.5.3 **„Verbrauch laut Dashboard“**).
 - **Neuer Tab überall:** „Links in neuem Tab öffnen“ gilt für jeden Link nach draußen, auch im Wetter, in der Kurzinfo und in nachgeladenen Treffern.
 - **Bangs ohne Aufblitzen:** Die Zwischenseite ist leer und hat die Farbe der Seite. Nur wenn das Ziel hängt, erscheint nach 2 Sekunden ein Knopf „Weiter“.
 

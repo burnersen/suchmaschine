@@ -214,9 +214,15 @@ function smSaveProviders(): string
             smProvSet($id, 'start', preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && checkdate((int)substr($start, 5, 2), (int)substr($start, 8, 2), (int)substr($start, 0, 4)) ? $start : '');
         }
         // Schon verbraucht, bevor die Suchmaschine mitgezählt hat (nur für Dienste, die ihren Verbrauch nicht selbst melden)
-        if (isset($_POST['used'][$id]) && is_string($_POST['used'][$id])) {
-            $u = max(0.0, min(10000000.0, (float)str_replace(',', '.', trim($_POST['used'][$id]))));
-            if (abs($u - smProvAdjust($id)) > 0.0001) smProvSetAdjust($id, $u);
+        // Verbrauch laut Dashboard: der Zähler wird auf genau diesen Stand gesetzt (leer = nichts ändern)
+        if (isset($_POST['used'][$id]) && is_string($_POST['used'][$id]) && trim($_POST['used'][$id]) !== '') {
+            $raw = str_replace([' ', "\u{a0}"], '', trim($_POST['used'][$id]));
+            // 1.234,5 oder 1,234.5 oder 1234,5: das letzte Komma oder der letzte Punkt ist das Dezimalzeichen
+            if (preg_match('/^\d{1,3}([.,]\d{3})+$/', $raw)) $raw = str_replace(['.', ','], '', $raw);
+            elseif (strrpos($raw, ',') !== false && strrpos($raw, ',') > (int)strrpos($raw, '.')) $raw = str_replace(['.', ','], ['', '.'], $raw);
+            else $raw = str_replace(',', '', $raw);
+            if (!is_numeric($raw)) { $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $p['name']); }
+            else smProvSetUsed($id, max(0.0, min(10000000.0, (float)$raw)));
         }
         smProvSet($id, 'limit', (string)max(0, min(10000000, (int)$_POST['limit'][$id])));
         $cost = (float)str_replace(',', '.', (string)($_POST['cost'][$id] ?? $p['cost']));

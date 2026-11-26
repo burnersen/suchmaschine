@@ -143,6 +143,17 @@ same('Installer-Format: drei Dateien gelesen', 3, is_array($parsed) ? count($par
 same('Installer-Format: falsche Prüfsumme wird abgelehnt', null, smPayloadParse(str_replace(hash('sha256', "<?php\n"), str_repeat('0', 64), $payload)));
 same('Installer-Format: Pfad außerhalb von app/ wird abgelehnt', null, smPayloadParse($payload . "../x.php\t" . hash('sha256', 'x') . "\t" . base64_encode('x') . "\n"));
 
+/* ---------- Zähler auf den Stand laut Dashboard setzen ---------- */
+smUsageAdd('exa', 'web', 1, 10);
+$from = smProvCycle('exa')['from'];
+smProvSetUsed('exa', 4);
+same('Dashboard-Stand: niedriger als gezählt', 4.0, round(smUsageSum('exa', $from), 3));
+smUsageAdd('exa', 'web', 1, 1.5);
+same('Dashboard-Stand: zählt danach weiter', 5.5, round(smUsageSum('exa', $from), 3));
+smProvSetUsed('exa', 250);
+same('Dashboard-Stand: höher als gezählt', 250.0, round(smUsageSum('exa', $from), 3));
+same('Dashboard-Stand: eigener Verbrauch des Kontos bleibt', 11.5, round(smUsageSum('exa', $from, 1), 3));
+
 /* ---------- Unterschrift der Updates (Ed25519) ---------- */
 if (function_exists('sodium_crypto_sign_keypair')) {
     $kp = sodium_crypto_sign_keypair();
