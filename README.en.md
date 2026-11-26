@@ -41,7 +41,7 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
-[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.4](#new-in-14) · [Reader mode and PDF](#reader-mode-and-pdf) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
 
 ## What does it cost?
 
@@ -105,6 +105,18 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. The most important ones are built in; everyone can switch them off and **add their own** (address with `{q}` for the search term). Works from the browser's address bar too.
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
+
+## New in 1.4
+
+- **Appearance** (Settings → Appearance, per account, with an installation default): 17 light and dark designs, including muted ones (Paper, Mist, Sage, Slate, Dusk), the colour mixer from “Kaufen” with sliders, colour code, live preview, contrast warning and automatic matching, five built-in fonts served from your own server (Atkinson Hyperlegible, Lexend, Source Sans 3, Inter, Literata, all SIL OFL, nothing from Google), sizes, line spacing, spacing and list width.
+- **Endless or paged for all tabs.** **Loading with resistance:** a short pull zone below the list, more results only load when you deliberately pull past the end. **Images:** 200 per request, paging is free afterwards.
+- **News:** Brave fetches 50 at once, older news comes from Exa with an exact date range (or Firecrawl/Tavily). No empty sections.
+
+## Reader mode and PDF
+
+“Read without ads” in the **⋮** menu of every result (accounts only): your server fetches the page and keeps only the content. Recipes are detected from their structured data (ingredients, steps, image), switchable to the whole article. Optional Firecrawl fallback (1 credit). **Save as PDF** in the browser with live preview, font, size, line spacing, 1 or 2 columns, margins and selectable images, or **Print**.
+
+**Please use it fairly:** for private reading and archiving only. Accounts only, at most 60 pages per hour, nothing is stored on the server, paywalls are not bypassed, and source, date and “for private use only” appear in the view and on every PDF page. Rights remain with the original sites.
 
 ## New in 1.3
 

@@ -68,6 +68,18 @@ $lists = smDomainLists($me);
         <p class="muted small"><?= h(t('Bangs funktionieren auch dort, z. B. „!w Berlin“ direkt in der Adressleiste.')) ?></p>
     </section>
 
+<?php elseif ($tab === 'look'):
+    $isDefault = $me['is_admin'] && ($_GET['default'] ?? '') === '1';
+    $look = $isDefault ? smLook(null) : smLook($me);
+    $lookUrl = $surl('look', $isDefault ? ['default' => '1'] : []); ?>
+    <link rel="stylesheet" href="<?= h(smLookUrl($look, true)) ?>">
+<?php if ($isDefault): ?>
+    <div class="alert"><?= h(t('Du bearbeitest den Standard für alle Konten und für Besucher ohne Anmeldung. Wer sein eigenes Aussehen gespeichert hat, behält es.')) ?></div>
+<?php elseif ($me['is_admin']): ?>
+    <p class="muted small"><a href="<?= h($surl('look', ['default' => '1'])) ?>"><?= h(t('Standard für alle bearbeiten')) ?></a></p>
+<?php endif; ?>
+<?php require __DIR__ . '/_look.php'; ?>
+
 <?php elseif ($tab === 'domains'): ?>
     <section class="panel">
         <h2><?= h(t('Eigene Domain-Listen')) ?></h2>

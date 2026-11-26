@@ -97,13 +97,9 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                     </span>
                 </div>
             </div>
-            <fieldset class="field"><legend><?= h(t('Farbe')) ?></legend>
-                <div class="swatches">
-<?php foreach (smAccents() as $k => $v): ?>
-                    <label class="swatch swatch--<?= h($k) ?>" title="<?= h($v) ?>"><input type="radio" name="accent" value="<?= h($k) ?>"<?= $k === smAccent() ? ' checked' : '' ?>><span></span><small><?= h($v) ?></small></label>
-<?php endforeach; ?>
-                </div>
-            </fieldset>
+            <p class="field"><span><?= h(t('Farben, Schrift und Größen')) ?></span>
+                <a class="btn btn--small" href="<?= h(smUrl(['a' => 'settings', 'tab' => 'look', 'default' => '1'])) ?>"><?= h(t('Aussehen für alle festlegen')) ?> →</a>
+                <small class="muted"><?= h(t('Designs, eigene Farben, Schrift und Abstände. Gilt für alle Konten, die nichts Eigenes eingestellt haben, und für Besucher.')) ?></small></p>
         </section>
         <section class="panel">
             <h2><?= h(t('Allgemein')) ?></h2>

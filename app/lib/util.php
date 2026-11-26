@@ -81,7 +81,7 @@ function smHeaders(bool $html = false): void
     if (smIsHttps()) header('Strict-Transport-Security: max-age=31536000');
     if ($html) {
         header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; "
-            . "img-src 'self' data: https://imgs.search.brave.com; connect-src 'self'; manifest-src 'self'; "
+            . "img-src 'self' data: blob: https://imgs.search.brave.com; font-src 'self'; connect-src 'self'; manifest-src 'self'; "
             . "frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     } else {
         header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
@@ -116,10 +116,16 @@ function smFlashRead(): array
 }
 
 /** Design dieses Geräts: auto | light | dark */
+/** Hell, dunkel oder wie das Gerät: der Knopf oben (Cookie) gewinnt, sonst das Aussehen des Kontos */
 function smTheme(): string
 {
-    $t = $_COOKIE['sm_theme'] ?? 'auto';
-    return in_array($t, ['light', 'dark'], true) ? $t : 'auto';
+    $t = $_COOKIE['sm_theme'] ?? '';
+    if (in_array($t, ['light', 'dark', 'auto'], true)) return $t;
+    try {
+        return smLook(smHasUsersSafe() ? smUser() : null)['mode'];
+    } catch (Throwable $e) {
+        return 'auto';
+    }
 }
 
 /** Vorlage aus app/views/ ausgeben, eingebettet in das Grundgerüst */

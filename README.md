@@ -45,7 +45,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -128,6 +128,42 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden die wichtigsten, jeder kann sie für sich abschalten und **eigene anlegen** (Adresse mit `{q}` für den Suchbegriff). Funktioniert auch aus der Adressleiste des Browsers.
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
+
+## Neu in 1.4
+
+### Aussehen nach Wunsch
+
+Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die Suchmaschine aussieht. Der Administrator legt dort auch den Standard für alle fest (gilt auch für Besucher ohne Anmeldung).
+
+- **17 fertige Designs**, hell und dunkel. Neben klarem Weiß und Schwarz gibt es gedämpfte Töne für alle, denen Weiß zu grell und Schwarz zu dunkel ist: **Papier**, **Nebel**, **Salbei**, **Schiefer**, **Dämmerung**. Für hell und dunkel jeweils ein Lieblingsdesign, bei „Wie das Gerät“ wird automatisch gewechselt.
+- **Farbmischer** (aus „Kaufen“): Hintergrund, Flächen, Schrift, Akzent, dazu freiwillig Titel/Links und Nebentext. Mit Reglern für Farbton, Sättigung und Helligkeit, Farbcode, Live-Vorschau, Warnung bei zu wenig Kontrast und einem Knopf, der die Schriftfarben automatisch abstimmt. Funktioniert auch ohne JavaScript mit den Farbwählern des Browsers.
+- **Schriften fest eingebaut:** Atkinson Hyperlegible, Lexend, Source Sans 3, Inter und Literata (mit Serifen). Sie liegen auf deinem eigenen Server, es wird **nichts bei Google** geladen. Alle unter der SIL Open Font License (Lizenzdateien in `app/assets/fonts/`).
+- **Größen und Platz:** alles zusammen, Titel der Treffer und Beschreibungen getrennt, Zeilenabstand, Abstand zwischen den Treffern (kompakt bis luftig) und Breite der Trefferliste für große Bildschirme. Auf dem Handy ist die Quellen-Leiste jetzt eine wischbare Zeile.
+
+### Nachladen und News
+
+- **Endlos scrollen oder seitenweise** gilt jetzt für alle Reiter: Alle, Bilder, News und Videos.
+- **Nachladen mit Widerstand:** Unter der Liste liegt eine kurze Zugzone mit Balken. Erst wer bewusst über das Ende hinaus weiterzieht, bekommt die nächsten Treffer. Den letzten Eintrag in Ruhe lesen kostet also keine Suche. Ein Knopf lädt sofort.
+- **Bilder:** 200 auf einmal mit einer einzigen Suche, Blättern und Nachladen kosten danach nichts mehr.
+- **News:** Brave holt 50 Meldungen auf einmal, meist der ganze Tag in einer Anfrage. Am Ende geht es mit der letzten Woche weiter. Ältere News hat Brave kaum im Index, die kommen von **Exa mit genauem Zeitraum** (sonst Firecrawl oder Tavily). Leere Abschnitte gibt es nicht mehr.
+
+## Lesemodus und PDF
+
+Im Menü **⋮** an jedem Treffer steht **„Ohne Werbung lesen“** (nur mit Konto).
+
+- Der eigene Server holt die Seite und schneidet den eigentlichen Inhalt heraus: Werbung, Menüs, Cookie-Banner, Kommentare und Skripte fliegen raus. Angezeigt wird alles in deiner Schrift und deinen Farben.
+- **Rezepte** werden über ihre strukturierten Daten erkannt (schema.org), die fast jede Rezeptseite für Suchmaschinen mitliefert: Zutaten, Zubereitung, Zeiten, Bild. Ein Klick schaltet auf den ganzen Artikel mit allen Bildern um.
+- Klappt das Herausschneiden nicht (Seiten, die nur mit JavaScript laufen oder Abrufe sperren), gibt es den Knopf **„Mit Firecrawl versuchen“**. Das kostet 1 Firecrawl-Credit.
+- **Als PDF speichern:** mit Live-Vorschau, Schrift (klar oder klassisch), Größe, Zeilenabstand, 1 oder 2 Spalten und Rändern. **Bilder nach Wahl:** Antippen lässt ein Bild weg, so kommt nur ins PDF, was du willst. Das PDF entsteht im Browser, ohne fremde Dienste. Es kann Umlaute, ß und €, aber keine Zeichen außerhalb Westeuropas. Dafür gibt es **Drucken** mit einem sauberen Drucklayout (der Browser kann dort auch „Als PDF sichern“).
+
+**Bitte fair nutzen.** Der Lesemodus ist zum privaten Lesen und Ablegen gedacht (Privatkopie), nicht zum Weiterverbreiten. Darum:
+- nur für angemeldete Konten, höchstens 60 Seiten pro Stunde und Konto,
+- auf dem Server wird nichts gespeichert, es gibt keine Links, über die andere den Lesemodus aufrufen könnten,
+- Bezahlschranken werden nicht umgangen, kostenpflichtige Artikel bleiben beim Anbieter,
+- Quelle, Abrufdatum und „nur zum privaten Gebrauch, Rechte beim Urheber“ stehen in der Ansicht und auf jeder PDF-Seite,
+- der Abruf gibt sich ehrlich als „Suchmaschine … Lesemodus“ zu erkennen.
+
+Die Rechte an den Inhalten bleiben bei den jeweiligen Seiten. Wer ein PDF weitergibt oder veröffentlicht, ist selbst dafür verantwortlich.
 
 ## Neu in 1.3
 
@@ -296,9 +332,9 @@ index.php      Einstieg und Einstellungen (Version, Pfade)
 app/lib/       Sprache, Datenbank, Konten und Anmeldung (auch Token-Login), Brave (brave.php),
                alle Suchdienste mit Lastverteilung und Ausweichen (providers.php), Sofort-Antworten und Kurzlinks (instant.php),
                QR-Codes (qr.php), Komplettsicherung (backup.php), Bangs/Linsen/Domain-Listen/Filter (tools.php),
-               Bild-Proxy (imgproxy.php), Seitenablauf, Update
+               Bild-Proxy (imgproxy.php), Aussehen (look.php), Lesemodus (reader.php), Seitenablauf, Update
 app/views/     HTML-Vorlagen
-app/assets/    CSS, JavaScript, Symbol (werden über index.php ausgeliefert)
+app/assets/    CSS, JavaScript, PDF-Baukasten (pdf.js), Symbol, Schriften in fonts/ (werden über index.php ausgeliefert)
 data/          entsteht beim ersten Aufruf: Datenbank, Einstellungen, Logo (geheim!)
 tools/         Release bauen (nur für Entwickler)
 ```
