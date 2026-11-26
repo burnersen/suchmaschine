@@ -1117,3 +1117,4 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .timer__sound select { width: auto; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
 .form__sub { margin: 10px 0 -4px; padding-top: 14px; border-top: 1px solid var(--line-2); font-size: 15px; font-weight: 600; }
 .prov__steps { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; color: var(--text-2); display: grid; gap: 4px; }
+.subnav + .page__lead { margin: -4px 0 18px; }

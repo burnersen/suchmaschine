@@ -65,7 +65,7 @@ $combos = $de ? [
     ['🔎', t('Mehrere Suchdienste'), t('Brave, Tavily, Exa, parallel.ai und Firecrawl. Automatisch der beste verfügbare, gezielt per Bang oder alle zusammen.')],
     ['⚖️', t('Lastverteilung'), t('Die freien Kontingente reichen gleichmäßig über den Monat. Fällt ein Dienst aus, springt der nächste ein.')],
     ['⚡', t('Sofort-Antworten'), t('Rechner, Währungen, Einheiten, Wetter, Kalenderwoche, Würfel, Timer und mehr, ohne Guthaben zu verbrauchen.')],
-    ['🧰', t('Werkzeuge'), t('Passwort-Generator, QR-Codes und eigene Kurzlinks.')],
+    ['🧰', t('Werkzeuge'), t('Rechner, Timer, Feiertage, Losen, Passwörter, QR-Codes, Kurzlinks und mehr.')],
     ['🎛️', t('Filter'), t('Zeitraum, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bildfilter wie bei Google.')],
     ['⌨️', t('Tastatur'), t('Durch alle Treffer mit J/K oder Pfeilen, Enter öffnet, ? zeigt alle Kürzel.')],
     ['🔑', t('Login-Token'), t('Einmal ?token=… aufrufen und ein Jahr angemeldet bleiben, auch als Standardsuche im Browser.')],
@@ -133,7 +133,7 @@ $combos = $de ? [
 
     <section class="panel" id="werkzeuge">
         <h2><?= h(t('Werkzeuge')) ?></h2>
-        <p class="muted small"><?= h(t('Unter Werkzeuge (Menü oben rechts oder Startseite) gibt es den Passwort-Generator mit allen Optionen (Länge, Zeichenarten, ohne Verwechsler, merkbare Wort-Passwörter), den QR-Code-Generator mit Download als SVG und die Liste deiner Kurzlinks mit Aufrufzahlen.')) ?>
+        <p class="muted small"><?= h(t('Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es alle Helfer nach Gruppen, jeden auf einer eigenen Seite: Rechner, Einheiten, Währungen, Timer, Countdown, Datumsrechner, Feiertage, Kalenderwoche, Würfel und Losen, Passwort-Generator, QR-Codes, deine Kurzlinks, Wetter und die eigene IP-Adresse.')) ?>
             <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Zu den Werkzeugen')) ?></a></p>
     </section>
 

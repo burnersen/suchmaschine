@@ -45,7 +45,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -129,11 +129,19 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
 
+## Neu in 1.5
+
+- **Werkzeuge neu sortiert:** eine Übersicht mit Kacheln nach Gruppen (Rechnen, Zeit und Datum, Zufall, Teilen und Sicherheit, Wetter und Netz), jedes Werkzeug öffnet sich auf einer **eigenen Seite** statt in einer langen Liste. Unten gibt es passende weitere Werkzeuge. Erreichbar überall über das **Kachel-Symbol oben rechts**, auch für Besucher, wenn Suchen ohne Anmeldung erlaubt ist.
+- **Einstellungen aufgeräumt:** Login-Token und „Als Standardsuche im Browser“ stehen jetzt zusammen unter **Einstellungen → Browser**. Das Aussehen für alle bearbeitet der Administrator unter **Verwaltung → Aussehen**.
+- **API-Keys holen, Schritt für Schritt** direkt in der Verwaltung bei jedem Suchdienst, ohne in die README schauen zu müssen.
+- Kleinigkeiten: Der Name oben auf der Ergebnisseite wird nicht mehr abgeschnitten, die Währungskarte ist kompakter, Reiter auf dem Handy zeigen, dass man wischen kann. Ist noch kein Suchdienst eingerichtet, kommt der Administrator direkt zur Einrichtung, statt weitergeleitet zu werden.
+- **Für Entwickler:** Code nach Themen aufgeteilt, englische Texte in `app/lang/en.php`, automatische Tests, Prüfung bei jedem Push, wiederholbarer Bau, Updates auf Wunsch mit Unterschrift. Für Nutzer bleibt es **eine einzige Installationsdatei**. Wie das zusammengebaut wird: [BUILD.md](BUILD.md).
+
 ## Neu in 1.4
 
 ### Aussehen nach Wunsch
 
-Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die Suchmaschine aussieht. Der Administrator legt dort auch den Standard für alle fest (gilt auch für Besucher ohne Anmeldung).
+Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die Suchmaschine aussieht. Den Standard für alle legt der Administrator unter **Verwaltung → Aussehen** fest (gilt auch für Besucher ohne Anmeldung).
 
 - **17 fertige Designs**, hell und dunkel. Neben klarem Weiß und Schwarz gibt es gedämpfte Töne für alle, denen Weiß zu grell und Schwarz zu dunkel ist: **Papier**, **Nebel**, **Salbei**, **Schiefer**, **Dämmerung**. Für hell und dunkel jeweils ein Lieblingsdesign, bei „Wie das Gerät“ wird automatisch gewechselt.
 - **Farbmischer** (aus „Kaufen“): Hintergrund, Flächen, Schrift, Akzent, dazu freiwillig Titel/Links und Nebentext. Mit Reglern für Farbton, Sättigung und Helligkeit, Farbcode, Live-Vorschau, Warnung bei zu wenig Kontrast und einem Knopf, der die Schriftfarben automatisch abstimmt. Funktioniert auch ohne JavaScript mit den Farbwählern des Browsers.
@@ -217,12 +225,13 @@ Direkt im Suchfeld, beantwortet bevor ein Suchdienst gefragt wird. Unter jeder A
 
 ### Werkzeuge
 
-Unter **Werkzeuge** (Menü oben rechts oder Startseite) stehen alle kleinen Helfer an einem Ort, oben als Kachel-Übersicht, jeweils mit eigenen Eingabefeldern. Niemand muss wissen, was man ins Suchfeld tippt. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben.
+Unter **Werkzeuge** (Kachel-Symbol oben rechts, Konto-Menü oder Startseite) stehen alle kleinen Helfer an einem Ort: eine Übersicht nach Gruppen, jedes Werkzeug mit eigener Seite und eigenen Eingabefeldern. Niemand muss wissen, was man ins Suchfeld tippt. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben.
 
 - **Rechnen und Umrechnen:** Rechner mit Tastenfeld, Einheiten (Länge, Gewicht, Temperatur, Volumen, Fläche, Geschwindigkeit, Zeit, Datenmengen), Währungen nach EZB-Kurs
 - **Zeit und Datum:** Timer mit Ton und Stoppuhr, Countdown, **Datumsrechner** (Tage zwischen zwei Daten samt Werktagen, Datum plus/minus Tage, Wochen, Monate, Jahre), **Alter und nächster Geburtstag**, **Feiertage nach Bundesland**, Kalenderwoche, Datum und Uhrzeit
-- **Zufall und Spiele:** Würfel, Münze, Zufallszahl, **Losen und Gruppen bilden** (Namen eingeben, einen auslosen, in Gruppen aufteilen oder die Reihenfolge mischen)
-- **Alltag:** Wetter, **Passwort-Generator** (Länge, Groß/Klein, Zahlen, Sonderzeichen, ohne Verwechsler, merkbare Wort-Passwörter, Kopier-Knopf, Stärke-Anzeige), **QR-Code-Generator** mit SVG-Download, deine **Kurzlinks** mit Aufrufzahlen (funktionieren für jeden ohne Anmeldung) und die eigene IP-Adresse
+- **Zufall und Entscheidungen:** Würfel, Münze, Zufallszahl, **Losen und Gruppen bilden** (Namen eingeben, einen auslosen, in Gruppen aufteilen oder die Reihenfolge mischen)
+- **Teilen und Sicherheit:** **Passwort-Generator** (Länge, Groß/Klein, Zahlen, Sonderzeichen, ohne Verwechsler, merkbare Wort-Passwörter, Kopier-Knopf, Stärke-Anzeige), **QR-Code-Generator** mit SVG-Download, deine **Kurzlinks** mit Aufrufzahlen (funktionieren für jeden ohne Anmeldung)
+- **Wetter und Netz:** Wetter für deinen Ort und die eigene IP-Adresse
 
 Alles funktioniert auch ohne JavaScript. Mit JavaScript laufen Timer und Stoppuhr live, und der Rechner hat ein Tastenfeld zum Antippen.
 
@@ -341,20 +350,29 @@ Alles lässt sich an derselben Stelle wieder einspielen.
 ## Aufbau
 
 ```
-index.php      Einstieg und Einstellungen (Version, Pfade)
-app/lib/       Sprache, Datenbank, Konten und Anmeldung (auch Token-Login), Brave (brave.php),
-               alle Suchdienste mit Lastverteilung und Ausweichen (providers.php), Sofort-Antworten und Kurzlinks (instant.php),
-               QR-Codes (qr.php), Komplettsicherung (backup.php), Bangs/Linsen/Domain-Listen/Filter (tools.php),
-               Bild-Proxy (imgproxy.php), Aussehen (look.php), Lesemodus (reader.php), Seitenablauf, Update
+index.php      Einstieg: Version, Pfade, lädt app/lib/ und startet den Ablauf
+app/lib/       Funktionen, eine Datei pro Thema: Ablauf (router.php), Seiten (page_*.php), Datenbank, Konten,
+               Suchdienste (providers.php, brave.php), Filter, Domain-Listen, Bangs und Linsen, Sofort-Antworten (instant.php),
+               QR-Codes, Bild-Proxy, Lesemodus, Aussehen, Logo, Sicherung, Update
+app/lang/      englische Texte (en.php)
 app/views/     HTML-Vorlagen
-app/assets/    CSS, JavaScript, PDF-Baukasten (pdf.js), Symbol, Schriften in fonts/ (werden über index.php ausgeliefert)
+app/assets/    CSS, JavaScript, PDF-Baukasten (pdf.js), Symbole, Schriften, Töne (werden über index.php ausgeliefert)
 data/          entsteht beim ersten Aufruf: Datenbank, Einstellungen, Logo (geheim!)
+tests/         automatische Tests
 tools/         Release bauen (nur für Entwickler)
 ```
 
-Die Dateien in `app/` tun nichts, wenn man sie direkt aufruft, alles läuft über `index.php`. Die englischen Texte stehen in `app/lib/lang.php`.
+Die Dateien in `app/` tun nichts, wenn man sie direkt aufruft, alles läuft über `index.php`. Eine ausführliche Übersicht, welche Datei wofür zuständig ist, steht in [BUILD.md](BUILD.md#wo-was-im-quellcode-steht).
 
-Release bauen: `php tools/build-release.php` legt in `dist/` den Installer und ein ZIP an. Ein Tag wie `1.0.1` auf GitHub baut das Release automatisch.
+## Selbst bauen
+
+Im Quellcode ist das Programm auf viele Dateien verteilt, Nutzer bekommen trotzdem nur **eine Datei**. Bauen kann sie jeder selbst, nur mit PHP:
+
+```sh
+php tools/build-release.php
+```
+
+Das prüft die Syntax, lässt alle Tests laufen, baut `dist/suchmaschine-install.php`, installiert sie zur Probe und schreibt Prüfsummen. Der Bau ist wiederholbar: Gleicher Quellcode ergibt dieselbe Datei, so lässt sich jedes Release mit dem Quellcode vergleichen. Alle Einzelheiten, auch zur Unterschrift der Updates: [BUILD.md](BUILD.md). Mitmachen: [CONTRIBUTING.md](CONTRIBUTING.md), Sicherheitslücken melden: [SECURITY.md](SECURITY.md).
 
 ## Gut zu wissen
 

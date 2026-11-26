@@ -88,7 +88,7 @@ if ($installer !== '') {
     preg_match_all('/<input type="hidden" name="([^"]+)" value="([^"]*)"/', $html, $m, PREG_SET_ORDER);
     $fields = [];
     foreach ($m as $x) $fields[$x[1]] = html_entity_decode($x[2]);
-    [$st] = req($base . 'suchmaschine-install.php', $fields + ['go' => '1']);
+    [$st] = req($base . 'suchmaschine-install.php', $fields + ['smi_go' => '1']);
     check('Installer: entpackt', is_file($work . '/index.php') && is_dir($work . '/app/lib'), 'HTTP ' . $st . ', index.php fehlt');
 }
 

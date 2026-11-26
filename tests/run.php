@@ -143,6 +143,18 @@ same('Installer-Format: drei Dateien gelesen', 3, is_array($parsed) ? count($par
 same('Installer-Format: falsche Prüfsumme wird abgelehnt', null, smPayloadParse(str_replace(hash('sha256', "<?php\n"), str_repeat('0', 64), $payload)));
 same('Installer-Format: Pfad außerhalb von app/ wird abgelehnt', null, smPayloadParse($payload . "../x.php\t" . hash('sha256', 'x') . "\t" . base64_encode('x') . "\n"));
 
+/* ---------- Unterschrift der Updates (Ed25519) ---------- */
+if (function_exists('sodium_crypto_sign_keypair')) {
+    $kp = sodium_crypto_sign_keypair();
+    $pub = base64_encode(sodium_crypto_sign_publickey($kp));
+    $sig = base64_encode(sodium_crypto_sign_detached('Inhalt', sodium_crypto_sign_secretkey($kp)));
+    same('Update-Unterschrift: passt', '', smUpdVerify('Inhalt', $sig, $pub));
+    check('Update-Unterschrift: veränderter Inhalt fällt auf', smUpdVerify('Inhalt!', $sig, $pub) !== '');
+    check('Update-Unterschrift: fehlende Unterschrift fällt auf', smUpdVerify('Inhalt', '', $pub) !== '');
+}
+same('Update-Unterschrift: ohne Schlüssel keine Prüfung', '', smUpdVerify('egal', '', ''));
+check('Update-Schlüssel im Code ist leer oder gültig', SM_UPDATE_PUBKEY === '' || strlen((string)base64_decode(SM_UPDATE_PUBKEY, true)) === 32);
+
 /* ---------- Aufräumen ---------- */
 if (is_dir($tmp)) {
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $f) {

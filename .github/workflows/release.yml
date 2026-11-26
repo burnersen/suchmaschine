@@ -4,6 +4,9 @@
 #   1. Von Hand: Actions → Release → "Run workflow". Ohne Angabe heißt der Tag wie die Version aus index.php, z. B. 1.0.0.
 #   2. Automatisch, sobald ein Tag wie 1.0.0 (oder v1.0.0) gepusht wird.
 # Gibt es das Release zu dem Tag schon, werden die Dateien nur angehängt bzw. ersetzt.
+#
+# Gebaut wird mit demselben Befehl, den jeder lokal ausführen kann: php tools/build-release.php (siehe BUILD.md).
+# Ist auf GitHub das Secret SM_SIGN_KEY hinterlegt, wird der Installer unterschrieben (Datei .sig daneben).
 name: Release
 
 on:
@@ -46,21 +49,30 @@ jobs:
             git checkout --quiet "refs/tags/$TAG"
             echo "TAG_EXISTS=1" >> "$GITHUB_ENV"
           fi
-      - name: Dateien bauen
-        run: php tools/build-release.php
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, curl, sodium, zip, gd, mbstring, openssl
+          coverage: none
+      - name: Dateien bauen (mit allen Tests)
+        env:
+          SM_SIGN_KEY: ${{ secrets.SM_SIGN_KEY }}
+        run: php tools/build-release.php --require-signature
       - name: Release anlegen oder ergänzen
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NAME="Suchmaschine ${TAG#v}"
+          FILES="dist/suchmaschine-install.php dist/suchmaschine-*.zip dist/SHA256SUMS"
+          if [ -f dist/suchmaschine-install.php.sig ]; then FILES="$FILES dist/suchmaschine-install.php.sig"; fi
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/suchmaschine-install.php dist/suchmaschine-*.zip --clobber
+            gh release upload "$TAG" $FILES --clobber
           else
             if [ -z "$TAG_EXISTS" ]; then git tag "$TAG" && git push origin "refs/tags/$TAG"; fi
             NOTES="docs/release-notes/$TAG.md"
             if [ -f "$NOTES" ]; then
-              gh release create "$TAG" dist/suchmaschine-install.php dist/suchmaschine-*.zip --title "$NAME" --notes-file "$NOTES" --verify-tag
+              gh release create "$TAG" $FILES --title "$NAME" --notes-file "$NOTES" --verify-tag
             else
-              gh release create "$TAG" dist/suchmaschine-install.php dist/suchmaschine-*.zip --title "$NAME" --generate-notes --verify-tag
+              gh release create "$TAG" $FILES --title "$NAME" --generate-notes --verify-tag
             fi
           fi

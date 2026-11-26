@@ -771,7 +771,7 @@ return [
     'Passwort-Generator (läuft nur im Browser)' => 'Password generator (runs in the browser only)',
     'QR-Code für eine Adresse oder einen Text' => 'QR code for an address or text',
     'Kurzlink anlegen (mit Konto)' => 'Create a short link (with account)',
-    'Unter Werkzeuge (Menü oben rechts oder Startseite) gibt es den Passwort-Generator mit allen Optionen (Länge, Zeichenarten, ohne Verwechsler, merkbare Wort-Passwörter), den QR-Code-Generator mit Download als SVG und die Liste deiner Kurzlinks mit Aufrufzahlen.' => 'Under Tools (menu top right or start page) you find the password generator with all options (length, character sets, no look-alikes, memorable word passwords), the QR code generator with SVG download and the list of your short links with visit counts.',
+    'Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es alle Helfer nach Gruppen, jeden auf einer eigenen Seite: Rechner, Einheiten, Währungen, Timer, Countdown, Datumsrechner, Feiertage, Kalenderwoche, Würfel und Losen, Passwort-Generator, QR-Codes, deine Kurzlinks, Wetter und die eigene IP-Adresse.' => 'Under Tools (grid icon at the top right) you find every helper by group, each on its own page: calculator, units, currencies, timer, countdown, date calculator, public holidays, calendar week, dice and drawing lots, password generator, QR codes, your short links, weather and your own IP address.',
     'Zu den Werkzeugen' => 'Go to the tools',
     'Letzte 24 Stunden, Woche, Monat oder Jahr. Dann wird automatisch streng nach Datum sortiert, neueste zuerst.' => 'Last 24 hours, week, month or year. Results are then strictly sorted by date automatically, newest first.',
     'Sortierung' => 'Sorting',
@@ -1177,4 +1177,8 @@ return [
     'Browser' => 'Browser',
     'Links und Verlauf' => 'Links and history',
     'Das Aussehen für alle Konten, die nichts Eigenes eingestellt haben, und für Besucher ohne Anmeldung. Jedes Konto kann es unter Einstellungen → Aussehen für sich ändern.' => 'The look for all accounts without their own and for visitors who are not signed in. Every account can change it for itself under Settings → Appearance.',
+    'Die PHP-Erweiterung sodium fehlt, darum lässt sich die Unterschrift des Updates nicht prüfen.' => 'The PHP extension sodium is missing, so the signature of the update cannot be checked.',
+    'Die Unterschrift des Updates stimmt nicht. Es wurde nichts verändert.' => 'The signature of the update is not valid. Nothing was changed.',
+    'Im neuesten Release fehlt die Unterschrift (suchmaschine-install.php.sig). Es wurde nichts verändert.' => 'The latest release has no signature (suchmaschine-install.php.sig). Nothing was changed.',
+    'Rechner, Timer, Feiertage, Losen, Passwörter, QR-Codes, Kurzlinks und mehr.' => 'Calculator, timer, holidays, drawing lots, passwords, QR codes, short links and more.',
 ];

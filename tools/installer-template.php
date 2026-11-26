@@ -100,7 +100,7 @@ function smiInstall($dir, array $files)
         return $fail;
     }
     // Programmteile, die es in dieser Version nicht mehr gibt, wegräumen (nur in app/, sonst nichts)
-    foreach (array('lib', 'views', 'assets') as $sub) {
+    foreach (array('lib', 'views', 'assets', 'lang') as $sub) {
         foreach ((array)@glob($dir . '/app/' . $sub . '/*') as $old) {
             if (is_file($old) && !isset($files['app/' . $sub . '/' . basename($old)])) @unlink($old);
         }
