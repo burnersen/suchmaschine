@@ -189,7 +189,7 @@ CF.views.kurzlinks = {
                         el('p', { text: T('Zieh diesen Knopf in deine Lesezeichenleiste. Ein Klick darauf kürzt die Seite, die du gerade ansiehst.') }), bm,
                         el('p', { class: 'muted', text: T('Am Handy (Android): installiere die Suchmaschine als App, dann steht sie im Teilen-Menü.') }))))));
         load().then(() => { if (params.edit) { const l = links.find(x => x.code === params.edit); if (l) edit(l); } });
-        if (params.url || params.text) setTimeout(() => url.focus(), 50);
+        if (params.url || params.text) setTimeout(() => CF.focus(url), 50);
     },
 };
 
@@ -290,7 +290,7 @@ CF.views.schnipsel = {
                     el('p', { text: T('Die Abholseite zeigt den Text erst nach einem Klick. So verbrauchen Linkvorschauen in Messengern keinen Abruf.') }),
                     el('p', { text: T('Mit Passwort: schick das Passwort auf einem anderen Weg als den Link (z. B. per Anruf).') }))))));
         load();
-        setTimeout(() => ta.focus(), 30);
+        setTimeout(() => CF.focus(ta), 30);
     },
 };
 })();

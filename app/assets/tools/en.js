@@ -839,4 +839,13 @@ Object.assign(CF.EN, {
     'Jetzt': 'Now',
     'Zeitstempel → Datum': 'Timestamp → date',
     'Datum → Zeitstempel': 'Date → timestamp',
+    // 2.1.1
+    'Keine %s gefunden. Vermutlich hat dein Anschluss gerade keine.': 'No %s found. Your connection probably has none right now.',
+    '%s auch anzeigen': 'Show %s too',
+    'Fragt dafür einmal ipify.org. Der Dienst sieht dabei deine Adresse.': 'Asks ipify.org once. The service sees your address.',
+    'Deine %s-Adresse': 'Your %s address',
+    'Std': 'h',
+    'Min': 'min',
+    'Sek': 'sec',
+    'Dauer eintippen oder Name geben': 'Type a duration or add a name',
 });

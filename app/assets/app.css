@@ -503,7 +503,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
 
 /* ---------- Fußzeile ---------- */
 .foot {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 10px; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
     background: var(--bg-2); color: var(--text-3); font-size: 13px; margin-top: auto;
 }
 .foot a { color: var(--text-2); }
@@ -813,7 +813,7 @@ input[type="file"] { font-size: 14px; max-width: 100%; }
 .wx { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: center; }
 .wx__now { display: flex; align-items: center; gap: 12px; }
 .wx__ico { font-size: 40px; line-height: 1; }
-.wx__temp { font-size: 40px; font-weight: 300; }
+.wx__temp { font-size: 40px; font-weight: 300; white-space: nowrap; }
 .wx__txt { font-size: 15px; }
 .wx__days { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
 .wx__days li { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 70px; padding: 8px 6px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line-2); font-size: 14px; }
@@ -1168,7 +1168,7 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .sbox__go-to { color: var(--accent); }
 .sbox__hint { color: var(--text-3); }
 .sbox.is-open .sbox__target { visibility: hidden; }
-.top .sbox__target { position: absolute; left: 12px; top: 100%; margin-top: 4px; white-space: nowrap; z-index: 5; }
+.top .sbox__target { position: absolute; left: 12px; right: 12px; top: 100%; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 5; background: var(--bg); border-radius: 8px; padding: 2px 6px; }
 .tag--warn { background: color-mix(in srgb, var(--error) 14%, transparent); color: var(--error); }
 
 .scope { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -4px 0 18px; }
@@ -1190,3 +1190,19 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .bang.is-off .list__main strong { text-decoration: line-through; color: var(--text-3); }
 .bang.is-editing { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .error-text { color: var(--error); }
+
+/* ---------- 2.1.1: Bedienbarkeit am Handy ---------- */
+@media (pointer: coarse) {
+    /* iPhone zoomt in jedes Feld mit weniger als 16 px Schrift hinein */
+    input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, select { font-size: max(16px, 1em); }
+    /* Fußzeile, Brotkrumen, aufklappbare Abschnitte: groß genug für den Finger */
+    .foot a, .foot__keys { display: inline-block; padding: 10px 4px; }
+    .crumbs a { display: inline-block; padding: 8px 0; }
+    details:not(.menu):not(.tools):not(.pop):not(.resmenu) > summary { padding-block: 8px; }
+    .ex { padding-block: 6px; }
+    /* Schieberegler, Datei-Auswahl, Farbwähler und Kästchen: genug Fläche für den Finger */
+    input[type=range] { min-height: 32px; }
+    input[type=file] { padding-block: 10px; }
+    input[type=color] { min-width: 40px; min-height: 40px; }
+    input[type=checkbox], input[type=radio] { min-width: 22px; min-height: 22px; }
+}

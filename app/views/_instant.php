@@ -221,7 +221,7 @@ for ($mo = 1; $mo <= 12; $mo++): $first = mktime(0, 0, 0, $mo, 1, $c['year']); $
         <p><?= h($c['error']) ?></p>
 <?php else: [$ico, $txt] = smWeatherLook($c['now']['look']); ?>
         <div class="wx">
-            <div class="wx__now"><span class="wx__ico" aria-hidden="true"><?= $ico ?></span><span class="wx__temp"><?= h(smFmtNumber(round($c['now']['temp']))) ?> °C</span>
+            <div class="wx__now"><span class="wx__ico" aria-hidden="true"><?= $ico ?></span><span class="wx__temp"><?= h(smFmtNumber(round($c['now']['temp']))) ?>&nbsp;°C</span>
                 <span class="wx__txt"><?= h($txt) ?><br><small class="muted"><?= h(t('Wind %s km/h', smFmtNumber(round($c['now']['wind'])))) ?><?= $c['now']['hum'] !== null ? ' · ' . h(t('Luftfeuchte %d %%', $c['now']['hum'])) : '' ?></small></span></div>
             <ol class="wx__days">
 <?php foreach ($c['days'] as $i => $d): [$di, $dt] = smWeatherLook($d['look']); ?>

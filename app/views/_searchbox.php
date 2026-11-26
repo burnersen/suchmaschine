@@ -10,7 +10,7 @@ $big = !empty($big);
         <svg class="sbox__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
         <input type="search" name="q" value="<?= h($q ?? '') ?>" placeholder="<?= h($big ? t('Suchen oder Adresse eingeben') : '') ?>"
                aria-label="<?= h(t('Suchbegriff')) ?>" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-               maxlength="400" enterkeyhint="search" required<?= $big ? ' autofocus' : '' ?> role="combobox" aria-expanded="false" aria-controls="sbox-list" aria-autocomplete="list">
+               maxlength="400" enterkeyhint="search" required<?= $big ? ' data-autofocus' : '' ?> role="combobox" aria-expanded="false" aria-controls="sbox-list" aria-autocomplete="list">
         <button type="button" class="sbox__clear" data-clear aria-label="<?= h(t('Eingabe löschen')) ?>"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
 <?php if ($bangOk): ?>
         <button type="button" class="sbox__bang" data-bang-btn title="<?= h(t('Bangs: direkt zu einer anderen Seite springen')) ?>" aria-label="<?= h(t('Bangs: direkt zu einer anderen Seite springen')) ?>">!</button>

@@ -79,7 +79,23 @@ CF.views.timer = {
         const custom = input({ class: 'in big mono', placeholder: T('5 · 1:30 · 90s · 1h20m'), autocomplete: 'off' });
         const name = input({ placeholder: T('Name (optional), z. B. Nudeln'), maxlength: 40 });
         custom.addEventListener('keydown', e => { if (e.key === 'Enter') { addTimer(parseDur(custom.value), name.value); custom.value = ''; name.value = ''; } });
-        const quick = el('div', { class: 'chips' }, [1, 3, 5, 10, 15, 20, 30, 45, 60].map(m => el('button', { type: 'button', class: 'chip', text: m + ' min', onclick: () => addTimer(m * 60, name.value) })));
+        const quick = el('div', { class: 'chips' },
+            [10, 30, 45, 90].map(s => el('button', { type: 'button', class: 'chip', text: s + ' s', onclick: () => addTimer(s, name.value) })),
+            [1, 3, 5, 10, 15, 20, 30, 45, 60].map(m => el('button', { type: 'button', class: 'chip', text: m + ' min', onclick: () => addTimer(m * 60, name.value) })));
+        // Genau einstellen ohne Tastatur: Stunden, Minuten, Sekunden mit − und +
+        const pick = CF.ls.get('timer.pick', { h: 0, m: 5, s: 0 });
+        const pickOut = {};
+        const savePick = () => { CF.ls.set('timer.pick', pick); Object.keys(pickOut).forEach(k => { pickOut[k].textContent = pad2(pick[k]); }); };
+        const stepper = (k, label, max, step) => {
+            pickOut[k] = el('output', { class: 'mono step__val', text: pad2(pick[k]) });
+            const ch = d => { pick[k] = (pick[k] + d + max + 1) % (max + 1); savePick(); };
+            return el('div', { class: 'step' }, el('span', { class: 'step__lbl', text: label }),
+                el('button', { type: 'button', class: 'step__btn', 'aria-label': label + ' +', text: '+', onclick: () => ch(step) }),
+                pickOut[k],
+                el('button', { type: 'button', class: 'step__btn', 'aria-label': label + ' −', text: '−', onclick: () => ch(-step) }));
+        };
+        const picker = el('div', { class: 'steps' }, stepper('h', T('Std'), 23, 1), el('span', { class: 'step__sep', text: ':' }), stepper('m', T('Min'), 59, 1), el('span', { class: 'step__sep', text: ':' }), stepper('s', T('Sek'), 59, 5));
+        const startPick = () => { const sec = custom.value.trim() ? parseDur(custom.value) : pick.h * 3600 + pick.m * 60 + pick.s; addTimer(sec, name.value); custom.value = ''; name.value = ''; };
 
         // Pomodoro und Intervall
         const pomo = () => { const s = []; for (let i = 1; i <= 4; i++) { s.push({ label: T('Fokus %s/4', i), sec: CF.ls.get('pomo.work', 25) * 60 }); s.push({ label: i < 4 ? T('kurze Pause') : T('lange Pause'), sec: (i < 4 ? CF.ls.get('pomo.short', 5) : CF.ls.get('pomo.long', 15)) * 60 }); } addSeq('Pomodoro', s, 1); };
@@ -144,7 +160,8 @@ CF.views.timer = {
         const notifyBtn = window.Notification && Notification.permission === 'default' ? btn(T('Benachrichtigungen erlauben'), 'btn-ghost btn-sm', () => Notification.requestPermission().then(() => notifyBtn.remove()), 'info') : null;
         fill(root, el('div', { class: 'layout' },
             el('div', { class: 'stack lg' },
-                CF.card(T('Neuer Timer'), 'play', el('div', { class: 'stack' }, quick, el('div', { class: 'row nw' }, el('div', { class: 'grow' }, custom), btn(T('Start'), 'btn-primary btn-lg', () => { addTimer(parseDur(custom.value), name.value); custom.value = ''; name.value = ''; }, 'play')), name)),
+                CF.card(T('Neuer Timer'), 'play', el('div', { class: 'stack' }, quick, el('div', { class: 'row timer-set' }, picker, btn(T('Start'), 'btn-primary btn-lg', startPick, 'play')),
+                    el('details', { class: 'adv' }, el('summary', {}, T('Dauer eintippen oder Name geben')), el('div', { class: 'stack' }, custom, name)))),
                 CF.card(T('Laufende Timer'), 'history', list)),
             el('div', { class: 'stack lg sticky' },
                 CF.card('Pomodoro', 'sparkles', el('div', { class: 'stack' }, el('p', { class: 'small muted', text: T('4 × 25 Minuten konzentriert arbeiten, dazwischen 5 Minuten Pause, am Ende 15.') }), btn(T('Pomodoro starten'), 'btn-second', pomo, 'play'))),
