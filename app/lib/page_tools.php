@@ -154,7 +154,7 @@ function smPageTools(?array $me, bool $post): void
         'login' => smUrl(['a' => 'login', 'next' => smSelf()]), 'search' => smBase() . '?q=',
         'settings' => ['resolve' => (bool)$me, 'shortener' => smSetting('shortener') === '1'],
     ];
-    if ($tool === 'waehrung' || $tool === 'einheiten' || $tool === 'rechner') $boot['data'] = smToolData($tool);
+    if ($tool === 'waehrung') $boot['data'] = smToolData($tool);
     if ($tool === 'ip') $boot['data'] = smToolIpData();
     smRender('tools', ['me' => $me, 'prefs' => smPrefs($me), 'title' => ($info ? $info[2] . ' – ' : '') . t('Werkzeuge') . ' – ' . smSiteName(),
         'new' => isset($_GET['new']) && is_string($_GET['new']) && preg_match('/^[A-Za-z0-9_-]{3,40}$/', $_GET['new']) ? $_GET['new'] : '',
