@@ -24,6 +24,22 @@
         a.addEventListener('click', function (ev) { if (plainClick(ev)) loading(true); });
     });
 
+    // „Links in neuem Tab öffnen“: gilt für jeden Link nach draußen, egal wo er steht (Treffer, Wetter, Kurzinfo, Hilfe …).
+    // Läuft vor allen anderen Klick-Handlern, damit niemand den Link vorher im selben Tab öffnet.
+    var newTab = body.hasAttribute('data-newtab');
+    function external(a) {
+        if (!a || !a.href || a.hasAttribute('download')) return false;
+        try { var u = new URL(a.href, location.href); return (u.protocol === 'https:' || u.protocol === 'http:') && u.origin !== location.origin; } catch (e) { return false; }
+    }
+    function forceNewTab(a) {
+        if (!newTab || !external(a)) return;
+        a.target = '_blank';
+        var parts = (a.getAttribute('rel') || '').split(' ').filter(Boolean);
+        ['noopener', 'noreferrer'].forEach(function (r) { if (parts.indexOf(r) < 0) parts.push(r); });
+        a.setAttribute('rel', parts.join(' '));
+    }
+    document.addEventListener('click', function (ev) { forceNewTab(ev.target.closest && ev.target.closest('a[href]')); }, true);
+
     /* ---------- Suchfeld: Löschen-Knopf und Vorschläge aus dem eigenen Verlauf ---------- */
     var HKEY = 'sm_history';
     function hist() { try { var h = JSON.parse(localStorage.getItem(HKEY) || '[]'); return Array.isArray(h) ? h : []; } catch (e) { return []; } }
@@ -579,7 +595,7 @@
             var a = linkOf(el);
             if (!a) return;
             if (ev.ctrlKey || ev.metaKey) window.open(a.href, '_blank', 'noopener,noreferrer');
-            else { loading(a.target !== '_blank'); a.click(); }
+            else { forceNewTab(a); loading(a.target !== '_blank'); a.click(); }
         }
         else if (k === 'ArrowRight' || k === 'ArrowLeft') {
             var p = $(k === 'ArrowRight' ? '.pager a[rel="next"]' : '.pager a[rel="prev"]');

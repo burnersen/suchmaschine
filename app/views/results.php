@@ -8,10 +8,14 @@ require __DIR__ . '/_vars.php';
 <?php endforeach; ?>
 <?php if (in_array($tab, ['web', 'news'], true)): ?>
         <details class="tools">
-            <summary class="tabs__tab<?= $flt['sort'] ? ' is-set' : '' ?>"><?= h($flt['sort'] ? t('Neueste zuerst') : t('Sortierung')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+<?php $sdef = $prefs['sort_' . $tab]; ?>
+            <summary class="tabs__tab<?= $flt['sort_q'] !== '' ? ' is-set' : '' ?>"><?= h($flt['sort'] ? t('Neueste zuerst') : t('Relevanz')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <div class="tools__panel">
-                <a href="<?= h(smUrl(['sort' => null] + $base)) ?>"<?= $flt['sort'] === '' ? ' class="is-active"' : '' ?> data-load><?= h(t('Relevanz')) ?></a>
-                <a href="<?= h(smUrl(['sort' => 'date'] + $base)) ?>"<?= $flt['sort'] === 'date' ? ' class="is-active"' : '' ?> data-load><?= h(t('Nach Datum (neueste zuerst)')) ?></a>
+                <a href="<?= h(smUrl(['sort' => $sdef === 'rel' ? null : 'rel'] + $base)) ?>"<?= $flt['sort'] === '' ? ' class="is-active"' : '' ?> data-load><?= h(t('Relevanz')) ?></a>
+                <a href="<?= h(smUrl(['sort' => $sdef === 'date' ? null : 'date'] + $base)) ?>"<?= $flt['sort'] === 'date' ? ' class="is-active"' : '' ?> data-load><?= h(t('Nach Datum (neueste zuerst)')) ?></a>
+<?php if ($me): ?>
+                <a class="tools__manage" href="<?= h(smUrl(['a' => 'settings', 'tab' => 'search'])) ?>#sort"><?= h(t('Standard ändern')) ?></a>
+<?php endif; ?>
             </div>
         </details>
 <?php endif; ?>
@@ -42,10 +46,13 @@ require __DIR__ . '/_vars.php';
 <?php endif; ?>
 <?php if ($tab !== 'images'): ?>
         <details class="tools">
-            <summary class="tabs__tab<?= $fresh ? ' is-set' : '' ?>"><?= h($fresh ? smFreshness()[$fresh] : t('Zeitraum')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <summary class="tabs__tab<?= $flt['f_q'] !== '' ? ' is-set' : '' ?>"><?= h($fresh ? smFreshness()[$fresh] : ($tab === 'news' ? smFreshness()[''] : t('Zeitraum'))) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <div class="tools__panel">
-<?php foreach (smFreshness() as $k => $label): ?>
-                <a href="<?= h(smUrl(['f' => $k ?: null] + $base)) ?>"<?= $k === $fresh ? ' class="is-active"' : '' ?> data-load><?= h($label) ?></a>
+<?php foreach (smFreshness() as $k => $label):
+    // News haben einen eigenen Standard-Zeitraum: „beliebig“ heißt dort ausdrücklich f=all, der Standard steht nicht in der Adresse
+    $fv = $tab === 'news' ? ($k === '' ? 'all' : $k) : $k;
+    $fv = $tab === 'news' && $fv === $prefs['news_fresh'] ? '' : $fv; ?>
+                <a href="<?= h(smUrl(['f' => $fv ?: null, 'xf' => null] + $base)) ?>"<?= $k === $fresh ? ' class="is-active"' : '' ?> data-load><?= h($label) ?></a>
 <?php endforeach; ?>
             </div>
         </details>
@@ -86,7 +93,7 @@ require __DIR__ . '/_vars.php';
 <?php if ($tab === 'web'): ?>
         <a class="tabs__tab tabs__toggle<?= $flt['dl'] === '' ? ' is-on' : ' is-set' ?>" href="<?= h(smUrl(['dl' => $flt['dl'] === '' ? '0' : null] + $base)) ?>" role="switch" aria-checked="<?= $flt['dl'] === '' ? 'true' : 'false' ?>" title="<?= h(t('Damit eine einzelne Seite nicht die ganze Trefferliste füllt')) ?>" data-load><span class="tabs__check" aria-hidden="true"></span><?= h(t('Max. 3 pro Domain')) ?></a>
 <?php endif; ?>
-<?php if ($fresh || $ft || $lens || array_filter($flt, function ($v) { return $v !== ''; }) || $exact): ?>
+<?php if ($ft || $lens || array_filter(array_intersect_key($flt, array_flip(['f_q', 'xf', 'sort_q', 'dl', 'src', 'io', 'is', 'isort'])), function ($v) { return $v !== ''; }) || $exact): ?>
         <a class="tabs__tab tabs__reset" href="<?= h(smUrl(['q' => $q, 't' => $tab !== 'web' ? $tab : null])) ?>" data-load><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><?= h(t('Alle Filter zurücksetzen')) ?></a>
 <?php endif; ?>
         <a class="tabs__tab tabs__help" href="<?= h(smUrl(['a' => 'help'])) ?>" title="<?= h(t('Hilfe zu Suchoperatoren, Bangs und Linsen')) ?>"><?= h(t('Hilfe')) ?></a>
@@ -99,7 +106,7 @@ require __DIR__ . '/_vars.php';
     <div class="alert alert--error serp__error">
         <strong><?= h(t('Die Suche hat nicht geklappt.')) ?></strong> <?= h($error) ?>
         <p><a class="btn btn--small" href="<?= h(smSelf()) ?>"><?= h(t('Noch einmal versuchen')) ?></a>
-<?php if ($fb !== ''): ?> <a class="btn btn--small btn--primary" href="<?= h($fb) ?>" rel="noopener noreferrer"><?= h(t('Bei %s suchen', smFallbackName())) ?></a><?php endif; ?>
+<?php if ($fb !== ''): ?> <a class="btn btn--small btn--primary" href="<?= h($fb) ?>"<?= $rel . $target ?>><?= h(t('Bei %s suchen', smFallbackName())) ?></a><?php endif; ?>
 <?php if ($flt['src'] !== ''): ?> <a class="btn btn--small" href="<?= h(smUrl(['src' => null] + $base)) ?>" data-load><?= h(t('Automatisch einen anderen Dienst nehmen')) ?></a><?php endif; ?></p>
     </div>
 <?php require __DIR__ . '/_srcbar.php'; ?>
@@ -108,6 +115,9 @@ require __DIR__ . '/_vars.php';
 <?php if (!empty($res['notice']) && empty($res['cached'])): ?>
     <p class="serp__notice"><strong><?= h($res['source'] === 'multi' ? t('Ergebnisse von %s', implode(' + ', array_map(function ($i) { return smProviders()[$i]['name']; }, $res['sources']))) : t('Ergebnisse von %s', smProviders()[$res['source']]['name'])) ?>.</strong>
         <?= h(implode(' · ', $res['notice'])) ?></p>
+<?php endif; ?>
+<?php if (!empty($widened)): ?>
+    <p class="serp__note"><?= h(t('Keine News aus dem Zeitraum „%s“, darum: %s.', smFreshness()[$widened], smFreshness()[$fresh])) ?></p>
 <?php endif; ?>
 <?php if (!empty($res['dl_hidden'])): ?>
     <p class="serp__note"><?= h(t('%d weitere Treffer von schon gezeigten Domains ausgeblendet (max. 3 pro Domain).', $res['dl_hidden'])) ?>
@@ -129,7 +139,7 @@ require __DIR__ . '/_vars.php';
     <div class="serp__empty">
         <p><?= t('Zu <strong>%s</strong> wurde nichts gefunden.', h($q)) ?></p>
         <ul><li><?= h(t('Stimmt die Schreibweise?')) ?></li><li><?= h(t('Andere oder allgemeinere Begriffe probieren.')) ?></li>
-<?php if ($fresh): ?><li><a href="<?= h(smUrl(['f' => null] + $base)) ?>"><?= h(t('Ohne Zeitraum suchen')) ?></a></li><?php endif; ?>
+<?php if ($fresh): ?><li><a href="<?= h(smUrl(['f' => $tab === 'news' ? 'all' : null, 'xf' => null] + $base)) ?>"><?= h(t('Ohne Zeitraum suchen')) ?></a></li><?php endif; ?>
 <?php if ($ft): ?><li><a href="<?= h(smUrl(['ft' => null] + $base)) ?>"><?= h(t('Ohne Dateityp suchen')) ?></a></li><?php endif; ?>
 <?php if ($lens): ?><li><a href="<?= h(smUrl(['l' => null] + $base)) ?>"><?= h(t('Ohne Linse suchen')) ?></a></li><?php endif; ?>
 <?php if ($flt['io'] || $flt['is']): ?><li><a href="<?= h(smUrl(['io' => null, 'is' => null] + $base)) ?>"><?= h(t('Ohne Bildfilter suchen')) ?></a></li><?php endif; ?>

@@ -268,6 +268,33 @@ function smPrefs(?array $me): array
         'newtab'      => !empty($p['newtab']),
         'history'     => !isset($p['history']) || !empty($p['history']),
         'scroll'      => in_array($p['scroll'] ?? '', ['pages', 'endless'], true) ? $p['scroll'] : (smSetting('scroll') === 'endless' ? 'endless' : 'pages'),
+        'sort_web'    => in_array($p['sort_web'] ?? '', ['date', 'rel'], true) ? $p['sort_web'] : (smSetting('sort_web') === 'rel' ? 'rel' : 'date'),
+        'sort_news'   => in_array($p['sort_news'] ?? '', ['date', 'rel'], true) ? $p['sort_news'] : (smSetting('sort_news') === 'rel' ? 'rel' : 'date'),
+        'news_fresh'  => smNewsFreshOk($p['news_fresh'] ?? '') ? $p['news_fresh'] : (smNewsFreshOk(smSetting('news_fresh')) ? smSetting('news_fresh') : 'pd'),
+        'news_expand' => isset($p['news_expand']) ? !empty($p['news_expand']) : smSetting('news_expand') === '1',
+    ];
+}
+
+/** Gültiger News-Zeitraum: pd, pw, pm, py oder all (beliebig) */
+function smNewsFreshOk($v): bool
+{
+    return is_string($v) && in_array($v, ['pd', 'pw', 'pm', 'py', 'all'], true);
+}
+
+/** Nächstgrößerer Zeitraum fürs automatische Erweitern der News ('' = keiner mehr) */
+function smNextFresh(string $f): string
+{
+    return ['pd' => 'pw', 'pw' => 'pm', 'pm' => 'py'][$f] ?? '';
+}
+
+/** Sortierung und News aus einem Formular (eigene Einstellungen oder Standard der Installation) */
+function smSortPrefsFromPost(): array
+{
+    return [
+        'sort_web'    => ($_POST['sort_web'] ?? '') === 'rel' ? 'rel' : 'date',
+        'sort_news'   => ($_POST['sort_news'] ?? '') === 'rel' ? 'rel' : 'date',
+        'news_fresh'  => smNewsFreshOk($_POST['news_fresh'] ?? '') ? (string)$_POST['news_fresh'] : 'pd',
+        'news_expand' => !empty($_POST['news_expand']),
     ];
 }
 
@@ -276,14 +303,35 @@ function smTabs(): array
     return ['web' => t('Alle'), 'images' => t('Bilder'), 'news' => t('News'), 'videos' => t('Videos')];
 }
 
-/** Filter und Sortierung aus der Adresse, geprüft. Abweichungen vom Standard zählen für „Alle Filter zurücksetzen“. */
-function smSearchFilters(string $tab): array
+/**
+ * Filter und Sortierung aus der Adresse, geprüft. Was nicht in der Adresse steht, kommt aus den Einstellungen des Kontos
+ * (Sortierung, News-Zeitraum). Die Felder mit _q sind das, was wirklich in der Adresse steht: nur das zählt als Abweichung
+ * für „Alle Filter zurücksetzen“ und wandert in die Links.
+ */
+function smSearchFilters(string $tab, ?array $prefs = null): array
 {
     $g = function (string $k): string { return isset($_GET[$k]) && is_string($_GET[$k]) ? $_GET[$k] : ''; };
+    $prefs = $prefs ?? smPrefs(null);
+    $fq = $g('f') !== '' && (isset(smFreshness()[$g('f')]) || ($tab === 'news' && $g('f') === 'all')) ? $g('f') : '';
+    $fresh = $fq === 'all' ? '' : $fq;
+    $auto = false;
+    if ($tab === 'news' && $fq === '') {
+        $fresh = $prefs['news_fresh'] === 'all' ? '' : $prefs['news_fresh'];
+        $auto = $prefs['news_expand'] && $fresh !== '';
+    }
+    // xf: Fortsetzung beim Erweitern, Treffer aus diesem (schon gezeigten) Zeitraum weglassen
+    $xf = $tab === 'news' && $fq !== '' && $fq !== 'all' && in_array($g('xf'), ['pd', 'pw', 'pm'], true) ? $g('xf') : '';
+    if ($xf !== '' && $prefs['news_expand']) $auto = true;
+    $sq = in_array($tab, ['web', 'news'], true) && in_array($g('sort'), ['date', 'rel'], true) ? $g('sort') : '';
+    $sort = in_array($tab, ['web', 'news'], true) ? ($sq !== '' ? $sq : $prefs['sort_' . $tab]) : 'rel';
     $f = [
-        'fresh' => isset(smFreshness()[$g('f')]) ? $g('f') : '',
+        'fresh'  => $fresh,
+        'f_q'    => $fq,
+        'xf'     => $xf,
+        'auto'   => $auto,
+        'sort'   => $sort === 'date' ? 'date' : '',
+        'sort_q' => $sq,
         'ft'    => $tab === 'web' ? smCleanFileType($g('ft')) : '',
-        'sort'  => in_array($tab, ['web', 'news'], true) && $g('sort') === 'date' ? 'date' : '',
         'dl'    => $tab === 'web' && $g('dl') === '0' ? '0' : '',
         'src'   => isset(smProviders()[$g('src')]) || $g('src') === 'multi' ? $g('src') : '',
         'io'    => $tab === 'images' && isset(smImageOrientations()[$g('io')]) ? $g('io') : '',
@@ -322,7 +370,7 @@ function smPageSearch(?array $me): void
     if (!isset($lenses[$lens])) $lens = '';
     $page = max(1, min(10, (int)($_GET['p'] ?? 1)));
     $exact = ($_GET['exact'] ?? '') === '1';
-    $flt = smSearchFilters($tab);
+    $flt = smSearchFilters($tab, $prefs);
     $ft = $flt['ft'];
     $fresh = $flt['fresh'];
     $view = $tab === 'images' && isset($_GET['view']) && is_string($_GET['view']) && ctype_digit($_GET['view']) ? min(199, (int)$_GET['view']) : -1;
@@ -344,12 +392,26 @@ function smPageSearch(?array $me): void
     try {
         if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
         if (!$me && $flt['src'] === 'multi') throw new SmSearchError(t('„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.'));
-        $res = smSearch($tab, smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null),
-            $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src']],
-            $me ? $me['id'] : 0);
+        $apiQ = smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null);
+        $opt = $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src']];
+        $res = smSearch($tab, $apiQ, $opt, $me ? $me['id'] : 0);
+        // News: gar nichts im eingestellten Zeitraum? Dann gleich den nächstgrößeren nehmen (kostet nur in diesem Fall eine Suche mehr)
+        $from = $fresh;
+        while ($tab === 'news' && $flt['auto'] && $flt['xf'] === '' && $page === 1 && !$part && !$res['results'] && ($nx = smNextFresh($fresh)) !== '') {
+            $fresh = $nx;
+            $res = smSearch($tab, $apiQ, ['freshness' => $fresh] + $opt, $me ? $me['id'] : 0);
+        }
+        if ($fresh !== $from) {
+            $flt['fresh'] = $fresh;
+            $flt['f_q'] = $fresh;
+            $vars['fresh'] = $fresh;
+            $vars['widened'] = $from;
+        }
+        // Fortsetzung beim Erweitern: was schon im kleineren Zeitraum gezeigt wurde, weglassen
+        if ($flt['xf'] !== '') $res = smDropNewer($res, ['pd' => 86400, 'pw' => 7 * 86400, 'pm' => 31 * 86400][$flt['xf']]);
         // Eigene Domain-Listen, Sortierung und Filter erst jetzt: der Zwischenspeicher bleibt für alle gleich
         $res = smApplyDomainLists($res, smDomainLists($me));
-        if (in_array($tab, ['web', 'news'], true) && ($flt['sort'] === 'date' || $fresh !== '')) $res = smSortByDate($res);
+        if ($flt['sort'] === 'date') $res = smSortByDate($res);
         if ($tab === 'web' && $flt['dl'] !== '0') $res = smDomainLimit($res, 3);
         if ($tab === 'images') $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === 'res');
         // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
@@ -372,6 +434,7 @@ function smPageSearch(?array $me): void
 
     $vars['res'] = $res;
     $vars['error'] = $error;
+    $vars['flt'] = $flt;
     if ($part) {
         // Endlos-Scrollen: nur die nächsten Treffer, ohne Seitengerüst
         if ($error !== '') http_response_code(502);
@@ -430,6 +493,7 @@ function smPageSettings(array $me, bool $post): void
                 $p['newtab'] = !empty($_POST['newtab']);
                 $p['history'] = !empty($_POST['history']);
                 $p['scroll'] = ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages';
+                $p = smSortPrefsFromPost() + $p;
                 $p['city'] = trim(mb_substr(smPlain((string)($_POST['city'] ?? '')), 0, 60));
                 $ws = (string)($_POST['weather_src'] ?? '');
                 $p['weather_src'] = isset(smWeatherSources()[$ws]) ? $ws : '';
@@ -623,6 +687,7 @@ function smPageAdmin(array $me, bool $post): void
                 $pid = (string)($_POST['p'] ?? '');
                 if (!isset(smProviders()[$pid]) || trim(smProvGet($pid, 'key')) === '') { $err = t('Unbekannte Aktion.'); break; }
                 $err = smProvTest($pid, smProvGet($pid, 'key'));
+                if ($err === '' && smProvHasSync($pid)) $err = smProvSync($pid);
                 if ($err === '') { smProvOk($pid, 0); $ok = t('%s: Der API-Key funktioniert.', smProviders()[$pid]['name']); }
                 else smProvFail($pid, $err, 0);
                 break;
@@ -712,6 +777,8 @@ function smPageAdmin(array $me, bool $post): void
     if ($tab === 'config' && smLogoUrl() !== '' && !is_file(smAppIconFile()) && smSetting('logo_type') !== 'image/svg+xml') {
         smAppIconFromRaster((string)@file_get_contents(SM_DATA_DIR . '/logo.bin'));
     }
+    // Guthaben und Reset-Datum bei den Diensten abgleichen, die das können (höchstens alle 6 Stunden)
+    if ($tab === 'usage' || $tab === 'providers') smProvSyncAll();
     if ($tab === 'usage') $vars['history'] = smUsageHistory(12);
     if ($tab === 'users' || $tab === 'usage') $vars['users'] = smUsers();
     smRender('admin', $vars);
@@ -725,6 +792,7 @@ function smSaveConfig(): string
     $acc = (string)($_POST['accent'] ?? '');
     if (isset(smAccents()[$acc])) smSetSetting('accent', $acc);
     smSetSetting('scroll', ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages');
+    foreach (smSortPrefsFromPost() as $k => $v) smSetSetting($k, is_bool($v) ? ($v ? '1' : '0') : $v);
     if (!empty($_POST['logo_remove'])) {
         @unlink(SM_DATA_DIR . '/logo.bin');
         smSetSetting('logo_type', '');
@@ -771,11 +839,20 @@ function smSaveProviders(): string
                 smProvSet($id, 'key', $key);
                 smProvUnpause($id);
                 smProvOk($id, 0);
+                if (smProvHasSync($id)) smProvSync($id);
             }
         }
         if (!isset($_POST['limit'][$id])) continue;   // Dienst war nicht im Formular (noch kein Key)
-        $start = (string)($_POST['start'][$id] ?? '');
-        smProvSet($id, 'start', preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && checkdate((int)substr($start, 5, 2), (int)substr($start, 8, 2), (int)substr($start, 0, 4)) ? $start : '');
+        // Stichtag nur, wenn er im Formular stand (meldet der Dienst sein Reset-Datum selbst, fehlt das Feld)
+        if (isset($_POST['start'][$id])) {
+            $start = (string)$_POST['start'][$id];
+            smProvSet($id, 'start', preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && checkdate((int)substr($start, 5, 2), (int)substr($start, 8, 2), (int)substr($start, 0, 4)) ? $start : '');
+        }
+        // Schon verbraucht, bevor die Suchmaschine mitgezählt hat (nur für Dienste, die ihren Verbrauch nicht selbst melden)
+        if (isset($_POST['used'][$id]) && is_string($_POST['used'][$id])) {
+            $u = max(0.0, min(10000000.0, (float)str_replace(',', '.', trim($_POST['used'][$id]))));
+            if (abs($u - smProvAdjust($id)) > 0.0001) smProvSetAdjust($id, $u);
+        }
         smProvSet($id, 'limit', (string)max(0, min(10000000, (int)$_POST['limit'][$id])));
         $cost = (float)str_replace(',', '.', (string)($_POST['cost'][$id] ?? $p['cost']));
         smProvSet($id, 'cost', (string)max(0.01, min(1000, $cost)));

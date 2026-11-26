@@ -41,7 +41,7 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
-[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
 
 ## What does it cost?
 
@@ -56,7 +56,8 @@ Nothing for normal private use. The search engine can use five search APIs, each
 | [Firecrawl](https://firecrawl.dev) | **1,000 credits** on the free plan | credits (reported per search) | 950 | web, news |
 
 - Each service gets its **own limit** in the admin page. The default is always the free quota **minus 50 as a buffer**. When a limit is reached, the next service takes over automatically.
-- Each service has a **reference date**: the day of the month when the provider resets the quota. Counter, reset date and forecast follow it. Without one, the first of the month applies.
+- **Reset date:** Brave and Firecrawl report when their quota restarts, the search engine takes it over automatically. Firecrawl and Tavily also report their remaining credits and the counter follows them. For Exa and parallel.ai you enter a **reference date** (the day of the month the quota restarts, without one the first of the month applies).
+- **Already used:** if you add a key in the middle of the month, enter what the dashboard already shows as used. It applies until the next reset.
 - Switch off **automatic top-up** at every provider and set a spending limit of 0 where possible. Then nothing can be charged.
 - A **cache** makes reloading, the back button and paging free: up to 60 minutes for Brave (more is not allowed by Brave's terms), 8 hours by default for the others.
 - **Instant answers** (calculator, currencies, weather …), **bangs** and **tools** cost nothing at all, because they do not ask a search service.
@@ -73,7 +74,7 @@ Enter the keys after installation under **Admin → Search services**. Every key
 
 **parallel.ai:** sign in at [platform.parallel.ai](https://platform.parallel.ai). The monthly free credit requires a card on file: under "Billing" turn **auto-reload off** and set a **spend limit**. Create a key under **"API Keys"**.
 
-**Firecrawl:** sign in at [firecrawl.dev](https://www.firecrawl.dev), the free plan has 1,000 credits. Copy the key from **"API Keys"** (starts with `fc-`). Reference date: the day your credits refresh according to the dashboard.
+**Firecrawl:** sign in at [firecrawl.dev](https://www.firecrawl.dev), the free plan has 1,000 credits. Copy the key from **"API Keys"** (starts with `fc-`). Reset date and remaining credits come straight from Firecrawl, no reference date needed.
 
 In the admin page you also set the **order** (who is asked first), switch **load balancing** on or off, pick the services for **"All together"** and the **fallback target** for emergencies.
 
@@ -104,6 +105,14 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. The most important ones are built in; everyone can switch them off and **add their own** (address with `{q}` for the search term). Works from the browser's address bar too.
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
+
+## New in 1.3
+
+- **Newest first** is the default for "All" and news. Every account can change it under *Settings → Search*, the administrator sets the default for everyone. Switch any time with "Sorting" above the results.
+- **News from the last 24 hours.** At the end of the list it continues with the last week, then the last month and the last year. If there is no recent news at all, the range widens right away. Range and widening are per account.
+- **Reset date from the service:** Brave (with every search) and Firecrawl (own endpoint, at most every 6 hours, free) report when their quota restarts. Firecrawl and Tavily also report their remaining credits. A new **"Already used"** field covers services that cannot.
+- **New tab everywhere:** "Open links in a new tab" applies to every outgoing link, including weather, overview panel and loaded results.
+- **Bangs without flashing:** the redirect page is empty and uses the page colours; a "Continue" button only appears after 2 seconds if the target hangs.
 
 ## New in 1.2
 

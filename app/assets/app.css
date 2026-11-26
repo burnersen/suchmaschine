@@ -886,6 +886,11 @@ body.has-overlay { overflow: hidden; }
 /* Zwischenseite beim Weiterleiten */
 .redir { max-width: 560px; margin: 18vh auto 0; padding: 24px; font: 16px/1.5 system-ui, sans-serif; }
 .redir__msg { color: var(--text-2); }
+.news__sep { margin: 28px 0 8px; padding-top: 16px; border-top: 1px solid var(--line, rgba(127,127,127,.25)); font-size: 15px; font-weight: 600; color: var(--text-2); }
+html:has(.redir) { background: var(--bg); }
+/* Bangs: nichts zeigen, nur falls die Weiterleitung hängt, nach 2 Sekunden einen Knopf */
+.redir--quiet { opacity: 0; animation: redir-show .2s ease 2s forwards; }
+@keyframes redir-show { to { opacity: 1; } }
 
 @media (max-width: 720px) {
     .ia { padding: 16px; border-radius: 18px; }

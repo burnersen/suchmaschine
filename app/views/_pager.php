@@ -19,3 +19,8 @@ if ($page > 1 || $hasNext): ?>
 <?php endif; ?>
     </nav>
 <?php endif;
+// News am Ende des Zeitraums: weiter mit älteren
+if (!$hasNext && $tab === 'news' && $flt['auto'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== ''): ?>
+    <p class="more__end"><?= h(t('Das waren die News aus dem Zeitraum „%s“.', smFreshness()[$fresh])) ?>
+        <a class="btn btn--small" href="<?= h(smUrl(['f' => $nx, 'xf' => $fresh, 'p' => null] + $base)) ?>" data-load><?= h(t('Ältere News: %s', smFreshness()[$nx])) ?> →</a></p>
+<?php endif;

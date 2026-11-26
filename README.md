@@ -45,7 +45,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -60,7 +60,8 @@ Bei normaler privater Nutzung nichts. Die Suchmaschine kann fünf Such-APIs nutz
 | [Firecrawl](https://firecrawl.dev) | **1.000 Credits** im Free-Plan | Credits (gemeldet pro Suche) | 950 | Web, News |
 
 - Pro Dienst stellst du in der Verwaltung ein **eigenes Limit** ein. Voreingestellt ist immer das Freikontingent **minus 50 als Puffer**. Ist ein Limit erreicht, nimmt die Suchmaschine automatisch den nächsten Dienst.
-- Pro Dienst gibt es einen **Stichtag**: der Tag im Monat, an dem das Kontingent beim Anbieter neu startet. Danach richten sich Zähler, Reset-Datum und die Prognose. Ohne Stichtag gilt der Monatserste.
+- **Reset-Datum:** Brave und Firecrawl melden selbst, wann ihr Kontingent neu startet, das übernimmt die Suchmaschine automatisch. Firecrawl und Tavily melden außerdem ihr Restguthaben, der Zähler gleicht sich daran an. Für Exa und parallel.ai trägst du einen **Stichtag** ein (der Tag im Monat, an dem das Kontingent neu startet, ohne Stichtag gilt der Monatserste).
+- **Schon verbraucht:** Trägst du einen Key mitten im Monat ein, gibst du in der Verwaltung an, was laut Dashboard schon weg ist. Gilt bis zum nächsten Reset.
 - Schalte bei allen Anbietern **automatisches Aufladen aus** und setz dort, wo es geht, ein Ausgabenlimit von 0. Dann kann nichts abgebucht werden.
 - Ein **Zwischenspeicher** sorgt dafür, dass Neuladen, Zurück-Knopf und Blättern nichts kosten: bei Brave bis 60 Minuten (mehr erlauben Braves Bedingungen nicht), bei den anderen standardmäßig 8 Stunden.
 - **Sofort-Antworten** (Rechner, Währungen, Wetter …), **Bangs** und **Werkzeuge** kosten gar nichts, weil sie keinen Suchdienst fragen.
@@ -75,7 +76,7 @@ Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** e
 1. Auf [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com) ein Konto anlegen.
 2. Den Plan **„Search“** wählen. Brave möchte eine **Kreditkarte** sehen (gegen Missbrauch), abgerechnet wird über Guthaben ohne Abo. **Automatische Aufladung ausgeschaltet lassen.**
 3. Unter **„API Keys“** einen Key erzeugen (beginnt mit `BSA`).
-4. Stichtag in der Verwaltung: der Tag, an dem dein Brave-Guthaben neu startet (steht im Dashboard unter „Usage“).
+4. Das Reset-Datum schickt Brave bei jeder Suche mit, ein Stichtag ist nicht nötig. Den bisherigen Verbrauch im laufenden Monat (Dashboard unter „Usage“) kannst du unter „Schon verbraucht“ eintragen.
 
 **Tavily**
 1. Auf [app.tavily.com](https://app.tavily.com) anmelden (Google, GitHub oder E-Mail).
@@ -95,7 +96,7 @@ Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** e
 **Firecrawl**
 1. Auf [firecrawl.dev](https://www.firecrawl.dev) anmelden, der Free-Plan enthält 1.000 Credits.
 2. Im Dashboard unter **„API Keys“** den Key kopieren (beginnt mit `fc-`).
-3. Stichtag: das Datum, an dem die Credits laut Dashboard neu aufgefüllt werden.
+3. Reset-Datum und Restguthaben holt sich die Suchmaschine direkt bei Firecrawl, ein Stichtag ist nicht nötig.
 
 **Tipp:** In der Verwaltung legst du außerdem die **Reihenfolge** fest (wer zuerst gefragt wird), schaltest die **Lastverteilung** an oder aus, wählst die Dienste für **„Alle zusammen“** und das **Ausweichziel** für den Notfall.
 
@@ -127,6 +128,14 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden die wichtigsten, jeder kann sie für sich abschalten und **eigene anlegen** (Adresse mit `{q}` für den Suchbegriff). Funktioniert auch aus der Adressleiste des Browsers.
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
+
+## Neu in 1.3
+
+- **Neueste zuerst** ist Standard bei „Alle“ und bei News. Jedes Konto stellt das unter *Einstellungen → Suche* für sich um, der Administrator legt unter *Verwaltung → Einstellungen* den Standard für alle fest. In der Trefferliste lässt es sich jederzeit über „Sortierung“ umschalten.
+- **News aus den letzten 24 Stunden.** Am Ende der Liste geht es automatisch mit der letzten Woche weiter, dann mit dem letzten Monat und dem letzten Jahr. Gibt es gar keine aktuellen News, wird gleich erweitert. Zeitraum und Erweitern sind pro Konto einstellbar.
+- **Reset-Datum vom Dienst:** Brave (bei jeder Suche) und Firecrawl (eigene Abfrage, höchstens alle 6 Stunden, kostenlos) melden selbst, wann ihr Kontingent neu startet. Firecrawl und Tavily melden auch ihr Restguthaben. Dafür gibt es ein neues Feld **„Schon verbraucht“** für Dienste, die das nicht können.
+- **Neuer Tab überall:** „Links in neuem Tab öffnen“ gilt für jeden Link nach draußen, auch im Wetter, in der Kurzinfo und in nachgeladenen Treffern.
+- **Bangs ohne Aufblitzen:** Die Zwischenseite ist leer und hat die Farbe der Seite. Nur wenn das Ziel hängt, erscheint nach 2 Sekunden ein Knopf „Weiter“.
 
 ## Neu in 1.2
 

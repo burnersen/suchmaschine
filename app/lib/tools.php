@@ -165,6 +165,14 @@ function smSortByDate(array $res): array
     return $res;
 }
 
+/** Treffer weglassen, die jünger als $secs sind (beim Erweitern der News schon gezeigt). Ohne Datum bleiben sie. */
+function smDropNewer(array $res, int $secs): array
+{
+    $limit = time() - $secs;
+    $keep = array_filter($res['results'] ?? [], function ($r) use ($limit) { return (int)($r['ts'] ?? 0) <= 0 || (int)$r['ts'] < $limit; });
+    return smSetWeb($res, $keep);
+}
+
 /** Höchstens $max Treffer pro Domain, damit eine Seite nicht alles flutet */
 function smDomainLimit(array $res, int $max = 3): array
 {
@@ -227,7 +235,9 @@ function smAgeText(int $ts): string
 {
     if ($ts <= 0) return '';
     $d = time() - $ts;
-    if ($d < 3600) return t('vor %d Minuten', max(1, (int)floor($d / 60)));
+    if ($d < 120) return t('vor 1 Minute');
+    if ($d < 3600) return t('vor %d Minuten', (int)floor($d / 60));
+    if ($d < 7200) return t('vor 1 Stunde');
     if ($d < 86400) return t('vor %d Stunden', (int)floor($d / 3600));
     if ($d < 86400 * 2) return t('gestern');
     if ($d < 86400 * 30) return t('vor %d Tagen', (int)floor($d / 86400));
@@ -430,18 +440,24 @@ function smApiQuery(string $q, string $ft, ?array $lens): string
 
 /* ---------- Weiterleitung nach außen (Bangs, Auf gut Glück) ---------- */
 
-/** Kein 303 nach außen: Browser blockieren das nach einem Formular (CSP form-action). Darum eine Zwischenseite. */
+/**
+ * Kein 303 nach außen: Browser blockieren das nach einem Formular (CSP form-action). Darum eine Zwischenseite.
+ * Ohne Hinweis (Bangs, „Auf gut Glück“) ist sie leer und in der Farbe der Seite, die Zieladresse blitzt also nicht auf.
+ * Erst wenn es nach zwei Sekunden noch nicht weitergegangen ist, erscheint ein Knopf zum Weiterklicken.
+ */
 function smExternalRedirect(string $url, string $title, string $msg = '', int $delay = 0): void
 {
-    smHeaders();
+    smHeaders(true);   // HTML-Regeln, sonst blockiert die CSP das eigene Stylesheet und die Seite blitzt weiß und ungestaltet auf
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
-    echo '<!DOCTYPE html><meta charset="utf-8"><meta name="referrer" content="no-referrer">'
+    $quiet = $msg === '' && $delay === 0;
+    echo '<!DOCTYPE html><html lang="' . h(smLang()) . '" data-theme="' . h(smTheme()) . '" data-accent="' . h(smAccent()) . '">'
+       . '<meta charset="utf-8"><meta name="referrer" content="no-referrer">'
        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
-       . '<meta http-equiv="refresh" content="' . max(0, $delay) . ';url=' . h($url) . '"><title>' . h($title) . '</title>'
+       . '<meta http-equiv="refresh" content="' . max(0, $delay) . ';url=' . h($url) . '"><title>' . h($quiet ? smSiteName() : $title) . '</title>'
        . '<link rel="stylesheet" href="' . h(smAsset('app.css')) . '">'
-       . '<main class="redir">' . ($msg !== '' ? '<p class="redir__msg">' . h($msg) . '</p>' : '')
-       . '<p><a class="btn btn--primary" href="' . h($url) . '" rel="noopener noreferrer">' . h($msg !== '' ? t('Jetzt weiter') : $url) . '</a>'
+       . '<main class="redir' . ($quiet ? ' redir--quiet' : '') . '">' . ($msg !== '' ? '<p class="redir__msg">' . h($msg) . '</p>' : '')
+       . '<p><a class="btn btn--primary" href="' . h($url) . '" rel="noopener noreferrer">' . h($msg !== '' ? t('Jetzt weiter') : t('Weiter')) . '</a>'
        . ($msg !== '' ? ' <a class="btn" href="' . h(smBase()) . '">' . h(t('Abbrechen')) . '</a>' : '') . '</p></main>';
     exit;
 }
@@ -456,6 +472,9 @@ function smCleanPrefs(array $p): array
     if (isset($p['search_lang']) && isset(smSearchLangs()[$p['search_lang']])) $out['search_lang'] = $p['search_lang'];
     if (in_array($p['safesearch'] ?? '', ['off', 'moderate', 'strict'], true)) $out['safesearch'] = $p['safesearch'];
     if (in_array($p['scroll'] ?? '', ['pages', 'endless'], true)) $out['scroll'] = $p['scroll'];
+    foreach (['sort_web', 'sort_news'] as $k) if (in_array($p[$k] ?? '', ['date', 'rel'], true)) $out[$k] = $p[$k];
+    if (smNewsFreshOk($p['news_fresh'] ?? '')) $out['news_fresh'] = $p['news_fresh'];
+    if (isset($p['news_expand'])) $out['news_expand'] = !empty($p['news_expand']);
     foreach (['newtab', 'history'] as $k) if (isset($p[$k])) $out[$k] = !empty($p[$k]);
     if (isset($p['city']) && is_string($p['city'])) $out['city'] = trim(mb_substr(smPlain($p['city']), 0, 60));
     if (isset($p['weather_src']) && isset(smWeatherSources()[$p['weather_src']])) $out['weather_src'] = $p['weather_src'];

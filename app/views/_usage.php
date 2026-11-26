@@ -14,7 +14,13 @@ $all = array_keys(smProviders());
 <?php if ($f['limit']): ?><progress class="meter<?= $f['pct'] >= 0.8 ? ' meter--warn' : '' ?>" max="<?= $f['limit'] ?>" value="<?= min($f['used'], $f['limit']) ?>"></progress><?php endif; ?>
         <dl class="facts">
             <div><dt><?= h(t('Zeitraum')) ?></dt><dd><?= h(smDate($c['start'])) ?> – <?= h(smDate($c['end'] - 86400)) ?></dd></div>
-            <div><dt><?= h(t('Reset')) ?></dt><dd><?= h(smLongDate($c['end'])) ?> <span class="muted">(<?= h(t('noch %s Tage', smNumF(ceil($c['left'])))) ?>)</span></dd></div>
+            <div><dt><?= h(t('Reset')) ?></dt><dd><?= h(smLongDate($c['end'])) ?> <span class="muted">(<?= h(t('noch %s Tage', smNumF(ceil($c['left'])))) ?><?= smProvAnchor($id)[1] === 'api' ? ', ' . h(t('laut %s', $p['badge'])) : '' ?>)</span></dd></div>
+<?php if ($f['api_left'] !== null): ?>
+            <div><dt><?= h(t('Laut %s übrig', $p['badge'])) ?></dt><dd><?= h(smNumF($f['api_left'])) ?></dd></div>
+<?php endif; ?>
+<?php if (($adj = smProvAdjust($id)) > 0): ?>
+            <div><dt><?= h(smProvApiKnowsUsage($id) ? t('Davon per Abgleich mit %s', $p['badge']) : t('Davon vorab eingetragen')) ?></dt><dd><?= h(smNumF($adj)) ?></dd></div>
+<?php endif; ?>
             <div><dt><?= h(t('Heute')) ?></dt><dd><?= h(smNumF($f['today'])) ?></dd></div>
             <div><dt><?= h(t('Ø pro Tag')) ?></dt><dd><?= h(smNumF($f['avg'], 1)) ?></dd></div>
             <div><dt><?= h(t('Hochrechnung bis Reset')) ?></dt><dd><?= h(smNumF($f['projected'])) ?></dd></div>

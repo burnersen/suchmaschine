@@ -141,6 +141,8 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
                 </div>
                 <small class="muted"><?= h(t('Beim Endlos-Scrollen ist jedes Nachladen eine Suche bei Brave (20 Treffer auf einmal).')) ?></small>
             </fieldset>
+<?php $sp = smPrefs(null); require __DIR__ . '/_sortprefs.php'; ?>
+            <small class="muted"><?= h(t('Das ist der Standard für alle Konten. Jedes Konto kann es unter Einstellungen → Suche für sich ändern.')) ?></small>
         </section>
         <section class="panel">
             <h2><?= h(t('Suchen ohne Anmeldung')) ?></h2>
