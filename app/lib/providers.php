@@ -177,19 +177,31 @@ function smProvAdjust(string $id): float
     return (float)smQ("SELECT COALESCE(SUM(credits), 0) FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$id, smProvCycle($id)['from']])->fetchColumn();
 }
 
+/** Korrekturzeile setzen. Darf auch negativ sein, wenn das Dashboard weniger zeigt, als hier gezählt wurde. */
 function smProvSetAdjust(string $id, float $credits): void
 {
     $from = smProvCycle($id)['from'];
     smQ("DELETE FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$id, $from]);
-    if ($credits > 0) smQ("INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, 'adjust', -1, ?, 0)", [$from, $id, round($credits, 3)]);
+    if (abs($credits) >= 0.0005) smQ("INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, 'adjust', -1, ?, 0)", [$from, $id, round($credits, 3)]);
 }
 
-/** Eigenen Zähler auf den vom Dienst gemeldeten Verbrauch bringen (nur nach oben über die Korrekturzeile, nach unten höchstens bis 0) */
+/**
+ * Zähler auf den Stand laut Dashboard setzen: Danach ist der Verbrauch im laufenden Zeitraum genau $used,
+ * und alles, was ab jetzt gezählt wird, kommt dazu. Für Dienste, die ihren Verbrauch nicht selbst melden.
+ */
+function smProvSetUsed(string $id, float $used): void
+{
+    $now = smUsageSum($id, smProvCycle($id)['from']);
+    smProvSetAdjust($id, smProvAdjust($id) + ($used - $now));
+    smProvSet($id, 'usedset', (string)time());
+}
+
+/** Eigenen Zähler auf den vom Dienst gemeldeten Verbrauch bringen (über die Korrekturzeile, nach oben wie nach unten) */
 function smProvSyncUsed(string $id, float $used): void
 {
     $diff = $used - smUsageSum($id, smProvCycle($id)['from']);
     if (abs($diff) < 0.5) return;
-    smProvSetAdjust($id, max(0.0, smProvAdjust($id) + $diff));
+    smProvSetAdjust($id, smProvAdjust($id) + $diff);
 }
 
 /** Brave schickt in jeder Antwort mit, wann das Monatskontingent neu startet (X-RateLimit-Reset, Sekunden) */

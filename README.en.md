@@ -57,7 +57,7 @@ Nothing for normal private use. The search engine can use five search APIs, each
 
 - Each service gets its **own limit** in the admin page. The default is always the free quota **minus 50 as a buffer**. When a limit is reached, the next service takes over automatically.
 - **Reset date:** Brave and Firecrawl report when their quota restarts, the search engine takes it over automatically. Firecrawl and Tavily also report their remaining credits and the counter follows them. For Exa and parallel.ai you enter a **reference date** (the day of the month the quota restarts, without one the first of the month applies).
-- **Already used:** if you add a key in the middle of the month, enter what the dashboard already shows as used. It applies until the next reset.
+- **Usage according to dashboard:** for services that do not report their usage, enter in the admin page what the dashboard currently shows as used, any time. The counter is set to exactly that value and keeps counting from there, handy too when you add a key in the middle of the month.
 - Switch off **automatic top-up** at every provider and set a spending limit of 0 where possible. Then nothing can be charged.
 - A **cache** makes reloading, the back button and paging free: up to 60 minutes for Brave (more is not allowed by Brave's terms), 8 hours by default for the others.
 - **Instant answers** (calculator, currencies, weather …), **bangs** and **tools** cost nothing at all, because they do not ask a search service.
@@ -111,6 +111,9 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Tools reorganised:** a tile overview by group (calculating, time and date, chance, sharing and security, weather and network); every tool opens on **its own page** instead of one long list, with related tools below. Reachable everywhere via the **grid icon at the top right**, also for visitors when searching without an account is allowed.
 - **Settings tidied up:** login token and “default search in the browser” are now together under **Settings → Browser**. The administrator edits the look for everyone under **Admin → Appearance**.
 - **Getting API keys, step by step,** right next to each search service in the admin page.
+- **1.5.1:** currency rates once a day after the ECB plus a “Fetch rates now” button. “My IP address” can also show your IPv4 on an IPv6 connection (and vice versa), ideally via your own IPv4-only subdomain (Admin → Settings), otherwise on click via ipify.org. The appearance preview stays visible while scrolling.
+- **1.5.2:** endless scrolling only loads more after you reach the bottom and deliberately pull on.
+- **1.5.3:** “Usage according to dashboard” sets a service's counter to exactly the dashboard value and keeps counting from there (for every service that does not report its usage).
 - Small fixes: the name on the results page is no longer cut off, a more compact currency card, tabs on phones show that they scroll. Without any search service, the administrator is sent to the setup instead of being redirected.
 - **For developers:** code split by topic, English texts in `app/lang/en.php`, automated tests, checks on every push, reproducible builds, optional signed updates. Users still get **one single installation file**. How it is built: [BUILD.md](BUILD.md).
 
@@ -130,7 +133,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 - **Newest first** is the default for "All" and news. Every account can change it under *Settings → Search*, the administrator sets the default for everyone. Switch any time with "Sorting" above the results.
 - **News from the last 24 hours.** At the end of the list it continues with the last week, then the last month and the last year. If there is no recent news at all, the range widens right away. Range and widening are per account.
-- **Reset date from the service:** Brave (with every search) and Firecrawl (own endpoint, at most every 6 hours, free) report when their quota restarts. Firecrawl and Tavily also report their remaining credits. A new **"Already used"** field covers services that cannot.
+- **Reset date from the service:** Brave (with every search) and Firecrawl (own endpoint, at most every 6 hours, free) report when their quota restarts. Firecrawl and Tavily also report their remaining credits. A field covers services that cannot (since 1.5.3 **“Usage according to dashboard”**).
 - **New tab everywhere:** "Open links in a new tab" applies to every outgoing link, including weather, overview panel and loaded results.
 - **Bangs without flashing:** the redirect page is empty and uses the page colours; a "Continue" button only appears after 2 seconds if the target hangs.
 

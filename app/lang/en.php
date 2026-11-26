@@ -1192,4 +1192,10 @@ return [
     'Fragt dafür einmal ipify.org. Der Dienst sieht dabei deine Adresse.' => 'Asks ipify.org once. That service sees your address.',
     'Eigene IPv4-Subdomain (freiwillig)' => 'Own IPv4 subdomain (optional)',
     'Kommt jemand per IPv6, sieht der Server seine IPv4 nicht. Mit einer Subdomain, die nur einen A-Eintrag (IPv4) hat und auf denselben Ordner zeigt, ermittelt „Meine IP-Adresse“ sie trotzdem, ohne fremden Dienst. Leer = auf Klick über ipify.org.' => 'When someone connects via IPv6, the server cannot see their IPv4. With a subdomain that only has an A record (IPv4) and points to the same folder, “My IP address” finds it anyway, without a third-party service. Empty = on click via ipify.org.',
+    '%s: Der Verbrauch laut Dashboard muss eine Zahl sein.' => '%s: The usage from the dashboard must be a number.',
+    'Verbrauch laut Dashboard' => 'Usage according to dashboard',
+    'jetzt gezählt: %s' => 'counted now: %s',
+    'Trag hier ein, was das Dashboard von %s gerade als verbraucht anzeigt (in %s). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.' => 'Enter what the %s dashboard currently shows as used (in %s). The counter is set to exactly this value and keeps counting from there. Leave empty = no change.',
+    'Zuletzt nach Dashboard gesetzt: %s.' => 'Last set from dashboard: %s.',
+    'Exa zeigt Dollar an: 3,13 $ sind hier 313.' => 'Exa shows dollars: $3.13 is 313 here.',
 ];
