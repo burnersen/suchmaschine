@@ -446,3 +446,13 @@
 .cf .lp--search img:not(.lp__ico) { display: none; }
 .cf .lp--search .lp__title { color: var(--link); font-weight: 400; font-size: 1.15rem; }
 .cf .lp--search .lp__body { padding: 0; }
+
+/* ---------- Entwickler-Werkzeuge ---------- */
+.cf .color-big { display: flex; align-items: center; gap: 1rem; padding: 1.4rem 1.2rem; border-radius: 1rem; border: 1px solid var(--line2); }
+.cf .color-big b { font-size: 2.4rem; line-height: 1; }
+.cf .color-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .4rem; }
+.cf .color-sw { height: 3.4rem; border-radius: .7rem; border: 1px solid var(--line2); cursor: pointer; font: 600 .7rem/1.1 ui-monospace, Menlo, monospace; display: flex; align-items: flex-end; justify-content: center; padding: .3rem; overflow: hidden; }
+.cf mark { color: inherit; }
+.cf .out-box .diff-add, .cf .out-box .diff-del { display: inline; }
+.cf .out-box > div.diff-add, .cf .out-box > div.diff-del { display: block; }
+.cf input[type=checkbox] { width: 1.1rem; height: 1.1rem; accent-color: var(--acc); }
