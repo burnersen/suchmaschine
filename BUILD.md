@@ -126,17 +126,28 @@ app/lib/             Funktionen, eine Datei pro Thema
   filters.php domains.php bangs.php   Treffer filtern und sortieren, eigene Domain-Listen, Bangs und Linsen
   instant.php          Sofort-Antworten: Rechner, Einheiten, Währungen, Wetter, Datum, Zufall, Kurzlinks
   prefs.php look.php branding.php   persönliche Einstellungen, Aussehen, Logo und App-Symbol
+  instant_more.php     weitere Sofort-Antworten: Lotto, Arbeitstage, Brückentage, Jahreskalender
   qr.php imgproxy.php reader.php    QR-Codes, Bild-Proxy, Lesemodus
+  page_tools.php tools_api.php      Werkzeuge: Liste aller Werkzeuge, Seiten, Schnittstelle der Apps (?a=tools&api=…)
+  net.php              sicherer Abruf nach draußen (nur öffentliche IPv4/IPv6, Adresse festgenagelt)
+  shortlinks.php       Kurzlinks und verschlüsselte Text-Schnipsel
   backup.php update.php             Sicherung, Updates
   lang.php             Sprache wählen, t('…') übersetzt
 app/lang/en.php      englische Texte (links Deutsch wie im Code, rechts Englisch)
 app/views/           HTML-Vorlagen, Teile mit _ am Anfang werden eingebunden
 app/assets/          CSS, JavaScript, Schriften, Töne, Symbole
+  tools.css            Aussehen der Werkzeug-Apps (alles unter .cf)
+  cf/                  Bausteine aus CodeForge: ui.js (Kern), QR-Encoder, Zeichnen, Scanner, Druck, Nummern, en.js
+  tools/               eigene Apps: pw.js, share.js, net.js, dev.js, calc.js, time.js, englische Texte en.js
+  vendor/              Scan-Engine zxing-wasm (MIT), nur beim Scannen geladen
 tests/               run.php (Funktionen), smoke.php (alles einmal durchklicken)
-tools/               build-release.php, installer-template.php, sign-key.php
+tools/               build-release.php, installer-template.php, sign-key.php,
+                     js-strings.php (prüft, ob jeder T('…')-Text der Apps eine englische Fassung hat)
 ```
 
 Eine neue PHP-Datei in `app/lib/` muss in `index.php` in die Liste der geladenen Dateien. Alles unter `app/` landet automatisch im Installer.
+
+**Ein neues Werkzeug** bekommt einen Eintrag in `smToolGroups()` (`app/lib/page_tools.php`). Läuft es als App im Browser, steht dort unter `app` die Liste seiner JavaScript-Dateien, und die Datei registriert `CF.views.<id> = { mount(root, params) { … } }`. Texte im JavaScript stehen auf Deutsch in `T('…')`, die englische Fassung kommt nach `app/assets/tools/en.js`. `php tools/js-strings.php` zeigt, was fehlt (die Tests prüfen das auch).
 
 ---
 

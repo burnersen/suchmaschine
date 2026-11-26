@@ -28,8 +28,17 @@ $flash = smFlash();
 <link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?>" href="<?= h(smUrl(['a' => 'opensearch'])) ?>">
 <?php endif; ?>
 <link rel="stylesheet" href="<?= h(smAsset('app.css')) ?>">
+<?php foreach ($styles ?? [] as $css): ?>
+<link rel="stylesheet" href="<?= h(smAsset($css)) ?>">
+<?php endforeach; ?>
 <link rel="stylesheet" href="<?= h(smLookUrl(smLook($me ?? null))) ?>">
 <script src="<?= h(smAsset('app.js')) ?>" defer></script>
+<?php if (!empty($cfBoot)): ?>
+<script type="application/json" id="cf-boot"><?= json_encode($cfBoot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<?php endif; ?>
+<?php foreach ($scripts ?? [] as $js): ?>
+<script src="<?= h(smAsset($js)) ?>" defer></script>
+<?php endforeach; ?>
 </head>
 <body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?>>
 <div class="progress" aria-hidden="true"></div>

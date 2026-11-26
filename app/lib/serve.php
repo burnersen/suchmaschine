@@ -9,11 +9,18 @@ function smServeAsset(): void
     $f = isset($_GET['f']) && is_string($_GET['f']) ? $_GET['f'] : '';
     // Töne für Timer und Co. (selbst erzeugt, siehe app/assets/sounds/LIESMICH.txt)
     if (preg_match('~^sounds/[a-z]{2,20}\.mp3$~', $f)) $types[$f] = 'audio/mpeg';
+    // Werkzeuge: Bausteine aus CodeForge (cf/), eigene Apps (tools/), Scan-Engine (vendor/)
+    if (preg_match('~^(cf|tools)/[a-z0-9]{2,20}\.js$~', $f)) $types[$f] = 'text/javascript; charset=utf-8';
+    if ($f === 'tools.css') $types[$f] = 'text/css; charset=utf-8';
+    if ($f === 'vendor/zxing.js') $types[$f] = 'text/javascript; charset=utf-8';
+    if ($f === 'vendor/zxing.wasm') $types[$f] = 'application/wasm';
     if (!isset($types[$f]) || !is_file(SM_APP . '/assets/' . $f)) {
         http_response_code(404);
         exit;
     }
     smHeaders();
+    // Der Web Worker der Scan-Engine lädt zxing.js und die WebAssembly selbst, dafür braucht er eigene Regeln
+    if ($f === 'cf/worker.js') header("Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'");
     header('Content-Type: ' . $types[$f]);
     header('Cache-Control: ' . (isset($_GET['v']) ? 'public, max-age=31536000, immutable' : 'no-cache'));
     readfile(SM_APP . '/assets/' . $f);
@@ -50,6 +57,8 @@ function smServeManifest(): void
     echo json_encode([
         'id' => './', 'name' => $name, 'short_name' => $n !== '' ? mb_substr($n, 0, 12) : t('Suchmaschine'),
         'start_url' => './', 'scope' => './', 'display' => 'standalone',
+        // Am Handy im Teilen-Menü: geteilte Adressen landen bei den Kurzlinks
+        'share_target' => ['action' => './', 'method' => 'GET', 'params' => ['title' => 'share_title', 'text' => 'share_text', 'url' => 'share_url']],
         'lang' => smLang(), 'background_color' => '#ffffff', 'theme_color' => '#ffffff',
         // PNG-Symbole: Startbildschirme von Android und iPhone nehmen kein SVG
         'icons' => [

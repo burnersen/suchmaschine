@@ -36,7 +36,8 @@ function smBackupData(): array
     return [
         'settings'   => $settings,
         'users'      => $users,
-        'shortlinks' => smQ('SELECT code, url, user_id, created, hits FROM shortlinks ORDER BY created')->fetchAll(),
+        'shortlinks' => smQ('SELECT code, url, user_id, created, hits, title, expires, max_hits, pass, active, updated, note, last_hit FROM shortlinks ORDER BY created')->fetchAll(),
+        'short_days' => smQ('SELECT code, day, n FROM short_days ORDER BY day')->fetchAll(),
         'usage'      => smQ('SELECT day, provider, kind, user_id, credits, req FROM usage_log ORDER BY day')->fetchAll(),
         'files'      => $files,
     ];
@@ -154,9 +155,17 @@ function smBackupRestore(array $d): string
             $code = (string)($s['code'] ?? '');
             $url = smCleanShortTarget((string)($s['url'] ?? ''));
             $uid = (int)($s['user_id'] ?? 0);
-            if (!preg_match('/^[A-Za-z0-9]{4,12}$/', $code) || $url === '' || !isset($users[$uid])) continue;
-            smQ('INSERT OR IGNORE INTO shortlinks (code, url, user_id, created, hits) VALUES (?, ?, ?, ?, ?)',
-                [$code, $url, $uid, max(0, (int)($s['created'] ?? 0)), max(0, (int)($s['hits'] ?? 0))]);
+            if (!preg_match('/^[A-Za-z0-9_-]{3,40}$/', $code) || $url === '' || !isset($users[$uid])) continue;
+            $pass = (string)($s['pass'] ?? '');
+            smQ('INSERT OR IGNORE INTO shortlinks (code, url, user_id, created, hits, title, expires, max_hits, pass, active, updated, note, last_hit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [$code, $url, $uid, max(0, (int)($s['created'] ?? 0)), max(0, (int)($s['hits'] ?? 0)), mb_substr((string)($s['title'] ?? ''), 0, 200),
+                 max(0, (int)($s['expires'] ?? 0)), max(0, (int)($s['max_hits'] ?? 0)), preg_match('/^\$2[aby]?\$|^\$argon2/', $pass) ? $pass : '',
+                 (int)($s['active'] ?? 1) === 0 ? 0 : 1, max(0, (int)($s['updated'] ?? 0)), mb_substr((string)($s['note'] ?? ''), 0, 200), max(0, (int)($s['last_hit'] ?? 0))]);
+        }
+        $db->exec('DELETE FROM short_days');
+        foreach ((array)($d['short_days'] ?? []) as $s) {
+            if (!is_array($s) || !preg_match('/^[A-Za-z0-9_-]{3,40}$/', (string)($s['code'] ?? '')) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($s['day'] ?? ''))) continue;
+            smQ('INSERT OR IGNORE INTO short_days (code, day, n) VALUES (?, ?, ?)', [$s['code'], $s['day'], max(0, (int)($s['n'] ?? 0))]);
         }
         // Verbrauch
         $db->exec('DELETE FROM usage_log');

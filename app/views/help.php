@@ -65,7 +65,7 @@ $combos = $de ? [
     ['🔎', t('Mehrere Suchdienste'), t('Brave, Tavily, Exa, parallel.ai und Firecrawl. Automatisch der beste verfügbare, gezielt per Bang oder alle zusammen.')],
     ['⚖️', t('Lastverteilung'), t('Die freien Kontingente reichen gleichmäßig über den Monat. Fällt ein Dienst aus, springt der nächste ein.')],
     ['⚡', t('Sofort-Antworten'), t('Rechner, Währungen, Einheiten, Wetter, Kalenderwoche, Würfel, Timer und mehr, ohne Guthaben zu verbrauchen.')],
-    ['🧰', t('Werkzeuge'), t('Rechner, Timer, Feiertage, Losen, Passwörter, QR-Codes, Kurzlinks und mehr.')],
+    ['🧰', t('Werkzeuge'), t('Rechner, Timer, Feiertage, Passwörter, QR-Codes, Scanner, Kurzlinks und mehr.')],
     ['🎛️', t('Filter'), t('Zeitraum, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bildfilter wie bei Google.')],
     ['⌨️', t('Tastatur'), t('Durch alle Treffer mit J/K oder Pfeilen, Enter öffnet, ? zeigt alle Kürzel.')],
     ['🔑', t('Login-Token'), t('Einmal ?token=… aufrufen und ein Jahr angemeldet bleiben, auch als Standardsuche im Browser.')],
@@ -119,10 +119,13 @@ $combos = $de ? [
     [t('Würfel, Münze, Zufallszahl'), $de ? ['würfel', 'würfel 3', '2w20', 'münze', 'zufallszahl 1-49'] : ['dice', '2d20', 'coin', 'random 1-49']],
     [t('Datumsrechner und Alter'), $de ? ['tage zwischen 1.1.2026 und 24.12.2026', 'heute + 6 wochen', 'alter 12.05.1940'] : ['days between 2026-01-01 and 2026-12-24', 'today + 30 days', 'age 1940-05-12']],
     [t('Feiertage'), $de ? ['feiertage', 'feiertage 2027 bayern', 'feiertage nrw'] : ['holidays', 'holidays 2027 bavaria']],
-    [t('Losen und Gruppen bilden'), $de ? ['losen: Anna, Bernd, Carla', 'teams 3: Anna, Bernd, Carla, Dieter, Erna, Fritz', 'reihenfolge: Anna, Bernd, Carla'] : ['pick: Anna, Ben, Clara', 'teams 2: Anna, Ben, Clara, David', 'shuffle: Anna, Ben, Clara']],
     [t('Passwort-Generator (läuft nur im Browser)'), $de ? ['passwort', 'passwort 32', 'passphrase'] : ['password', 'password 32', 'passphrase']],
     [t('QR-Code für eine Adresse oder einen Text'), ['qr https://example.org', $de ? 'qr WLAN-Passwort ist geheim' : 'qr hello world']],
     [t('Kurzlink anlegen (mit Konto)'), $de ? ['kurz https://example.org/ein/langer/pfad'] : ['short https://example.org/a/long/path']],
+    [t('Arbeitstage mit Feiertagen, Wochentag'), $de ? ['arbeitstage zwischen 1.12.2026 und 31.12.2026 bayern', 'heute + 10 arbeitstage', 'wochentag 24.12.2027'] : ['workdays between 2026-12-01 and 2026-12-31', 'today + 10 workdays', 'weekday 2027-12-24']],
+    [t('Brückentage und Jahreskalender'), $de ? ['brückentage 2027 nrw', 'jahreskalender 2027'] : ['bridge days 2027', 'year calendar 2027']],
+    [t('Lotto, Karte ziehen, Ja oder nein'), $de ? ['lotto', 'eurojackpot', 'karte ziehen', 'ja oder nein'] : ['lotto', 'eurojackpot', 'draw a card', 'yes or no']],
+    [t('Werkzeug öffnen'), $de ? ['!qr Hallo', '!scan', '!pw', '!kurz https://example.org', '!notiz', '!json', '!dns example.org'] : ['!qr hello', '!scan', '!pw', '!short https://example.org', '!note', '!json', '!dns example.org']],
 ] as $row): ?>
                 <tr><td><?= h($row[0]) ?></td><td class="chips"><?php foreach ($row[1] as $e) echo $ex($e) . ' '; ?></td></tr>
 <?php endforeach; ?>
@@ -133,7 +136,7 @@ $combos = $de ? [
 
     <section class="panel" id="werkzeuge">
         <h2><?= h(t('Werkzeuge')) ?></h2>
-        <p class="muted small"><?= h(t('Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es alle Helfer nach Gruppen, jeden auf einer eigenen Seite: Rechner, Einheiten, Währungen, Timer, Countdown, Datumsrechner, Feiertage, Kalenderwoche, Würfel und Losen, Passwort-Generator, QR-Codes, deine Kurzlinks, Wetter und die eigene IP-Adresse.')) ?>
+        <p class="muted small"><?= h(t('Unter Werkzeuge (Kachel-Symbol oben rechts) gibt es fast 50 Helfer nach Gruppen, jeden auf einer eigenen Seite: QR-Studio, Scanner, Passwort-Generator, Kurzlinks, verschlüsselte Text-Schnipsel, Rechner, Einheiten, Währungen mit Kursverlauf, Zinsen, Timer, Countdown, Weltzeituhr, Datumsrechner, Feiertage und Brückentage, Netz-Werkzeuge (DNS, WHOIS, SSL, Header, Link-Checker) und Werkzeuge für Entwickler (JSON, Hash, JWT, Regex, Cron und mehr).')) ?>
             <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Zu den Werkzeugen')) ?></a></p>
     </section>
 

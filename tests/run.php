@@ -112,6 +112,73 @@ $_GET = ['m' => 'add', 'd1' => '2026-01-31', 'k' => '1', 'u' => 'monate'];
 same('Werkzeug Datum: Anfrage', '2026-01-31 + 1 monate', smToolQuery('datum'));
 $_GET = [];
 
+/* ---------- 2.0: neue Sofort-Antworten ---------- */
+for ($i = 0; $i < 30; $i++) {
+    $l = card('lotto');
+    if (count($l['main'] ?? []) !== 6 || count(array_unique($l['main'])) !== 6 || min($l['main']) < 1 || max($l['main']) > 49 || $l['extra'][0] < 0 || $l['extra'][0] > 9) {
+        check('Lotto: 6 verschiedene Zahlen von 1 bis 49 und Superzahl', false, json_encode($l));
+        break;
+    }
+}
+$ej = card('eurojackpot');
+check('Eurojackpot: 5 + 2 Zahlen', count($ej['main'] ?? []) === 5 && count($ej['extra'] ?? []) === 2 && max($ej['extra']) <= 12);
+same('Wochentag: 24.12.2027 ist ein Freitag', '5', date('N', card('wochentag 24.12.2027')['a'] ?? 0));
+same('Arbeitstage Dezember 2026 in Bayern', 22, card('arbeitstage zwischen 1.12.2026 und 31.12.2026 bayern')['work'] ?? null);
+same('Arbeitstage addieren: Freitag 18.12.2026 + 1 → Montag 21.12.', '2026-12-21', date('Y-m-d', card('18.12.2026 + 1 arbeitstage')['b'] ?? 0));
+same('Arbeitstage addieren überspringt Weihnachten', '2026-12-28', date('Y-m-d', card('24.12.2026 + 1 arbeitstage')['b'] ?? 0));
+$br = card('brückentage 2027 nrw');
+check('Brückentage 2027: Vorschläge da, höchstens 5 Urlaubstage', !empty($br['list']) && max(array_column($br['list'], 'vacation')) <= 5 && min(array_column($br['list'], 'total')) >= 4);
+same('Jahreskalender: 2027 Neujahr ist Feiertag', 'Neujahr', card('jahreskalender 2027')['hol']['2027-01-01'] ?? null);
+same('„kalender“ allein ist eine normale Suche', null, smInstant('kalender', null));
+
+/* ---------- 2.0: Kurzlinks und Schnipsel ---------- */
+same('Tracking-Parameter entfernen', 'https://example.org/a?x=1#top', smStripTracking('https://example.org/a?utm_source=nl&x=1&fbclid=abc#top'));
+check('Wunschname: zu kurz', !smShortCodeOk('ab') && smShortCodeOk('urlaub-2027') && !smShortCodeOk('-x1'));
+smQ("INSERT OR IGNORE INTO users (id, name, pass, is_admin, created_at) VALUES (77, 'Test77', 'x', 0, 0)");
+[$c1, $e1] = smShortCreate(77, 'https://example.org/eins', ['code' => 'Urlaub']);
+same('Kurzlink mit Wunschname', 'Urlaub', $c1);
+[, $e2] = smShortCreate(77, 'https://example.org/zwei', ['code' => 'urlaub']);
+check('Wunschname doppelt (ohne Groß/klein)', $e2 !== '');
+same('Kurzlink finden ohne Groß/klein', 'Urlaub', smShortFind('URLAUB')['code'] ?? null);
+same('Kurzlink: Ziel ändern', '', smShortUpdate(77, 'Urlaub', ['url' => 'https://example.org/neu']));
+same('Kurzlink: neues Ziel', 'https://example.org/neu', smShortFind('Urlaub')['url'] ?? null);
+smShortCount('Urlaub');
+$st30 = smShortStats(77, 'Urlaub', 30);
+same('Kurzlink: Statistik zählt den Tag', 1, end($st30) ?: 0);
+same('Kurzlink: Statistik hat 30 Tage', 30, count(smShortStats(77, 'Urlaub', 30)));
+[$c3] = smShortCreate(77, 'https://example.org/limit', ['max_hits' => 1]);
+smQ('UPDATE shortlinks SET hits = 1 WHERE code = ?', [$c3]);
+same('Kurzlink: Grenze erreicht', 'used', smShortPublic(smShortFind($c3))['state']);
+check('Kurzlink auf Kurzlink wird abgelehnt', smCleanShortTarget(smOrigin() . '?s=abc') === '');
+smShortDelete(77, 'Urlaub');
+same('Kurzlink gelöscht', null, smShortFind('Urlaub'));
+[, $ne] = smNoteCreate(77, '{"iv":"<x>","ct":"a"}', 24, 1, false, '');
+check('Schnipsel: kaputter Inhalt wird abgelehnt', $ne !== '');
+[$nid] = smNoteCreate(77, '{"v":1,"iv":"AAAA","ct":"BBBB"}', 24, 2, false, 'Test');
+same('Schnipsel: erster Abruf, noch 1 übrig', 1, smNoteFetch($nid)['left'] ?? null);
+same('Schnipsel: zweiter Abruf, danach weg', 0, smNoteFetch($nid)['left'] ?? null);
+same('Schnipsel: ist gelöscht', null, smNoteFetch($nid));
+$auth = str_repeat('ab', 32);
+[$pid] = smNoteCreate(77, '{"v":1,"iv":"AAAA","ct":"BBBB","salt":"CCCC"}', 24, 1, true, '', $auth);
+same('Schnipsel mit Passwort: falscher Prüfwert verbraucht nichts', 'pass', smNoteFetch($pid, str_repeat('00', 32)));
+check('Schnipsel mit Passwort: richtiger Prüfwert', is_array(smNoteFetch($pid, $auth)));
+
+/* ---------- 2.0: Netz und Werkzeuge ---------- */
+check('IPv6: privat, lokal und versteckte IPv4 sind nicht öffentlich', !smNetIpPublic('::1') && !smNetIpPublic('fd00::1') && !smNetIpPublic('fe80::1') && !smNetIpPublic('::ffff:192.168.1.1') && !smNetIpPublic('64:ff9b::a00:1') && !smNetIpPublic('2002:c0a8:0101::1'));
+check('IPv6: öffentlich', smNetIpPublic('2606:4700:4700::1111') && smNetIpPublic('1.1.1.1'));
+same('Adresse ergänzen', 'https://example.org/', smNetUrl('example.org'));
+same('Adresse: Zugangsdaten werden abgelehnt', '', smNetUrl('https://user:pw@example.org/'));
+same('Adresse zusammensetzen', 'https://example.org/a/c', smNetAbs('https://example.org/a/b', 'c'));
+same('Werkzeug-Abkürzung !qr', ['qr', 'text'], smToolBang('qr'));
+same('Werkzeug-Abkürzung !json', ['json', 'text'], smToolBang('json'));
+same('Unbekannte Abkürzung', null, smToolBang('gibtsnicht'));
+$sec = smSecurityHeaders([['Strict-Transport-Security', 'max-age=31536000'], ['X-Content-Type-Options', 'nosniff']], 'https://example.org/');
+same('Sicherheits-Kopfzeilen: HSTS gut', 'ok', $sec[0][1]);
+same('Sicherheits-Kopfzeilen: CSP fehlt', 'bad', $sec[1][1]);
+require_once dirname(__DIR__) . '/tools/js-strings.php';
+$jsMiss = smJsMissing(SM_APP . '/assets');
+check('Werkzeug-Apps: alle Texte haben eine englische Fassung', !$jsMiss, count($jsMiss) . ' fehlen, z. B. „' . implode('“, „', array_slice(array_keys($jsMiss), 0, 5)) . '“');
+
 /* ---------- Übersetzungen ---------- */
 $en = require SM_APP . '/lang/en.php';
 foreach ($en as $de => $tr) {

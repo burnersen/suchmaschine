@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 2);
+define('SM_SCHEMA', 3);
 
 function smFatal(string $msg): void
 {
@@ -114,6 +114,21 @@ function smMigrate(PDO $pdo, int $from): void
         $pdo->exec("ALTER TABLE sessions ADD COLUMN days INTEGER NOT NULL DEFAULT 90");
         $pdo->exec("CREATE TABLE IF NOT EXISTS shortlinks (code TEXT PRIMARY KEY, url TEXT NOT NULL, user_id INTEGER NOT NULL, created INTEGER NOT NULL, hits INTEGER NOT NULL DEFAULT 0)");
         $pdo->exec("CREATE INDEX IF NOT EXISTS shortlinks_user ON shortlinks (user_id)");
+    }
+    if ($from < 3) {
+        // 2.0: Kurzlinks mit Wunschname, Ablauf, Aufruf-Grenze, Passwort, an/aus, Titel des Ziels, Zustand des Ziels, Statistik pro Tag
+        foreach (['title TEXT NOT NULL DEFAULT \'\'', 'expires INTEGER NOT NULL DEFAULT 0', 'max_hits INTEGER NOT NULL DEFAULT 0', 'pass TEXT NOT NULL DEFAULT \'\'',
+                  'active INTEGER NOT NULL DEFAULT 1', 'updated INTEGER NOT NULL DEFAULT 0', 'checked INTEGER NOT NULL DEFAULT 0', 'dead INTEGER NOT NULL DEFAULT 0',
+                  'note TEXT NOT NULL DEFAULT \'\'', 'last_hit INTEGER NOT NULL DEFAULT 0'] as $col) {
+            $pdo->exec('ALTER TABLE shortlinks ADD COLUMN ' . $col);
+        }
+        // Nur ein Zähler pro Kurzlink und Tag, keine IP, kein Cookie
+        $pdo->exec("CREATE TABLE IF NOT EXISTS short_days (code TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (code, day))");
+        // Text-Schnipsel: nur verschlüsselt (Schlüssel bleibt im Link hinter dem #, der Server sieht ihn nie)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, data TEXT NOT NULL, created INTEGER NOT NULL,
+            expires INTEGER NOT NULL, views_left INTEGER NOT NULL DEFAULT 1, has_pass INTEGER NOT NULL DEFAULT 0, label TEXT NOT NULL DEFAULT '',
+            auth TEXT NOT NULL DEFAULT '')");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS notes_user ON notes (user_id)");
     }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();

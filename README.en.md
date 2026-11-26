@@ -10,6 +10,8 @@ entirely within the free monthly quotas for normal private use.</p>
 
 <p align="center"><img src="docs/en/ergebnisse.png" alt="Results page with top stories and overview panel" width="820"></p>
 
+> 🚀 **New: version 2.0, the big tools upgrade.** 47 tools with QR studio, scanner (scan a barcode and search right away), password generator, short links with statistics, encrypted text snippets, network and developer tools. [Everything that is new](#new-in-20-the-big-tools-upgrade)
+
 Upload `suchmaschine-install.php`, open it in the browser, create your account, paste one or more API keys. That is the whole installation.
 
 The server runs PHP and SQLite, the browser plain JavaScript and CSS. No frameworks, no dependencies, no build step, no MySQL. Runs on ordinary shared hosting.
@@ -106,6 +108,53 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
 
+## New in 2.0: the big tools upgrade
+
+> **Version 2.0 is a mega upgrade.** 15 small helpers become **47 tools**, many of them real little apps. They all run on your own server or right in the browser, none of them asks a search service, none costs credits. The update installs with one click as usual, your data and short links stay.
+
+<p align="center"><img src="docs/en/werkzeuge.png" alt="Tools with search, favourites and groups" width="820"></p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/en/qr-studio.png" width="400" alt="QR studio"><br><sub>QR studio with design and read test</sub></td>
+    <td align="center"><img src="docs/en/passwort.png" width="400" alt="Password generator"><br><sub>Password generator with strength check</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/en/waehrung.png" width="400" alt="Currencies with rate history"><br><sub>Currencies with ECB rate history</sub></td>
+    <td align="center"><img src="docs/en/wetter.png" width="400" alt="Weather with warnings"><br><sub>Weather with hours, 7 days and official warnings</sub></td>
+  </tr>
+</table>
+
+**Overview:** tool search (key `/`), favourites with ☆, “recently used”, shortcuts in the search box such as `!qr Hello`, `!pw`, `!short https://…`, `!json`, `!dns example.org`.
+
+**QR codes and scanner** (building blocks from CodeForge, same author)
+- **QR studio:** templates for link, text, Wi-Fi, contact (vCard), phone, SMS, email, event, location, **GiroCode**, **2FA key**, product (GS1) and **dynamic QR codes** (they point to your own short link, the target can be changed later). Colours, gradients, six dot shapes, custom corners, **logo in the centre**, frame with caption. Also Data Matrix, Aztec, PDF417 and all barcodes. Export as PNG (up to 4096 px) and SVG.
+- **Read test:** every code is automatically printed small, blurred, tilted and darkened and read back, with a print size recommendation.
+- **Scanner:** webcam on the PC, camera on the phone (with torch, zoom, camera switch), photos and screenshots (also with Ctrl+V). QR, Data Matrix, Aztec, PDF417, EAN, UPC, Code 128 and more. Batch and inventory mode with CSV.
+- **Search what you scan:** camera button in the search box, scan a barcode, ISBN or text and the search starts right away. In the scanner optionally with “Search right away”.
+- **Link X-ray against quishing:** shows the real domain, warns about look-alike addresses (`pаypal.com` with a Cyrillic a), foreign brand names, IP addresses and tricks. The server resolves short links without opening the page.
+- **Print QR:** guest Wi-Fi sign, table card, business card, donation sign, label sheets (Avery, Herma, label printers) with serial numbers.
+- **Number detective:** check IBAN, EAN, ISBN, ISSN, PZN, IMEI, with check digit and a hint which digits were swapped.
+
+**Security and sharing**
+- **Password generator:** random characters, passphrases (large German and English word lists), PINs without 1234 and the like, pronounceable, custom pattern, tokens (hex, Base64url, Base32, UUID). Presets for Wi-Fi, online account, maximum security and fussy sites, 50 at once with CSV, **strength check** for your own passwords with crack time and pattern detection. Everything in the browser only.
+- **Short links 2.0** (ideas from [ShrinkURL](https://github.com/burnersen/ShrinkURL)): custom name, expiry date, visit limit (“only once”), password, intermediate page against messenger previews, preview with `+` at the end, remove tracking parameters, change the target later, on/off, **statistics as a daily counter only** (no IP, no cookie), target title, check targets for dead links, CSV, bookmarklet, entry in the phone's share menu.
+- **Text snippets:** encrypted in the browser (AES-256-GCM), the key is only in the link after the `#`. Expiry, “gone after reading”, optional password (a wrong password does not use up a view).
+
+**Calculating:** calculator that works as you type (history, scientific, degrees/radians), percent and VAT, rule of three, live units (now also fuel economy, pressure, energy, power, angle, cooking), currencies with several targets and **ECB rate history**, compound interest, savings plan, loan with repayment plan, fuel costs, split the bill, Roman numerals, Morse code with sound and light.
+
+**Time and date:** several timers at once, Pomodoro, interval training, alarm, stopwatch with laps (timers survive a reload), countdown with title, full screen and link, **working days with the holidays of a German state**, weekday, **bridge day planner**, holidays as a **calendar file (.ics)**, printable year calendar, world clock with meeting planner.
+
+**Network and web** (after signing in, with safe fetching modelled on [LinkVault](https://github.com/burnersen/LinkVault)): what sites see about you (headers, browser, WebRTC), is the site down?, headers and redirects with security check, SSL certificate, DNS with SPF and DMARC, WHOIS via RDAP, link checker for up to 200 links, **link preview** (how your link looks in messengers), **clean up bookmarks** (remove duplicates and dead links from a browser export).
+
+**For developers:** JSON (format, validate, CSV), encode (Base64, URL, HTML, hex, binary, Unicode), hash (SHA-256/512, SHA-1, MD5, CRC32, HMAC, also of files), JWT decoder with signature check, UUID v4/v7, ULID, Nano ID, regex tester, cron explainer with the next runs, compare text, colours with WCAG contrast, number systems, subnet calculator (IPv4 and IPv6), chmod, `.htpasswd`, text tools, Unix timestamp.
+
+**Everyday:** Lotto 6 out of 49, Eurojackpot, draw a card, yes or no, **weather with hours, 7 days, UV and official German Weather Service warnings**.
+
+**Removed:** “draw lots and make groups”.
+
+**Privacy stays:** passwords, QR contents, hashes, JWTs, regexes and texts never leave the browser. Outbound requests (network tools, link X-ray) are made only by your server, only to public addresses, without storing anything. The scan engine (zxing-wasm, MIT) lives on your server and is only loaded when you scan.
+
 ## New in 1.5
 
 - **Tools reorganised:** a tile overview by group (calculating, time and date, chance, sharing and security, weather and network); every tool opens on **its own page** instead of one long list, with related tools below. Reachable everywhere via the **grid icon at the top right**, also for visitors when searching without an account is allowed.
@@ -153,7 +202,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 **Instant answers (free):** `(12.5 + 7) * 3`, `200 + 19%`, `15% of 80` (own parser, no `eval`) · `100 usd in eur` (ECB rates, cached daily) · `10 km in miles`, `20 °c in f`, `1 gib in mb` · `weather london` (German Weather Service via Bright Sky, Open-Meteo or wttr.in) · `my ip` · `week`, `week 12` · `date` · `dice`, `2d20`, `coin`, `random 1-49` · `timer 5 min`, `stopwatch`, `countdown christmas` · `password 32`, `passphrase` · `qr https://…` · `short https://…`.
 
-**Tools** (grid icon at the top right): all helpers in one place, a tile overview by group and a page of its own for every tool: calculator with keypad, units, currencies, timer and stopwatch, countdown, **date calculator and age**, **public holidays by German state**, calendar week, weather, dice, coin, random number, **draw lots and make groups**, password generator (runs in the browser only), QR code generator with SVG download, your own short links (`…/?s=abc123`) and your IP address. In the search box: `days between 2026-01-01 and 2026-12-24`, `age 1940-05-12`, `holidays 2027 bavaria`, `teams 3: Anna, Ben, Clara, …`.
+**Tools** (grid icon at the top right): 47 helpers in one place, by group, with search, favourites and “recently used”, each on a page of its own (see [New in 2.0](#new-in-20-the-big-tools-upgrade)). In the search box: `days between 2026-01-01 and 2026-12-24`, `workdays between 2026-12-01 and 2026-12-31 bavaria`, `age 1940-05-12`, `holidays 2027 bavaria`, `bridge days 2027 nrw`, `lotto`, `!qr Hello`, `!pw`, `!short https://…`.
 
 **Filters and results:** strict sort by date (newest first, undated last), **max. 3 results per domain** (on by default), **"Reset all filters"**, a large **×** in the search box, and in the **⋮ menu**: search only this domain, archive at web.archive.org and archive.today, show as QR code, copy address.
 
@@ -228,3 +277,5 @@ Free hobby software, provided **as is, without any warranty**. Use at your own r
 ## License
 
 GNU Affero General Public License v3.0, see [LICENSE](LICENSE).
+
+Built in since 2.0: scan engine [zxing-wasm](https://github.com/Sec-ant/zxing-wasm) (MIT) with zxing-cpp (Apache 2.0), details in `app/assets/vendor/LIZENZEN.txt`. Passphrase word lists: German from [dys2p/wordlists-de](https://github.com/dys2p/wordlists-de) (CC0), English from the [EFF](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) word lists (CC BY 3.0 US). Icons in the style of Lucide (ISC).
