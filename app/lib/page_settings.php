@@ -105,6 +105,7 @@ function smPageSettings(array $me, bool $post): void
                 if ($do === 'bang_cfg') {
                     smSetSetting('bang_auto', !empty($_POST['bang_auto']) ? '1' : '0');
                     smSetSetting('bang_check', !empty($_POST['bang_check']) ? '1' : '0');
+                    smSetSetting('bang_ref', !empty($_POST['bang_ref']) ? '1' : '0');
                 } elseif ($do === 'bang_refresh') {
                     @set_time_limit(120);
                     $err = smBangRefresh();

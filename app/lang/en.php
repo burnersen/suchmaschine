@@ -1490,4 +1490,6 @@ return [
     'Bangs: direkt zu einer anderen Seite springen' => 'Bangs: jump straight to another site',
     'Hier stehen die wichtigsten, dazu kommen über 10.000 weitere aus der Liste von Kagi. Tippe „!“ ins Suchfeld, um sie zu finden.' => 'These are the most important ones; more than 10,000 more come from Kagi’s list. Type “!” in the search box to find them.',
     'Alle bisher geprüften Seiten antworten.' => 'All sites checked so far respond.',
+    'Beim Weiterleiten die Adresse dieser Suchmaschine als Herkunft mitschicken' => 'Send the address of this search engine as the origin when redirecting',
+    'Wie bei DuckDuckGo und Kagi: Die Zielseite sieht nur, von welcher Suchmaschine du kommst, nie den Suchbegriff. Manche Seiten (z. B. Reddit) sperren Aufrufe ganz ohne Herkunft als vermeintliche Bots. Aus: keinerlei Herkunft.' => 'Like DuckDuckGo and Kagi: the target site only sees which search engine you come from, never the search terms. Some sites (e.g. Reddit) block visits without any origin as suspected bots. Off: no origin at all.',
 ];

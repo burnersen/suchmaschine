@@ -84,6 +84,8 @@ $total = smBangSysCount();
             <label class="check"><input type="checkbox" name="bang_auto" value="1"<?= smSetting('bang_auto') === '1' ? ' checked' : '' ?>> <?= h(t('Liste einmal pro Woche von Kagi (GitHub) aktualisieren')) ?></label>
             <label class="check"><input type="checkbox" name="bang_check" value="1"<?= smSetting('bang_check') === '1' ? ' checked' : '' ?>> <?= h(t('Zielseiten nach und nach auf Erreichbarkeit prüfen')) ?></label>
             <small class="muted"><?= h(t('Beides läuft im Hintergrund, während jemand die Suchmaschine benutzt, und verbraucht keine Suchanfragen. Geprüft wird nur, ob die Startseite der Domain antwortet.')) ?></small>
+            <label class="check"><input type="checkbox" name="bang_ref" value="1"<?= smSetting('bang_ref') === '1' ? ' checked' : '' ?>> <?= h(t('Beim Weiterleiten die Adresse dieser Suchmaschine als Herkunft mitschicken')) ?></label>
+            <small class="muted"><?= h(t('Wie bei DuckDuckGo und Kagi: Die Zielseite sieht nur, von welcher Suchmaschine du kommst, nie den Suchbegriff. Manche Seiten (z. B. Reddit) sperren Aufrufe ganz ohne Herkunft als vermeintliche Bots. Aus: keinerlei Herkunft.')) ?></small>
             <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
         </form>
         <div class="form__actions">

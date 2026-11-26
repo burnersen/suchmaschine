@@ -191,6 +191,7 @@ function smDefaults(): array
         'anon_quota'    => '',
         'bang_auto'     => '1',     // Bang-Liste einmal pro Woche frisch von GitHub (Kagi) holen
         'bang_check'    => '1',     // Zielseiten der Bangs nach und nach auf Erreichbarkeit prüfen
+        'bang_ref'      => '1',     // bei Bangs die Adresse der Suchmaschine als Herkunft mitschicken (nie den Suchbegriff)
     ];
 }
 
