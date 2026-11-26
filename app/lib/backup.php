@@ -165,7 +165,7 @@ function smBackupRestore(array $d): string
             if (!is_array($r) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($r['day'] ?? '')) || !in_array($r['provider'] ?? '', $ids, true)) continue;
             if (!preg_match('/^[a-z]{1,10}$/', (string)($r['kind'] ?? ''))) continue;
             smQ('INSERT OR IGNORE INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, ?, ?, ?, ?)',
-                [$r['day'], $r['provider'], $r['kind'], max(0, (int)($r['user_id'] ?? 0)), max(0.0, (float)($r['credits'] ?? 0)), max(0, (int)($r['req'] ?? 0))]);
+                [$r['day'], $r['provider'], $r['kind'], max(-1, (int)($r['user_id'] ?? 0)), max(0.0, (float)($r['credits'] ?? 0)), max(0, (int)($r['req'] ?? 0))]);
         }
         $db->exec('DELETE FROM cache');
         $db->exec('DELETE FROM pstat');

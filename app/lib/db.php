@@ -136,6 +136,10 @@ function smDefaults(): array
         'site_name'     => '',      // leer = „Suchmaschine ohne Werbung“ in der Sprache des Besuchers
         'accent'        => 'blue',
         'scroll'        => 'pages', // pages = Seitenweise, endless = endlos scrollen
+        'sort_web'      => 'date',  // Sortierung bei „Alle“: date = neueste zuerst, rel = Relevanz
+        'sort_news'     => 'date',  // Sortierung bei News
+        'news_fresh'    => 'pd',    // News-Zeitraum: pd, pw, pm, py oder all
+        'news_expand'   => '1',     // am Ende der News automatisch mit älteren weitermachen
         'logo_type'     => '',
         'logo_v'        => '0',
         'monthly_limit' => '950',

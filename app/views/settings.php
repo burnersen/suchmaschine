@@ -37,13 +37,15 @@ $lists = smDomainLists($me);
 <?php endforeach; ?>
                 </div>
             </fieldset>
+            <div id="sort"></div>
+<?php $sp = $prefs; require __DIR__ . '/_sortprefs.php'; ?>
             <div class="form__row">
                 <label class="field"><span><?= h(t('Dein Ort fürs Wetter')) ?></span><input type="text" name="city" maxlength="60" value="<?= h($me['prefs']['city'] ?? '') ?>" placeholder="<?= h(t('z. B. Berlin')) ?>">
                     <small class="muted"><?= h(t('Dann reicht „wetter“ im Suchfeld.')) ?></small></label>
                 <label class="field"><span><?= h(t('Wetterquelle')) ?></span>
                     <select name="weather_src"><option value=""><?= h(t('Standard der Installation')) ?></option><?php foreach (smWeatherSources() as $k => $v): ?><option value="<?= h($k) ?>"<?= $k === ($me['prefs']['weather_src'] ?? '') ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?></select></label>
             </div>
-            <label class="switch"><input type="checkbox" name="newtab" value="1"<?= $prefs['newtab'] ? ' checked' : '' ?>><span class="switch__ui"></span><span><?= h(t('Treffer in neuem Tab öffnen')) ?></span></label>
+            <label class="switch"><input type="checkbox" name="newtab" value="1"<?= $prefs['newtab'] ? ' checked' : '' ?>><span class="switch__ui"></span><span><?= h(t('Links in neuem Tab öffnen')) ?><br><small class="muted"><?= h(t('Gilt für alle Links nach draußen: Treffer, News, Bilder, Wetter, Kurzinfo, Hilfe.')) ?></small></span></label>
             <label class="switch"><input type="checkbox" name="history" value="1"<?= $prefs['history'] ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Letzte Suchen als Vorschläge zeigen')) ?><br><small class="muted"><?= h(t('Der Verlauf bleibt nur in diesem Browser, der Server merkt sich nichts.')) ?></small></span></label>
             <div class="form__actions">

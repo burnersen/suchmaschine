@@ -123,6 +123,195 @@ function smProvTtl(string $id): int
 
 /* ---------- Abrechnungszeitraum, Verbrauch, Prognose ---------- */
 
+/* ---------- Stand direkt vom Dienst: Reset-Datum und Restguthaben ---------- */
+
+/**
+ * Was der Dienst selbst über sein Kontingent meldet (Brave in jeder Antwort, Firecrawl und Tavily über eine eigene Abfrage):
+ * end = nächster Reset (Unix-Zeit), left = Rest laut Dienst, base = eigener Zähler beim Abruf, from = Zeitraum beim Abruf, at = Abrufzeit.
+ * Angaben, die über 40 Tage nicht bestätigt wurden, gelten nicht mehr.
+ */
+function smProvApi(string $id): array
+{
+    $a = json_decode(smSetting('p_' . $id . '_api'), true);
+    if (!is_array($a) || (int)($a['at'] ?? 0) < time() - 40 * 86400) return [];
+    return $a;
+}
+
+function smProvApiSave(string $id, array $a): void
+{
+    $a['at'] = time();
+    smProvSet($id, 'api', json_encode($a));
+}
+
+/** Tag im Monat, an dem das Kontingent neu startet, und woher er kommt: api (vom Dienst gemeldet), manual (Stichtag), default (Monatserster) */
+function smProvAnchor(string $id): array
+{
+    $a = smProvApi($id);
+    if (!empty($a['end'])) return [(int)date('j', (int)$a['end']), 'api'];
+    if (preg_match('/^\d{4}-\d{2}-(\d{2})$/', smProvGet($id, 'start'), $m)) return [max(1, min(31, (int)$m[1])), 'manual'];
+    return [1, 'default'];
+}
+
+/** Rest laut Dienst, heruntergerechnet mit allem, was seit dem Abruf gezählt wurde, oder null (unbekannt) */
+function smProvApiLeft(string $id): ?float
+{
+    $a = smProvApi($id);
+    if (!isset($a['left']) || !is_numeric($a['left'])) return null;
+    $c = smProvCycle($id);
+    if (($a['from'] ?? '') !== $c['from']) return null;     // inzwischen neuer Zeitraum: alte Angabe passt nicht mehr
+    return max(0.0, (float)$a['left'] - max(0.0, smUsageSum($id, $c['from']) - (float)($a['base'] ?? 0)));
+}
+
+/** Meldet der Dienst seinen Verbrauch selbst? Dann braucht es kein Feld „schon verbraucht“. */
+function smProvApiKnowsUsage(string $id): bool
+{
+    return smProvApiLeft($id) !== null;
+}
+
+/**
+ * Korrektur im laufenden Zeitraum: Credits, die schon verbraucht waren, bevor die Suchmaschine mitgezählt hat
+ * (oder der Abgleich mit dem Dienst). Steht als eigene Zeile (Konto -1) am ersten Tag des Zeitraums und verfällt mit ihm.
+ */
+function smProvAdjust(string $id): float
+{
+    return (float)smQ("SELECT COALESCE(SUM(credits), 0) FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$id, smProvCycle($id)['from']])->fetchColumn();
+}
+
+function smProvSetAdjust(string $id, float $credits): void
+{
+    $from = smProvCycle($id)['from'];
+    smQ("DELETE FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$id, $from]);
+    if ($credits > 0) smQ("INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, 'adjust', -1, ?, 0)", [$from, $id, round($credits, 3)]);
+}
+
+/** Eigenen Zähler auf den vom Dienst gemeldeten Verbrauch bringen (nur nach oben über die Korrekturzeile, nach unten höchstens bis 0) */
+function smProvSyncUsed(string $id, float $used): void
+{
+    $diff = $used - smUsageSum($id, smProvCycle($id)['from']);
+    if (abs($diff) < 0.5) return;
+    smProvSetAdjust($id, max(0.0, smProvAdjust($id) + $diff));
+}
+
+/** Brave schickt in jeder Antwort mit, wann das Monatskontingent neu startet (X-RateLimit-Reset, Sekunden) */
+function smProvBraveHeaders(array $h): void
+{
+    $reset = array_map('trim', explode(',', (string)($h['x-ratelimit-reset'] ?? '')));
+    $policy = array_map('trim', explode(',', (string)($h['x-ratelimit-policy'] ?? '')));
+    $limit = array_map('trim', explode(',', (string)($h['x-ratelimit-limit'] ?? '')));
+    $remain = array_map('trim', explode(',', (string)($h['x-ratelimit-remaining'] ?? '')));
+    // Das Fenster mit der längsten Laufzeit ist das Monatskontingent (das erste ist das pro Sekunde)
+    $best = -1;
+    $win = 0;
+    foreach ($policy as $i => $p) {
+        if (preg_match('/w=(\d+)/', $p, $m) && (int)$m[1] > $win) { $win = (int)$m[1]; $best = $i; }
+    }
+    if ($best < 0 && count($reset) > 1) $best = count($reset) - 1;
+    if ($best < 0 || $win < 86400 && $win !== 0 || !isset($reset[$best]) || !ctype_digit($reset[$best])) return;
+    $secs = (int)$reset[$best];
+    if ($secs <= 0 || $secs > 32 * 86400) return;
+    $a = ['end' => time() + $secs];
+    // Monatliches Limit nur, wenn es eins gibt (0 = ohne Grenze, z. B. beim Guthaben-Plan)
+    if (isset($limit[$best], $remain[$best]) && ctype_digit($limit[$best]) && (int)$limit[$best] > 0 && ctype_digit($remain[$best])) {
+        $a['left'] = (float)$remain[$best];
+    }
+    $old = smProvApi('brave');
+    // Nicht bei jeder Suche schreiben: nur wenn sich etwas ändert oder die letzte Bestätigung über eine Stunde her ist
+    if ($old && abs((int)($old['end'] ?? 0) - $a['end']) < 600 && !isset($a['left']) && !isset($old['left']) && (int)$old['at'] > time() - 3600) return;
+    $cyc = smProvCycleFor($a['end']);
+    $a['from'] = $cyc;
+    $a['base'] = smUsageSum('brave', $cyc);
+    smProvApiSave('brave', $a);
+}
+
+/** Beginn (Y-m-d) des Zeitraums, der zu einem Reset-Zeitpunkt gehört (ein Monat davor, gleicher Tag) */
+function smProvCycleFor(int $end): string
+{
+    $d = (int)date('j', $end);
+    $y = (int)date('Y', $end);
+    $mo = (int)date('n', $end) - 1;
+    if ($mo < 1) { $mo = 12; $y--; }
+    return date('Y-m-d', mktime(0, 0, 0, $mo, min($d, (int)date('t', mktime(0, 0, 0, $mo, 1, $y))), $y));
+}
+
+/** Dienste mit eigener Abfrage für Guthaben und Reset */
+function smProvHasSync(string $id): bool
+{
+    return in_array($id, ['firecrawl', 'tavily'], true);
+}
+
+/** Höchstens alle 6 Stunden beim Dienst nachfragen (kostet laut Dienst nichts) */
+function smProvSyncDue(string $id): bool
+{
+    if (!smProvHasSync($id) || !smProvActive($id)) return false;
+    $a = json_decode(smSetting('p_' . $id . '_api'), true);
+    $last = max((int)($a['at'] ?? 0), (int)smSetting('p_' . $id . '_api_try'));
+    return $last < time() - 6 * 3600;
+}
+
+/**
+ * Fragt Firecrawl oder Tavily nach Guthaben und Abrechnungszeitraum. Liefert Fehlertext oder ''.
+ * Firecrawl: /v2/team/credit-usage (remainingCredits, planCredits, billingPeriodEnd)
+ * Tavily:    /usage (key.usage/limit, account.plan_usage/plan_limit; ein Reset-Datum gibt es dort nicht)
+ */
+function smProvSync(string $id): string
+{
+    if (!smProvHasSync($id)) return '';
+    smProvSet($id, 'api_try', (string)time());
+    $key = trim(smProvGet($id, 'key'));
+    if ($key === '') return '';
+    $req = $id === 'firecrawl'
+        ? ['url' => smProvBase('firecrawl', 'https://api.firecrawl.dev/') . 'v2/team/credit-usage', 'method' => 'GET', 'headers' => ['Accept: application/json', 'Authorization: Bearer ' . $key]]
+        : ['url' => smProvBase('tavily', 'https://api.tavily.com/') . 'usage', 'method' => 'GET', 'headers' => ['Accept: application/json', 'Authorization: Bearer ' . $key]];
+    $r = smHttpMulti(['x' => $req], 10)['x'];
+    $d = json_decode($r['body'], true);
+    if ($r['status'] !== 200 || !is_array($d)) {
+        error_log('Suchmaschine: Abgleich ' . $id . ' HTTP ' . $r['status'] . ' ' . substr((string)$r['body'], 0, 200));
+        return smProvErrorText($id, $r, is_array($d) ? $d : null)[0];
+    }
+    $a = [];
+    $used = null;
+    if ($id === 'firecrawl') {
+        $x = is_array($d['data'] ?? null) ? $d['data'] : $d;
+        $end = smParseIso($x['billingPeriodEnd'] ?? $x['billing_period_end'] ?? null);
+        if ($end > time() && $end < time() + 40 * 86400) $a['end'] = $end;
+        $left = $x['remainingCredits'] ?? $x['remaining_credits'] ?? null;
+        $plan = $x['planCredits'] ?? $x['plan_credits'] ?? null;
+        if (is_numeric($left)) $a['left'] = max(0.0, (float)$left);
+        // Verbraucht = Plan minus Rest. Bei Bonus-Credits (Rest größer als der Plan) ist das nicht ablesbar.
+        if (is_numeric($left) && is_numeric($plan) && (float)$left <= (float)$plan) $used = (float)$plan - (float)$left;
+    } else {
+        $lefts = [];
+        foreach ([[$d['key']['limit'] ?? null, $d['key']['usage'] ?? null], [$d['account']['plan_limit'] ?? null, $d['account']['plan_usage'] ?? null]] as [$lim, $use]) {
+            if (is_numeric($lim) && is_numeric($use) && (float)$lim > 0) $lefts[] = max(0.0, (float)$lim - (float)$use);
+        }
+        if ($lefts) $a['left'] = min($lefts);
+        if (is_numeric($d['account']['plan_usage'] ?? null)) $used = (float)$d['account']['plan_usage'];
+        elseif (is_numeric($d['key']['usage'] ?? null)) $used = (float)$d['key']['usage'];
+    }
+    // Erst das Reset-Datum speichern (bestimmt den Zeitraum), dann den Zähler angleichen, dann den Stand merken
+    if (isset($a['end'])) smProvApiSave($id, ['end' => $a['end']] + smProvApi($id));
+    if ($used !== null) smProvSyncUsed($id, $used);
+    $from = smProvCycle($id)['from'];
+    $a['from'] = $from;
+    $a['base'] = smUsageSum($id, $from);
+    smProvApiSave($id, $a);
+    return '';
+}
+
+/** ISO-Zeitpunkt (2026-12-25T21:40:08.077Z) als Unix-Zeit, 0 = ungültig */
+function smParseIso($s): int
+{
+    if (!is_string($s) || $s === '') return 0;
+    $t = strtotime($s);
+    return $t !== false && $t > 0 ? $t : 0;
+}
+
+/** Fällige Abgleiche erledigen (für die Verwaltung und gelegentlich nach einer Suche) */
+function smProvSyncAll(): void
+{
+    foreach (smProvOrder() as $id) if (smProvSyncDue($id)) smProvSync($id);
+}
+
 /**
  * Der laufende Abrechnungszeitraum. Der Stichtag legt den Tag im Monat fest, an dem das Kontingent neu startet
  * (ohne Stichtag: Monatserster). Tage, die es in einem Monat nicht gibt (31.), rücken auf den letzten Tag.
@@ -130,7 +319,7 @@ function smProvTtl(string $id): int
 function smProvCycle(string $id, ?int $now = null): array
 {
     $now = $now ?? time();
-    $anchor = preg_match('/^\d{4}-\d{2}-(\d{2})$/', smProvGet($id, 'start'), $m) ? max(1, min(31, (int)$m[1])) : 1;
+    $anchor = smProvAnchor($id)[0];
     $at = function (int $y, int $mo) use ($anchor): int {
         return mktime(0, 0, 0, $mo, min($anchor, (int)date('t', mktime(0, 0, 0, $mo, 1, $y))), $y);
     };
@@ -167,11 +356,14 @@ function smProvForecast(string $id): array
     // Tempo: 1,0 = genau im Plan, darüber wird schneller verbraucht, als das Kontingent erlaubt
     $share = max($c['elapsed'] / $c['days'], 1 / $c['days']);
     $pace = $limit > 0 ? $used / ($limit * $share) : 0.0;
+    $left = $limit > 0 ? max(0.0, $limit - $used) : INF;
+    $apiLeft = smProvApiLeft($id);
+    if ($apiLeft !== null) $left = min($left, $apiLeft);
     return [
-        'used' => $used, 'limit' => $limit, 'left' => $limit > 0 ? max(0.0, $limit - $used) : INF, 'today' => $today,
+        'used' => $used, 'limit' => $limit, 'left' => $left, 'api_left' => $apiLeft, 'today' => $today,
         'avg' => $avg, 'projected' => $projected, 'fits' => $fits, 'empty_at' => $empty, 'pace' => $pace,
         'pct' => $limit > 0 ? min(1.0, $used / $limit) : 0.0, 'cycle' => $c,
-        'per_day' => $limit > 0 && $c['left'] > 0 ? max(0.0, $limit - $used) / max(1.0, ceil($c['left'])) : INF,
+        'per_day' => is_finite($left) && $c['left'] > 0 ? $left / max(1.0, ceil($c['left'])) : INF,
     ];
 }
 
@@ -259,6 +451,7 @@ function smProvBlock(string $id, string $kind, int $userId): string
     $limit = (int)smProvGet($id, 'limit');
     $cost = (float)smProvGet($id, 'cost');
     if ($limit > 0 && smUsageSum($id, smProvCycle($id)['from']) + $cost > $limit) return 'limit';
+    if (($al = smProvApiLeft($id)) !== null && $al < $cost) return 'limit';
     return smQuotaCheck($id, $userId, $cost);
 }
 
@@ -393,7 +586,8 @@ function smProvReserve(string $id, string $kind, int $userId, float $cost): bool
     $db->exec('BEGIN IMMEDIATE');
     try {
         $limit = (int)smProvGet($id, 'limit');
-        if (($limit > 0 && smUsageSum($id, smProvCycle($id)['from']) + $cost > $limit) || smQuotaCheck($id, $userId, $cost) !== '') {
+        $al = smProvApiLeft($id);
+        if (($limit > 0 && smUsageSum($id, smProvCycle($id)['from']) + $cost > $limit) || ($al !== null && $al < $cost) || smQuotaCheck($id, $userId, $cost) !== '') {
             $db->exec('ROLLBACK');
             return false;
         }
@@ -443,10 +637,13 @@ function smProvRunMany(array $ids, array $params, int $userId): array
             continue;
         }
         smProvOk($id, $r['ms']);
+        if ($id === 'brave') smProvBraveHeaders($r['headers']);
         // Echte Kosten, falls der Dienst sie mitteilt (Exa in Dollar, Firecrawl und Tavily in Credits)
         $real = smProvRealCost($id, $data);
         if ($real !== null && abs($real - $cost) > 0.0001) smUsageAdd($id, $params['kind'], $userId, $real - $cost, 0);
         $out[$id] = smProvNormalize($id, $params, $data);
+        // Guthaben und Reset-Datum gelegentlich beim Dienst abgleichen (höchstens alle 6 Stunden)
+        if (smProvSyncDue($id)) smProvSync($id);
     }
     return $out;
 }
@@ -537,6 +734,7 @@ function smHttpMulti(array $reqs, int $timeout): array
     if (!$reqs) return [];
     $mh = curl_multi_init();
     $hs = [];
+    $hdr = [];
     foreach ($reqs as $id => $r) {
         $ch = curl_init($r['url']);
         $opt = [
@@ -549,6 +747,16 @@ function smHttpMulti(array $reqs, int $timeout): array
             $opt[CURLOPT_POST] = true;
             $opt[CURLOPT_POSTFIELDS] = $r['body'];
         }
+        // Kopfzeilen zum Kontingent mitlesen (Brave: X-RateLimit-…)
+        $hdr[$id] = [];
+        $opt[CURLOPT_HEADERFUNCTION] = function ($c, $line) use (&$hdr, $id) {
+            $p = strpos($line, ':');
+            if ($p !== false) {
+                $k = strtolower(trim(substr($line, 0, $p)));
+                if (strpos($k, 'x-ratelimit-') === 0 || $k === 'retry-after') $hdr[$id][$k] = trim(substr($line, $p + 1));
+            }
+            return strlen($line);
+        };
         curl_setopt_array($ch, $opt);
         curl_multi_add_handle($mh, $ch);
         $hs[$id] = [$ch, microtime(true)];
@@ -562,7 +770,7 @@ function smHttpMulti(array $reqs, int $timeout): array
         $body = curl_multi_getcontent($ch);
         $out[$id] = [
             'status' => (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'body' => (string)$body,
-            'errno' => curl_errno($ch), 'error' => curl_error($ch),
+            'errno' => curl_errno($ch), 'error' => curl_error($ch), 'headers' => $hdr[$id] ?? [],
             'ms' => (int)round((float)curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000) ?: (int)round((microtime(true) - $t0) * 1000),
         ];
         curl_multi_remove_handle($mh, $ch);
@@ -705,6 +913,7 @@ function smProvTest(string $id, string $key): string
     if ($r['status'] === 200 && is_array($data)) {
         // Auch der Test kostet beim Dienst eine Suche: mitzählen
         smUsageAdd($id, 'test', 0, smProvRealCost($id, $data) ?? (float)smProvGet($id, 'cost'));
+        if ($id === 'brave') smProvBraveHeaders($r['headers']);   // der getestete Key wird gleich gespeichert
         return '';
     }
     return smProvErrorText($id, $r, is_array($data) ? $data : null)[0];

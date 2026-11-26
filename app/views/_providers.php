@@ -18,6 +18,7 @@ $without = array_values(array_diff($order, $withKey));
         <div class="alert alert--error"><?= h(t('Noch kein Suchdienst eingerichtet. Trage unten mindestens einen API-Key ein.')) ?></div>
 <?php endif; ?>
 <?php foreach ($withKey as $i => $id): $p = smProviders()[$id]; $st = smProvStat($id); $key = smProvGet($id, 'key'); $f = smProvForecast($id);
+    $anc = smProvAnchor($id); $api = smProvApi($id);
     $paused = (int)$st['pause_until'] > time(); $on = smProvGet($id, 'on') !== '0'; ?>
         <section class="panel prov" id="p-<?= h($id) ?>">
             <div class="prov__head">
@@ -29,15 +30,30 @@ $without = array_values(array_diff($order, $withKey));
             <p class="muted small"><?= h($info[$id]) ?> <?= h(t('Bangs: %s', implode(', ', array_map(function ($b) { return '!' . $b; }, $p['bangs'])))) ?></p>
             <div class="prov__meter">
                 <progress class="meter" max="<?= max(1, $f['limit']) ?>" value="<?= $f['limit'] > 0 ? min($f['used'], $f['limit']) : 0 ?>"></progress>
-                <span><?= h(smNumF($f['used'])) ?> / <?= $f['limit'] ?: '∞' ?> <?= h($p['unit']) ?> · <?= h(t('Reset am %s', smDate($f['cycle']['end']))) ?></span>
+                <span><?= h(smNumF($f['used'])) ?> / <?= $f['limit'] ?: '∞' ?> <?= h($p['unit']) ?> · <?= h(t('Reset am %s', smDate($f['cycle']['end']))) ?><?= $anc[1] === 'api' ? ' ' . h(t('(laut %s)', $p['badge'])) : '' ?></span>
             </div>
             <div class="form__row">
                 <label class="field"><span><?= h(t('API-Key')) ?> <small class="muted">(<?= h(mb_substr($key, 0, 4) . '…' . mb_substr($key, -4)) ?>)</small></span>
                     <input type="password" name="key[<?= h($id) ?>]" autocomplete="off" spellcheck="false" placeholder="<?= h(t('neuer Key, leer = behalten')) ?>" data-reveal></label>
+<?php if ($anc[1] === 'api'): ?>
+                <div class="field"><span><?= h(t('Reset-Datum')) ?></span>
+                    <p class="prov__auto"><strong><?= h(smDate($f['cycle']['end'])) ?></strong> <span class="pill pill--ok"><?= h(t('automatisch')) ?></span></p>
+                    <small class="muted"><?= h(t('Meldet %s selbst, ein Stichtag ist nicht nötig. Zuletzt bestätigt: %s.', $p['name'], smDate((int)$api['at']) . ' ' . date('H:i', (int)$api['at']))) ?></small></div>
+<?php else: ?>
                 <label class="field"><span><?= h(t('Stichtag (Start des Abrechnungszeitraums)')) ?></span>
                     <input type="date" name="start[<?= h($id) ?>]" value="<?= h(smProvGet($id, 'start')) ?>">
-                    <small class="muted"><?= h(t('Der Tag im Monat, an dem das Kontingent neu startet. Leer = Monatserster.')) ?></small></label>
+                    <small class="muted"><?= h($id === 'brave' ? t('Wird nach der ersten Suche automatisch von Brave übernommen. Bis dahin: der Tag im Monat, an dem das Kontingent neu startet. Leer = Monatserster.') : t('Der Tag im Monat, an dem das Kontingent neu startet. Leer = Monatserster.')) ?></small></label>
+<?php endif; ?>
             </div>
+<?php if ($f['api_left'] !== null): ?>
+            <p class="small prov__api"><?= h(t('Laut %s noch %s %s übrig (zuletzt abgeglichen: %s). Der Zähler hier richtet sich danach.', $p['name'], smNumF($f['api_left']), $p['unit'], smDate((int)$api['at']) . ' ' . date('H:i', (int)$api['at']))) ?></p>
+<?php else: ?>
+            <div class="form__row">
+                <label class="field field--short"><span><?= h(t('Schon verbraucht in diesem Zeitraum')) ?></span>
+                    <input type="number" name="used[<?= h($id) ?>]" min="0" step="any" value="<?= h(rtrim(rtrim(number_format(smProvAdjust($id), 3, '.', ''), '0'), '.')) ?>">
+                    <small class="muted"><?= h(t('Was laut Dashboard schon weg war, bevor die Suchmaschine mitgezählt hat, z. B. wenn du den Key mitten im Monat einträgst. Gilt bis zum nächsten Reset.')) ?></small></label>
+            </div>
+<?php endif; ?>
             <div class="form__row form__row--4">
                 <label class="field"><span><?= h(t('Limit pro Zeitraum')) ?></span><input type="number" name="limit[<?= h($id) ?>]" min="0" value="<?= (int)smProvGet($id, 'limit') ?>">
                     <small class="muted"><?= h(t('Frei: %s. Vorschlag: %d (50 Puffer). 0 = ohne Grenze.', smNumF($p['free']) . ' ' . $p['unit'], $p['limit'])) ?></small></label>

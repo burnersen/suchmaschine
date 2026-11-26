@@ -30,7 +30,7 @@ $flash = smFlash();
 <link rel="stylesheet" href="<?= h(smAsset('app.css')) ?>">
 <script src="<?= h(smAsset('app.js')) ?>" defer></script>
 </head>
-<body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>">
+<body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?>>
 <div class="progress" aria-hidden="true"></div>
 <?php if (!$bare): ?>
 <header class="top<?= isset($q) ? ' top--results' : '' ?>">
