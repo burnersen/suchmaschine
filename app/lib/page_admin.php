@@ -182,6 +182,19 @@ function smSaveConfig(): string
     return '';
 }
 
+/**
+ * Zahl aus einem Eingabefeld: 1.234,5 oder 1,234.5 oder 1234,5 oder 0,62. Das letzte Komma oder der letzte Punkt ist das
+ * Dezimalzeichen, außer bei reinen Tausendergruppen (1.234). Liefert null, wenn es keine Zahl ist.
+ */
+function smParseAmount(string $v): ?float
+{
+    $raw = str_replace([' ', "\u{a0}", '$', '€'], '', trim($v));
+    if (preg_match('/^\d{1,3}([.,]\d{3})+$/', $raw)) $raw = str_replace(['.', ','], '', $raw);
+    elseif (strrpos($raw, ',') !== false && strrpos($raw, ',') > (int)strrpos($raw, '.')) $raw = str_replace(['.', ','], ['', '.'], $raw);
+    else $raw = str_replace(',', '', $raw);
+    return is_numeric($raw) ? (float)$raw : null;
+}
+
 /** Suchdienst speichern: Key (wird vorher getestet), Stichtag, Limit, Kosten, Zwischenspeicher, Ausweich-Suchmaschine */
 function smSaveProviders(): string
 {
@@ -208,13 +221,9 @@ function smSaveProviders(): string
         // Schon verbraucht, bevor die Suchmaschine mitgezählt hat (nur für Dienste, die ihren Verbrauch nicht selbst melden)
         // Verbrauch laut Dashboard: der Zähler wird auf genau diesen Stand gesetzt (leer = nichts ändern)
         if (isset($_POST['used'][$id]) && is_string($_POST['used'][$id]) && trim($_POST['used'][$id]) !== '') {
-            $raw = str_replace([' ', "\u{a0}"], '', trim($_POST['used'][$id]));
-            // 1.234,5 oder 1,234.5 oder 1234,5: das letzte Komma oder der letzte Punkt ist das Dezimalzeichen
-            if (preg_match('/^\d{1,3}([.,]\d{3})+$/', $raw)) $raw = str_replace(['.', ','], '', $raw);
-            elseif (strrpos($raw, ',') !== false && strrpos($raw, ',') > (int)strrpos($raw, '.')) $raw = str_replace(['.', ','], ['', '.'], $raw);
-            else $raw = str_replace(',', '', $raw);
-            if (!is_numeric($raw)) { $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $p['name']); }
-            else smProvSetUsed($id, max(0.0, min(10000000.0, (float)$raw)));
+            $raw = smParseAmount($_POST['used'][$id]);
+            if ($raw === null) { $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $p['name']); }
+            else smProvSetUsed($id, max(0.0, min(10000000.0, $raw)));
         }
         smProvSet($id, 'limit', (string)max(0, min(10000000, (int)$_POST['limit'][$id])));
         $cost = (float)str_replace(',', '.', (string)($_POST['cost'][$id] ?? $p['cost']));
@@ -237,6 +246,12 @@ function smSaveProviders(): string
             smExSet($xid, 'limit', $x['money'] ? (string)round($v, 2) : (string)(int)$v);
         }
         if (!empty($_POST['xshown'][$xid])) smExSet($xid, 'on', empty($_POST['xon'][$xid]) ? '0' : '1');
+        // Verbrauch laut Dashboard (leer = nichts ändern)
+        if (isset($_POST['xused'][$xid]) && is_string($_POST['xused'][$xid]) && trim($_POST['xused'][$xid]) !== '') {
+            $raw = smParseAmount($_POST['xused'][$xid]);
+            if ($raw === null) $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $x['name']);
+            else smExSetUsed($xid, max(0.0, min(10000000.0, $raw)));
+        }
     }
     [$fb, $fberr] = smFallbackFromPost();
     if ($fberr !== '') { if ($err === '') $err = $fberr; }

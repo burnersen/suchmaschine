@@ -1232,3 +1232,10 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .answer__go { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
 .answer__note { margin: 6px 0 0; }
 @media print { .answer__go { display: none !important; } }
+
+/* ---------- 3.0.1: Anleitung „Bilder groß“ in der Hilfe ---------- */
+.howto { margin: 8px 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.howto summary { cursor: pointer; }
+.howto ol { margin: 8px 0 2px; }
+#bildergross h3 { margin: 18px 0 6px; font-size: 16px; }
+

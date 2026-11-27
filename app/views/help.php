@@ -91,15 +91,25 @@ $combos = $de ? [
 
     <section class="panel" id="bildergross">
         <h2><?= h(t('Bilder groß, auch bei anderen Suchmaschinen')) ?></h2>
-        <p class="muted small"><?= h(t('Bei Brave zeigt die Bildvorschau hier jedes Bild in voller Größe und im Vollbild. Landest du bei einer anderen Suchmaschine (ohne Anmeldung oder wenn Brave nicht kann), hilft dieses Lesezeichen: Auf deren Bilderseite antippen, und es sammelt die Bilder in der größten Fassung, die die Seite verrät, und zeigt sie randlos auf Schwarz. Wischen oder Pfeiltasten blättern, F schaltet Vollbild, Esc oder nach unten wischen schließt.')) ?></p>
+        <h3><?= h(t('Worum geht es?')) ?></h3>
+        <p><?= h(t('Suchst du hier angemeldet über Brave, brauchst du nichts davon: Bild antippen, dann oben den Vollbild-Knopf (oder Taste F).')) ?></p>
+        <p><?= h(t('Landest du bei einer anderen Suchmaschine (als Gast oder wenn Brave nicht kann), zeigen die ihre Bilder oft nur klein. Dafür gibt es das Lesezeichen „Bilder groß“: einmal pro Gerät einrichten, danach auf der fremden Bilderseite antippen, und die Bilder erscheinen groß auf Schwarz.')) ?></p>
         <p><a class="btn btn--primary" href="<?= h(smBookmarklet()) ?>" data-bookmarklet title="<?= h(t('In die Lesezeichenleiste ziehen')) ?>">🖼️ <?= h(t('Bilder groß')) ?></a>
             <button type="button" class="btn" data-copy-text="<?= h(smBookmarklet()) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Lesezeichen-Code kopieren')) ?></button></p>
-        <ul class="bullets">
-            <li><?= h(t('Am Rechner: den Knopf „Bilder groß“ in die Lesezeichenleiste ziehen.')) ?></li>
-            <li><?= h(t('iPad und iPhone: irgendeine Seite als Lesezeichen sichern, dann das Lesezeichen bearbeiten, die Adresse löschen und den kopierten Code einfügen. Aufrufen über die Lesezeichen, während die Bilderseite offen ist.')) ?></li>
-            <li><?= h(t('Am besten klappt es mit der Bildersuche von Bing (die Originale stehen dort direkt in der Seite). Bei DuckDuckGo, Startpage und anderen kommen je nach Seite die größten Vorschauen. Ganz verhindern kann eine Seite es, wenn sie fremde Bilder sperrt.')) ?></li>
-            <li><?= h(t('Das Lesezeichen schickt nichts an diesen Server oder sonst wohin, es läuft nur in deinem Browser.')) ?></li>
-        </ul>
+
+        <h3><?= h(t('Einmal einrichten')) ?></h3>
+        <details class="howto" open><summary><strong><?= h(t('Rechner (Chrome, Edge, Firefox, Safari)')) ?></strong></summary>
+            <ol class="bullets"><li><?= h(t('Lesezeichenleiste einblenden: Strg + Umschalt + B (am Mac: Cmd + Umschalt + B).')) ?></li><li><?= h(t('Den blauen Knopf „Bilder groß“ oben mit der Maus packen und in die Lesezeichenleiste ziehen. Fertig.')) ?></li></ol></details>
+        <details class="howto"><summary><strong><?= h(t('iPad und iPhone (Safari)')) ?></strong></summary>
+            <ol class="bullets"><li><?= h(t('Oben auf „Lesezeichen-Code kopieren“ tippen.')) ?></li><li><?= h(t('In Safari irgendeine Seite öffnen (z. B. diese hier), auf das Teilen-Symbol tippen (Quadrat mit Pfeil) und „Lesezeichen hinzufügen“ wählen. Als Namen „Bilder groß“ eintragen, „Sichern“.')) ?></li><li><?= h(t('Die Lesezeichen öffnen (Buch-Symbol), unten „Bearbeiten“ tippen und dann das Lesezeichen „Bilder groß“ antippen.')) ?></li><li><?= h(t('Im Feld mit der Adresse alles löschen, lange tippen, „Einsetzen“. Dann „Fertig“.')) ?></li></ol></details>
+        <details class="howto"><summary><strong><?= h(t('Android (Chrome)')) ?></strong></summary>
+            <ol class="bullets"><li><?= h(t('Oben auf „Lesezeichen-Code kopieren“ tippen.')) ?></li><li><?= h(t('Irgendeine Seite als Lesezeichen sichern (Menü ⋮, dann der Stern).')) ?></li><li><?= h(t('Menü ⋮ → Lesezeichen, beim neuen Lesezeichen auf ⋮ → Bearbeiten. Name „Bilder groß“, bei der Adresse alles löschen und den Code einfügen, speichern.')) ?></li></ol></details>
+
+        <h3><?= h(t('So benutzt du es')) ?></h3>
+        <ol class="bullets"><li><?= h(t('Bei der anderen Suchmaschine die Bildersuche öffnen und warten, bis die Bilder zu sehen sind. Am besten klappt es mit Bing.')) ?></li><li><?= h(t('Rechner, iPad, iPhone: das Lesezeichen „Bilder groß“ antippen. Android: oben in die Adresszeile „Bilder groß“ tippen und den Lesezeichen-Vorschlag darunter antippen (einfach Enter geht dort nicht).')) ?></li><li><?= h(t('Blättern: wischen, Pfeiltasten oder links/rechts ins Bild tippen. ⛶ oder Taste F: Vollbild. ↗: Bild in Originalgröße öffnen. ×, Esc oder nach unten wischen: schließen.')) ?></li></ol>
+
+        <h3><?= h(t('Wenn es nicht klappt')) ?></h3>
+        <ul class="bullets"><li><?= h(t('Du nutzt die Suchmaschine als App vom Startbildschirm? Dort gibt es keine Lesezeichen. Die Bilderseite dann in Safari öffnen (Safari- oder Kompass-Symbol bzw. „In Safari öffnen“) und das Lesezeichen dort antippen.')) ?></li><li><?= h(t('„Keine großen Bilder gefunden“: Erst etwas nach unten scrollen, damit die Seite Bilder lädt, dann noch einmal antippen. Oder Bing als Suchmaschine nehmen (Einstellungen → Suche bzw. auf der Startseite).')) ?></li><li><?= h(t('Ein einzelnes Bild bleibt schwarz: Die Seite, auf der es liegt, lässt es nicht laden. Einfach weiterblättern.')) ?></li><li><?= h(t('Am iPhone geht der Vollbild-Knopf nicht (das erlaubt Apple nur für Videos). Die Ansicht ist dort aber ohnehin schon randlos.')) ?></li><li><?= h(t('Das Lesezeichen läuft nur in deinem Browser und schickt nichts an diesen Server oder sonst wohin.')) ?></li></ul>
     </section>
 
     <section class="panel" id="sofort">
