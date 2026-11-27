@@ -57,6 +57,20 @@ function smExUsed(string $id): float
     return smUsageSum('x_' . $id, date('Y-m-01'));
 }
 
+/**
+ * Zähler auf den Stand laut Brave-Dashboard setzen (z. B. nach einem neuen Server mitten im Monat): Danach ist der Verbrauch
+ * im laufenden Monat genau $used, alles Weitere zählt dazu. Die Korrektur steht als eigene Zeile (Konto -1) am Monatsersten.
+ */
+function smExSetUsed(string $id, float $used): void
+{
+    $from = date('Y-m-01');
+    $p = 'x_' . $id;
+    smQ("DELETE FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$p, $from]);
+    $diff = $used - smExUsed($id);
+    if (abs($diff) >= 0.0005) smQ("INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, 'adjust', -1, ?, 0)", [$from, $p, round($diff, 4)]);
+    smExSet($id, 'usedset', (string)time());
+}
+
 /** Darf der Dienst jetzt für dieses Konto fragen? $est = was die Anfrage voraussichtlich kostet */
 function smExCan(string $id, ?array $me, float $est = 1.0): bool
 {
@@ -192,7 +206,7 @@ function smSpellcheck(string $q, ?array $me): string
 /** Was eine Antwort voraussichtlich kostet: Durchschnitt der letzten, mindestens 7 Cent */
 function smAnswerEstimate(): float
 {
-    $r = smQ("SELECT SUM(credits) AS c, SUM(req) AS n FROM usage_log WHERE provider = 'x_answer' AND day >= ?", [date('Y-m-01')])->fetch();
+    $r = smQ("SELECT SUM(credits) AS c, SUM(req) AS n FROM usage_log WHERE provider = 'x_answer' AND user_id <> -1 AND day >= ?", [date('Y-m-01')])->fetch();
     $avg = $r && (int)$r['n'] > 0 ? (float)$r['c'] / (int)$r['n'] : 0.0;
     return max(0.07, $avg * 1.2);
 }

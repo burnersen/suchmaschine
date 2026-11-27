@@ -120,6 +120,15 @@ $without = array_values(array_diff($order, $withKey));
                 <span><?= h($xfmt($xu)) ?> / <?= $xl > 0 ? h($xfmt($xl)) : '∞' ?><?= $x['money'] ? '' : ' ' . h(t('Anfragen')) ?> · <?= h(t('Reset am %s', smDate(mktime(0, 0, 0, (int)date('n') + 1, 1, (int)date('Y'))))) ?></span>
             </div>
 <?php endif; ?>
+<?php if ($xk !== ''): $xset = (int)smExGet($xid, 'usedset'); ?>
+            <div class="form__row">
+                <label class="field field--short"><span><?= h(t('Verbrauch laut Dashboard')) ?></span>
+                    <input type="text" inputmode="decimal" name="xused[<?= h($xid) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', $xfmt($xu))) ?>" autocomplete="off">
+                    <small class="muted"><?= h($x['money'] ? t('Trag hier ein, was das Brave-Dashboard bei „%s“ für diesen Monat als verbraucht zeigt, in Dollar (z. B. 0,62). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $x['plan'])
+                        : t('Trag hier ein, was das Brave-Dashboard bei „%s“ für diesen Monat als verbraucht zeigt (Anzahl Anfragen). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $x['plan'])) ?>
+<?php if ($xset >= strtotime(date('Y-m-01'))): ?> <?= h(t('Zuletzt nach Dashboard gesetzt: %s.', smDate($xset) . ' ' . date('H:i', $xset))) ?><?php endif; ?></small></label>
+            </div>
+<?php endif; ?>
             <div class="form__row">
                 <label class="field"><span><?= h(t('API-Key für %s', $x['plan'])) ?><?= $xk !== '' ? ' <small class="muted">(' . h(mb_substr($xk, 0, 4) . '…' . mb_substr($xk, -4)) . ')</small>' : '' ?></span>
                     <input type="password" name="xkey[<?= h($xid) ?>]" autocomplete="off" spellcheck="false" placeholder="<?= h($xk !== '' ? t('neuer Key, leer = behalten') : 'BSA…') ?>" data-reveal>
