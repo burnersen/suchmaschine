@@ -38,10 +38,11 @@ $combos = $de ? [
 ?>
 <main class="page page--help">
     <h1 class="page__title"><?= h(t('Hilfe')) ?></h1>
-    <p class="page__lead"><?= h(t('Diese Suchmaschine ist mehr als eine Trefferliste: mehrere Suchdienste mit Lastverteilung, Sofort-Antworten ohne Guthaben, Werkzeuge, Filter wie bei den Großen und volle Tastatursteuerung. Hier steht alles, was geht. Klick auf ein Beispiel, um es auszuprobieren.')) ?></p>
+    <p class="page__lead"><?= h(t('Diese Suchmaschine ist mehr als eine Trefferliste: Brave Search mit eigener Ersatz-Suchmaschine, Sofort-Antworten ohne Guthaben, Werkzeuge, Filter wie bei den Großen und volle Tastatursteuerung. Hier steht alles, was geht. Klick auf ein Beispiel, um es auszuprobieren.')) ?></p>
     <nav class="toc">
         <a href="#ueberblick"><?= h(t('Überblick')) ?></a>
-        <a href="#dienste"><?= h(t('Suchdienste')) ?></a>
+        <a href="#dienste"><?= h(t('Suchdienst')) ?></a>
+        <a href="#bildergross"><?= h(t('Bilder groß')) ?></a>
         <a href="#sofort"><?= h(t('Sofort-Antworten')) ?></a>
         <a href="#werkzeuge"><?= h(t('Werkzeuge')) ?></a>
         <a href="#filter"><?= h(t('Filter und Sortierung')) ?></a>
@@ -62,12 +63,12 @@ $combos = $de ? [
         <h2><?= h(t('Überblick')) ?></h2>
         <div class="feat">
 <?php foreach ([
-    ['🔎', t('Google und Brave'), t('Echte Google-Ergebnisse über Bright Data und Brave als zweiter Dienst. Automatisch der beste verfügbare, gezielt per Bang oder beide zusammen.')],
-    ['⚽', t('Live-Infos'), t('Spielstände, Aktienkurse, Öffnungszeiten, Adresse und Bewertung von Geschäften und Googles KI-Übersicht, direkt über den Treffern.')],
-    ['⚖️', t('Lastverteilung'), t('Die freien Kontingente reichen gleichmäßig über den Monat. Fällt ein Dienst aus, springt der nächste ein.')],
+    ['🦁', t('Brave Search'), t('Schnelle Ergebnisse aus dem eigenen Index von Brave für Web, Bilder, News und Videos, für angemeldete Konten.')],
+    ['↪️', t('Deine Suchmaschine als Ersatz'), t('Ohne Anmeldung, ohne Key oder wenn das Guthaben aufgebraucht ist, geht die Suche sofort zu der Suchmaschine, die du dir aussuchst.')],
+    ['💡', t('Hilfen von Brave'), t('Suchvorschläge beim Tippen, „Meintest du …?“ und eine KI-Antwort auf Knopfdruck, jeweils mit eigener Bremse vor dem Monatslimit.')],
     ['⚡', t('Sofort-Antworten'), t('Rechner, Währungen, Einheiten, Wetter, Kalenderwoche, Würfel, Timer und mehr, ohne Guthaben zu verbrauchen.')],
     ['🧰', t('Werkzeuge'), t('Rechner, Timer, Feiertage, Passwörter, QR-Codes, Scanner, Kurzlinks und mehr.')],
-    ['🎛️', t('Filter'), t('Zeitraum (auch letzte Stunde oder von/bis), Sprache und Region, Wortgenau, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bilder nach Größe, Format, Farbe, Typ und Lizenz, Videos nach Länge.')],
+    ['🎛️', t('Filter'), t('Zeitraum (auch letzte Stunde oder von/bis), Sprache und Region, Wortgenau, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bilder nach Größe und Format, Videos nach Länge.')],
     ['⌨️', t('Tastatur'), t('Durch alle Treffer mit J/K oder Pfeilen, Enter öffnet, ? zeigt alle Kürzel.')],
     ['🔑', t('Login-Token'), t('Einmal ?token=… aufrufen und ein Jahr angemeldet bleiben, auch als Standardsuche im Browser.')],
     ['🛡️', t('Privat'), t('Keine Werbung, kein Tracking, kein Suchverlauf auf dem Server. Alles läuft auf deinem eigenen Webspace.')],
@@ -78,26 +79,26 @@ $combos = $de ? [
     </section>
 
     <section class="panel" id="dienste">
-        <h2><?= h(t('Suchdienste')) ?></h2>
-        <p class="muted small"><?= h(t('Normalerweise wählt die Suchmaschine selbst: der Reihe nach den ersten Dienst, der noch Guthaben hat und funktioniert. Ist ein Dienst gestört, pausiert er 10 Minuten, damit niemand warten muss. Über jeder Trefferliste steht, wer geliefert hat, und mit einem Klick fragst du einen anderen.')) ?></p>
-        <div class="table-wrap">
-        <table class="table table--help">
-            <thead><tr><th><?= h(t('Kürzel')) ?></th><th><?= h(t('Wirkung')) ?></th><th><?= h(t('Beispiel')) ?></th></tr></thead>
-            <tbody>
-<?php foreach (smProviders() as $pid => $pp): ?>
-                <tr><td><?php foreach ($pp['bangs'] as $bb): ?><code>!<?= h($bb) ?></code> <?php endforeach; ?></td><td><?= h(t('nur bei %s suchen', $pp['name'])) ?><?= smProvActive($pid) ? '' : ' <span class="tag">' . h(t('nicht eingerichtet')) . '</span>' ?></td><td><?= $ex('!' . $pp['bangs'][0] . ' ' . ($de ? 'wärmepumpe test' : 'heat pump review')) ?></td></tr>
-<?php endforeach; ?>
-                <tr><td><code>!multi</code> <code>!alle</code></td><td><?= h(t('mehrere Dienste gleichzeitig, doppelte Treffer zusammengelegt, jeder Treffer mit Quell-Badge')) ?></td><td><?= $ex('!multi ' . ($de ? 'linux laptop' : 'linux laptop')) ?></td></tr>
-            </tbody>
-        </table>
-        </div>
+        <h2><?= h(t('Suchdienst')) ?></h2>
         <ul class="bullets">
-            <li><?= h(t('Lastverteilung: Verbraucht ein Dienst schneller, als sein Kontingent bis zum Reset reicht, gehen Suchen schon vorher an den nächsten.')) ?></li>
-            <li><?= h(t('Gleiche Suchen kommen eine Weile aus dem Zwischenspeicher und kosten nichts (Brave bis 60 Minuten, Google standardmäßig 1 Stunde, Spielstände und Kurse höchstens 5 Minuten).')) ?></li>
-            <li><?= h(t('Ist alles aufgebraucht oder gestört, leitet die Suche zum eingestellten Ausweichziel weiter (z. B. Startpage). So funktioniert sie immer.')) ?></li>
-            <li><?= h(t('Beide Dienste können Web, Bilder, News und Videos. Bildfarbe, Bildtyp und Lizenz kann nur Google.')) ?></li>
-            <li><?= h(t('Google liefert Infobox, Öffnungszeiten, Spielstände, Kurse und KI-Übersicht. Fehlt eine Infobox, ergänzt die Suchmaschine eine Kurzinfo von Wikipedia.')) ?></li>
-            <li><?= h(t('Google packt Links in eigene Weiterleitungen. Die löst dein Server auf, du landest direkt auf der Seite und Google erfährt nicht, was du anklickst.')) ?></li>
+            <li><?= h(t('Angemeldete Konten suchen bei Brave Search. Gleiche Suchen kommen bis zu 60 Minuten aus dem Zwischenspeicher und kosten nichts.')) ?></li>
+            <li><?= h(t('Gäste suchen nie bei Brave: Ihre Suche geht sofort zu der Suchmaschine, die sie auf der Startseite wählen (sonst zum Standard der Installation).')) ?></li>
+            <li><?= h(t('Hat Brave keinen Key, ist das Monatslimit erreicht, dein Kontingent aufgebraucht oder Brave gestört, geht die Suche sofort und ohne Zwischenstopp zu deiner Ausweich-Suchmaschine (Einstellungen → Suche). Bilder, News und Videos landen dort im passenden Bereich.')) ?></li>
+            <li><?= h(t('Jeder Brave-Dienst hat ein eigenes Limit knapp unter dem freien Guthaben. Ist es erreicht, hält die Suchmaschine an, bevor Kosten entstehen.')) ?></li>
+            <li><?= h(t('Die KI-Antwort holt die Suchmaschine nur auf Knopfdruck (oder automatisch, wenn du das einstellst). Sie kostet mehr als eine normale Suche.')) ?></li>
+        </ul>
+    </section>
+
+    <section class="panel" id="bildergross">
+        <h2><?= h(t('Bilder groß, auch bei anderen Suchmaschinen')) ?></h2>
+        <p class="muted small"><?= h(t('Bei Brave zeigt die Bildvorschau hier jedes Bild in voller Größe und im Vollbild. Landest du bei einer anderen Suchmaschine (ohne Anmeldung oder wenn Brave nicht kann), hilft dieses Lesezeichen: Auf deren Bilderseite antippen, und es sammelt die Bilder in der größten Fassung, die die Seite verrät, und zeigt sie randlos auf Schwarz. Wischen oder Pfeiltasten blättern, F schaltet Vollbild, Esc oder nach unten wischen schließt.')) ?></p>
+        <p><a class="btn btn--primary" href="<?= h(smBookmarklet()) ?>" data-bookmarklet title="<?= h(t('In die Lesezeichenleiste ziehen')) ?>">🖼️ <?= h(t('Bilder groß')) ?></a>
+            <button type="button" class="btn" data-copy-text="<?= h(smBookmarklet()) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Lesezeichen-Code kopieren')) ?></button></p>
+        <ul class="bullets">
+            <li><?= h(t('Am Rechner: den Knopf „Bilder groß“ in die Lesezeichenleiste ziehen.')) ?></li>
+            <li><?= h(t('iPad und iPhone: irgendeine Seite als Lesezeichen sichern, dann das Lesezeichen bearbeiten, die Adresse löschen und den kopierten Code einfügen. Aufrufen über die Lesezeichen, während die Bilderseite offen ist.')) ?></li>
+            <li><?= h(t('Am besten klappt es mit der Bildersuche von Bing (die Originale stehen dort direkt in der Seite). Bei DuckDuckGo, Startpage und anderen kommen je nach Seite die größten Vorschauen. Ganz verhindern kann eine Seite es, wenn sie fremde Bilder sperrt.')) ?></li>
+            <li><?= h(t('Das Lesezeichen schickt nichts an diesen Server oder sonst wohin, es läuft nur in deinem Browser.')) ?></li>
         </ul>
     </section>
 
@@ -291,7 +292,7 @@ $combos = $de ? [
         <ul class="bullets">
             <li><?= h(t('Keine Werbung, kein Tracking, keine Cookies außer Anmeldung, Sprache und Design.')) ?></li>
             <li><?= h(t('Der Server speichert keine Suchbegriffe. Der Verlauf für die Vorschläge bleibt nur in deinem Browser.')) ?></li>
-            <li><?= h(t('Die Suchdienste sehen nur den Server, nicht dich. Gezählt wird nur die Menge der Anfragen, nicht ihr Inhalt.')) ?></li>
+            <li><?= h(t('Brave sieht nur den Server, nicht dich. Gezählt wird nur die Menge der Anfragen, nicht ihr Inhalt. Bei der Ausweich-Suchmaschine landest du dagegen direkt, die sieht dich wie bei jedem normalen Besuch.')) ?></li>
             <li><?= h(t('Passwörter aus dem Generator entstehen nur im Browser. QR-Codes entstehen auf diesem Server.')) ?></li>
         </ul>
     </section>

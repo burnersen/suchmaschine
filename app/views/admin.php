@@ -50,15 +50,10 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
 <?php if (smProvOrder()): ?>
     <section class="panel">
         <h2><?= h(t('Kontingente')) ?></h2>
-        <p class="muted small"><?= h(t('Pro Konto lässt sich festlegen, welche Suchdienste es nutzen darf und wie viele Credits es pro Abrechnungszeitraum bekommt (Knopf „Kontingent“ in der Liste oben). Ist ein Kontingent aufgebraucht, weicht die Suche auf andere erlaubte Dienste aus.')) ?></p>
-<?php if (smSetting('public') === '1'): ?>
-        <div class="users__row users__row--anon"><span class="avatar">?</span><span class="users__name"><strong><?= h(t('Besucher ohne Anmeldung')) ?></strong><br><small class="muted"><?= h(t('gemeinsames Kontingent')) ?></small></span>
-            <span class="users__actions"><?php $quser = 0; require __DIR__ . '/_quota.php'; ?></span></div>
-<?php endif; ?>
+        <p class="muted small"><?= h(t('Pro Konto lässt sich festlegen, ob es Brave nutzen darf und wie viele Suchen es pro Abrechnungszeitraum bekommt (Knopf „Kontingent“ in der Liste oben). Ist ein Kontingent aufgebraucht, gehen die Suchen des Kontos zu seiner Ausweich-Suchmaschine.')) ?></p>
         <form method="post" action="<?= h($aurl('users')) ?>" class="form" data-confirm="<?= h(t('Kontingente aller Konten neu setzen?')) ?>">
             <?= smCsrfField($me) ?><input type="hidden" name="do" value="fair">
             <label class="check"><input type="checkbox" name="skip_admins" value="1" checked> <?= h(t('Administratoren ausnehmen (ohne Grenze)')) ?></label>
-<?php if (smSetting('public') === '1'): ?><label class="check"><input type="checkbox" name="with_anon" value="1"> <?= h(t('Besucher ohne Anmeldung mitzählen')) ?></label><?php endif; ?>
             <div class="form__actions"><button type="submit" class="btn btn--primary"><?= h(t('Gerecht aufteilen')) ?></button></div>
         </form>
         <form method="post" action="<?= h($aurl('users')) ?>" class="form__actions" data-confirm="<?= h(t('Alle Kontingente aufheben?')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="quota_clear"><button type="submit" class="btn btn--ghost"><?= h(t('Alle Kontingente aufheben')) ?></button></form>
@@ -144,10 +139,14 @@ $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
             <small class="muted"><?= h(t('Das ist der Standard für alle Konten. Jedes Konto kann es unter Einstellungen → Suche für sich ändern.')) ?></small>
         </section>
         <section class="panel">
-            <h2><?= h(t('Suchen ohne Anmeldung')) ?></h2>
-            <label class="switch"><input type="checkbox" name="public" value="1"<?= smSetting('public') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
-                <span><?= h(t('Jeder mit der Adresse darf suchen')) ?><br><small class="muted"><?= h(t('Vorsicht: Jede Suche geht von deinem Guthaben ab. Das Monatslimit gilt trotzdem.')) ?></small></span></label>
-            <label class="field field--short"><span><?= h(t('Dann höchstens Suchen pro Stunde und Besucher')) ?></span><input type="number" name="public_hour" min="1" max="1000" value="<?= (int)smSetting('public_hour') ?>"></label>
+            <h2><?= h(t('Gäste')) ?></h2>
+            <fieldset class="field"><legend><?= h(t('Wer darf die Seite benutzen?')) ?></legend>
+                <div class="seg">
+                    <label><input type="radio" name="public" value="1"<?= smSetting('public') === '1' ? ' checked' : '' ?>><span><?= h(t('Alle (frei)')) ?></span></label>
+                    <label><input type="radio" name="public" value="0"<?= smSetting('public') !== '1' ? ' checked' : '' ?>><span><?= h(t('Nur mit Anmeldung')) ?></span></label>
+                </div>
+                <small class="muted"><?= h(t('Frei: Jeder mit der Adresse kann Startseite, Bangs, Sofort-Antworten und Werkzeuge benutzen. Suchen von Gästen gehen nie über Brave, sondern sofort zur Ausweich-Suchmaschine (Verwaltung → Suchdienste), dein Guthaben bleibt also unangetastet. Brave sucht nur für angemeldete Konten.')) ?></small>
+            </fieldset>
         </section>
         <div class="form__actions form__actions--sticky"><button type="submit" class="btn btn--primary"><?= h(t('Speichern')) ?></button></div>
     </form>

@@ -56,18 +56,17 @@ function smPageAdmin(array $me, bool $post): void
                 break;
             case 'quota':
                 $uid = (int)($_POST['id'] ?? 0);
-                if ($uid !== 0 && !smQ('SELECT 1 FROM users WHERE id = ?', [$uid])->fetchColumn()) { $err = t('Dieses Konto gibt es nicht.'); break; }
+                if (!smQ('SELECT 1 FROM users WHERE id = ?', [$uid])->fetchColumn()) { $err = t('Dieses Konto gibt es nicht.'); break; }
                 $lim = [];
                 foreach ((array)($_POST['lim'] ?? []) as $pid => $v) if (is_string($v) && trim($v) !== '') $lim[$pid] = (int)$v;
                 smQuotaSave($uid, ['allow' => !empty($_POST['allow_all']) ? null : (array)($_POST['allow'] ?? []), 'lim' => $lim]);
                 $ok = t('Kontingent gespeichert.');
                 break;
             case 'fair':
-                $ok = t('Kontingente gerecht aufgeteilt: %s', smQuotaFair(!empty($_POST['skip_admins']), !empty($_POST['with_anon'])));
+                $ok = t('Kontingente gerecht aufgeteilt: %s', smQuotaFair(!empty($_POST['skip_admins'])));
                 break;
             case 'quota_clear':
                 smQ("UPDATE users SET quota = ''");
-                smSetSetting('anon_quota', '');
                 $ok = t('Alle Kontingente aufgehoben.');
                 break;
             case 'export':
@@ -172,30 +171,22 @@ function smSaveConfig(): string
     if (isset(smSearchLangs()[$l])) smSetSetting('search_lang', $l);
     $s = (string)($_POST['safesearch'] ?? '');
     if (in_array($s, ['off', 'moderate', 'strict'], true)) smSetSetting('safesearch', $s);
-    smSetSetting('public', empty($_POST['public']) ? '0' : '1');
+    smSetSetting('public', ($_POST['public'] ?? '') === '1' ? '1' : '0');
     smSetSetting('img_proxy', empty($_POST['img_proxy']) ? '0' : '1');
     smSetSetting('shortener', empty($_POST['shortener']) ? '0' : '1');
     $v4 = trim((string)($_POST['ipv4_host'] ?? ''));
     if ($v4 !== '' && smCleanHostname($v4) === '') return t('Die IPv4-Subdomain ist kein gültiger Name (z. B. v4.example.org, ohne https:// und ohne Pfad).');
     smSetSetting('ipv4_host', smCleanHostname($v4));
-    smSetSetting('public_hour', (string)max(1, min(1000, (int)($_POST['public_hour'] ?? 20))));
     $w = (string)($_POST['weather_src'] ?? '');
     if (isset(smWeatherSources()[$w])) smSetSetting('weather_src', $w);
     return '';
 }
 
-/** Suchdienste speichern: Keys (werden vorher getestet), Stichtag, Limit, Kosten, Zwischenspeicher, Reihenfolge, Ausweichziel */
+/** Suchdienst speichern: Key (wird vorher getestet), Stichtag, Limit, Kosten, Zwischenspeicher, Ausweich-Suchmaschine */
 function smSaveProviders(): string
 {
     $err = '';
     foreach (smProviders() as $id => $p) {
-        // Bright Data: Name der API (Zone) vor dem Key, der Test braucht ihn schon
-        foreach (['zone', 'unlocker'] as $zf) {
-            if ($id !== 'brightdata' || !isset($_POST[$zf][$id]) || !is_string($_POST[$zf][$id])) continue;
-            $z = trim($_POST[$zf][$id]);
-            if ($z === '' || preg_match('/^[A-Za-z0-9_-]{1,64}$/', $z)) smProvSet($id, $zf, $z);
-            else $err = t('%s: Der Name der Zone darf nur Buchstaben, Ziffern, _ und - enthalten.', $p['name']);
-        }
         if (!empty($_POST['keydel'][$id])) {
             smProvSet($id, 'key', '');
         } else {
@@ -232,33 +223,33 @@ function smSaveProviders(): string
         smProvSet($id, 'cache', (string)($id === 'brave' ? max(0, min(60, $cache)) : max(0, min(168, $cache))));
         smProvSet($id, 'on', empty($_POST['on'][$id]) ? '0' : '1');
     }
-    // Reihenfolge: kleinere Zahl = zuerst
-    $prio = [];
-    foreach (smProvOrder(false) as $i => $id) $prio[$id] = [(int)($_POST['prio'][$id] ?? ($i + 1)), $i];
-    uasort($prio, function ($a, $b) { return $a <=> $b; });
-    smSetSetting('prov_order', implode(',', array_keys($prio)));
-    smSetSetting('balance', empty($_POST['balance']) ? '0' : '1');
-    smSetSetting('answers', empty($_POST['answers']) ? '0' : '1');
-    smSetSetting('wiki', empty($_POST['wiki']) ? '0' : '1');
-    smSetSetting('stream', empty($_POST['stream']) ? '0' : '1');
-    smSetSetting('suggest', empty($_POST['suggest']) ? '0' : '1');
-    smSetSetting('race', (string)max(0, min(20, (int)($_POST['race'] ?? 3))));
-    $multi = array_values(array_intersect(array_keys(smProviders()), (array)($_POST['multi'] ?? [])));
-    smSetSetting('multi_set', implode(',', $multi));
-    smSetSetting('fallback_auto', empty($_POST['fallback_auto']) ? '0' : '1');
-    $fb = (string)($_POST['fallback_preset'] ?? '');
-    if ($fb === 'own') $fb = (string)($_POST['fallback_own'] ?? '');
-    if ($fb === '' || (smCleanBangUrl($fb) !== '' && strpos($fb, '{q}') !== false)) smSetSetting('fallback_url', $fb);
-    elseif ($err === '') $err = t('Das Ausweichziel muss mit https:// beginnen und {q} für den Suchbegriff enthalten.');
+    // Zusatzdienste (Vorschläge, Rechtschreibhilfe, KI-Antwort): eigener Key, vorher getestet, eigenes Monatslimit
+    foreach (smExtras() as $xid => $x) {
+        if (!empty($_POST['xdel'][$xid])) {
+            smExSet($xid, 'key', '');
+        } elseif (($xk = trim((string)($_POST['xkey'][$xid] ?? ''))) !== '') {
+            if (!preg_match('/^[\x21-\x7e]{8,300}$/', $xk)) $err = t('%s: Der API-Key sieht nicht richtig aus.', $x['name']);
+            elseif (($e = smExTest($xid, $xk)) !== '') $err = t('%s: %s Der Key wurde nicht gespeichert.', $x['name'], $e);
+            else { smExSet($xid, 'key', $xk); smExSet($xid, 'pause', '0'); }
+        }
+        if (isset($_POST['xlimit'][$xid]) && is_numeric(str_replace(',', '.', (string)$_POST['xlimit'][$xid]))) {
+            $v = max(0.0, min(10000000.0, (float)str_replace(',', '.', (string)$_POST['xlimit'][$xid])));
+            smExSet($xid, 'limit', $x['money'] ? (string)round($v, 2) : (string)(int)$v);
+        }
+        if (!empty($_POST['xshown'][$xid])) smExSet($xid, 'on', empty($_POST['xon'][$xid]) ? '0' : '1');
+    }
+    [$fb, $fberr] = smFallbackFromPost();
+    if ($fberr !== '') { if ($err === '') $err = $fberr; }
+    else smSetSetting('fallback_url', $fb !== '' ? $fb : smFallbackDefault());
     smSetSetting('warn_pct', (string)max(10, min(100, (int)($_POST['warn_pct'] ?? 80))));
     return $err;
 }
 
 /** Credits der Dienste gleichmäßig auf die Konten verteilen. Liefert eine kurze Zusammenfassung. */
-function smQuotaFair(bool $skipAdmins, bool $withAnon): string
+function smQuotaFair(bool $skipAdmins): string
 {
     $users = array_filter(smUsers(), function ($u) use ($skipAdmins) { return !$skipAdmins || (int)$u['is_admin'] !== 1; });
-    $n = count($users) + ($withAnon ? 1 : 0);
+    $n = count($users);
     if ($n === 0) return '–';
     $parts = [];
     $per = [];
@@ -269,7 +260,6 @@ function smQuotaFair(bool $skipAdmins, bool $withAnon): string
         $parts[] = smProviders()[$id]['badge'] . ' ' . $per[$id];
     }
     $targets = array_map(function ($u) { return (int)$u['id']; }, $users);
-    if ($withAnon) $targets[] = 0;
     foreach ($targets as $uid) {
         $q = smQuotaOf($uid);
         $q['lim'] = $per + $q['lim'];

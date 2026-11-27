@@ -11,8 +11,7 @@
  * Wie aus diesem Quellcode die eine Installationsdatei wird, steht in BUILD.md.
  *
  * PHP mit SQLite auf dem Server, schlichtes JavaScript und CSS im Browser. Keine Frameworks,
- * keine Abhängigkeiten, nichts wird von fremden Servern nachgeladen (außer Vorschaubildern über Braves Bild-Proxy,
- * Googles Vorschaubilder holt der eigene Server).
+ * keine Abhängigkeiten, nichts wird von fremden Servern nachgeladen (außer Vorschaubildern über Braves Bild-Proxy).
  * Der Code enthält KEINE Zugangsdaten. Alles Geheime (API-Keys, Login-Tokens) entsteht beim Einrichten
  * und liegt im Ordner data/. Den Ordner data/ niemals veröffentlichen oder ins Git legen.
  *
@@ -23,7 +22,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 date_default_timezone_set('Europe/Berlin');
 
-define('SM_VERSION', '2.5.1');
+define('SM_VERSION', '3.0.0');
 define('SM_ROOT', __DIR__);
 define('SM_APP', SM_ROOT . '/app');
 defined('SM_DATA_DIR') || define('SM_DATA_DIR', SM_ROOT . '/data');   // die Tests nehmen einen eigenen Ordner
@@ -40,7 +39,7 @@ if (PHP_VERSION_ID < 80000) {
 // Reihenfolge egal, die Dateien enthalten nur Funktionen und Konstanten
 foreach ([
     'lang', 'util', 'db', 'auth',                          // Grundlagen: Sprache, Helfer, Datenbank, Konten
-    'brave', 'brightdata', 'providers', 'filters', 'domains', 'bangs',   // Suchen: Suchdienste (Brave, Google über Bright Data), Filter, Domain-Listen, Bangs und Linsen
+    'brave', 'providers', 'extras', 'filters', 'domains', 'bangs',   // Suchen: Brave Search, Ausweich-Suchmaschine, Vorschläge/Rechtschreibung/KI-Antwort, Filter, Domain-Listen, Bangs und Linsen
     'instant', 'instant_more', 'qr', 'imgproxy', 'reader',                // Sofort-Antworten, QR-Codes, Bild-Proxy, Lesemodus
     'net', 'shortlinks', 'tools_api',                      // Werkzeuge: sicherer Abruf, Kurzlinks und Schnipsel, Schnittstelle der Werkzeug-Apps
     'prefs', 'look', 'branding', 'backup', 'update',       // Einstellungen, Aussehen, Logo, Sicherung, Update

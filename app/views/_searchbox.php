@@ -5,7 +5,7 @@ $big = !empty($big);
 <?php $bangOk = !empty($me) || smSetting('public') === '1'; ?>
 <form class="sbox<?= $big ? ' sbox--big' : '' ?>" method="get" action="<?= h(smBase()) ?>" role="search" data-search
       data-history="<?= !empty($prefs['history']) ? '1' : '0' ?>" data-label-remove="<?= h(t('Aus dem Verlauf entfernen')) ?>"
-<?php if ($bangOk && smSetting('suggest') === '1'): ?>      data-suggest="<?= h(smUrl(['a' => 'suggest'])) ?>"
+<?php if (!empty($me) && smExActive('suggest') && ($prefs['x_suggest'] ?? 'on') !== 'off'): ?>      data-suggest="<?= h(smUrl(['a' => 'suggest'])) ?>"
 <?php endif; ?>
 <?php if ($bangOk): ?>      data-bangs="<?= h(smUrl(['a' => 'bangs'])) ?>" data-label-dead="<?= h(t('zuletzt nicht erreichbar')) ?>" data-label-go="<?= h(t('Weiter zu')) ?>" data-label-type="<?= h(t('jetzt Suchbegriff eingeben')) ?>"<?php endif; ?>>
     <div class="sbox__field">

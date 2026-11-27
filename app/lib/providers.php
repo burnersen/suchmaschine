@@ -1,42 +1,28 @@
 <?php
-/* Suchmaschine – zwei Suchdienste: Google über Bright Data und Brave.
-   Alle liefern dasselbe Trefferformat. Pro Dienst: eigener Key, Stichtag, Monatslimit, Zähler, Prognose,
-   Zwischenspeicher und Zustand (gestörte Dienste pausieren kurz). Dazu Lastverteilung, Ausweichen bei Fehlern,
-   gezieltes Ansteuern (!tv, !exa …), Multi-Quellen-Modus und Kontingente pro Konto. */
+/* Suchmaschine – der Suchdienst: Brave Search.
+   Key, Stichtag, Monatslimit, Zähler, Prognose, Zwischenspeicher und Zustand (ein gestörter Dienst pausiert kurz),
+   dazu Kontingente pro Konto. Geht Brave nicht, leitet die Suche zur Ausweich-Suchmaschine weiter (smFallback…). */
 defined('SM_VERSION') || exit;
 
-/** Wenn wirklich nichts mehr geht: alle Dienste leer, gestört oder nicht erlaubt */
+/** Wenn Brave nicht kann: kein Key, Limit erreicht, gestört oder für das Konto nicht erlaubt */
 class SmSearchExhausted extends SmSearchError
 {
 }
 
 /**
- * Die bekannten Suchdienste.
- * free = Freikontingent pro Monat, limit = Standardlimit (50 Credits Puffer), cost = geschätzte Credits pro Suche,
+ * Der Suchdienst (eine Liste, damit Verbrauch, Kontingente und Verwaltung einheitlich bleiben).
+ * free = Freikontingent pro Monat, limit = Standardlimit (50 Suchen Puffer), cost = Credits pro Suche,
  * unit = worin gezählt wird, kinds = welche Reiter der Dienst kann.
  */
 function smProviders(): array
 {
     return [
-        'brightdata' => [
-            'name' => 'Google (Bright Data)', 'badge' => 'Google', 'free' => 5000, 'limit' => 4950, 'cost' => 1, 'unit' => t('Anfragen'),
-            'kinds' => ['web', 'images', 'news', 'videos'], 'bangs' => ['bd', 'brightdata'], 'paging' => true, 'google' => true,
-            'site' => 'https://brightdata.com/cp/zones', 'key_hint' => '1a2b3c4d-…',
-        ],
         'brave' => [
             'name' => 'Brave Search', 'badge' => 'Brave', 'free' => 1000, 'limit' => 950, 'cost' => 1, 'unit' => t('Suchen'),
-            'kinds' => ['web', 'images', 'news', 'videos'], 'bangs' => ['brave'], 'paging' => true, 'google' => false,
+            'kinds' => ['web', 'images', 'news', 'videos'],
             'site' => 'https://api-dashboard.search.brave.com', 'key_hint' => 'BSA…',
         ],
     ];
-}
-
-/** Bangs, die gezielt einen Suchdienst ansteuern: Kürzel => Dienst (oder "multi") */
-function smProviderBangs(): array
-{
-    $b = ['multi' => 'multi', 'alle' => 'multi', 'all' => 'multi'];
-    foreach (smProviders() as $id => $p) foreach ($p['bangs'] as $k) $b[$k] = $id;
-    return $b;
 }
 
 /* ---------- Einstellungen pro Dienst ---------- */
@@ -77,8 +63,7 @@ function smProvSettingKeys(): array
 {
     $k = [];
     foreach (array_keys(smProviders()) as $id) {
-        foreach (['key', 'start', 'limit', 'cost', 'cache', 'on', 'zone', 'unlocker'] as $f) {
-            if ($id !== 'brightdata' && in_array($f, ['zone', 'unlocker'], true)) continue;
+        foreach (['key', 'start', 'limit', 'cost', 'cache', 'on'] as $f) {
             if ($id === 'brave' && in_array($f, ['key', 'limit', 'cache'], true)) continue;
             $k[] = 'p_' . $id . '_' . $f;
         }
@@ -89,16 +74,14 @@ function smProvSettingKeys(): array
 /** Hat der Dienst einen Key und ist eingeschaltet? */
 function smProvActive(string $id): bool
 {
-    return isset(smProviders()[$id]) && trim(smProvGet($id, 'key')) !== '' && smProvGet($id, 'on') !== '0'
-        && ($id !== 'brightdata' || smBdZone() !== '');
+    return isset(smProviders()[$id]) && trim(smProvGet($id, 'key')) !== '' && smProvGet($id, 'on') !== '0';
 }
 
-/** Dienste mit Key in der eingestellten Reihenfolge */
+/** Eingerichtete Dienste (mit Key und eingeschaltet), mit $activeOnly = false alle bekannten */
 function smProvOrder(bool $activeOnly = true): array
 {
     $all = array_keys(smProviders());
-    $order = array_values(array_unique(array_merge(array_intersect(explode(',', smSetting('prov_order')), $all), $all)));
-    return $activeOnly ? array_values(array_filter($order, 'smProvActive')) : $order;
+    return $activeOnly ? array_values(array_filter($all, 'smProvActive')) : $all;
 }
 
 /** Zwischenspeicher in Sekunden. Brave erlaubt nur kurzes Speichern (höchstens 60 Minuten). */
@@ -265,15 +248,12 @@ function smProvForecast(string $id): array
     $fits = $limit <= 0 || $projected <= $limit;
     $empty = null;
     if ($limit > 0 && !$fits && $avg > 0) $empty = time() + (int)(max(0, $limit - $used) / $avg * 86400);
-    // Tempo: 1,0 = genau im Plan, darüber wird schneller verbraucht, als das Kontingent erlaubt
-    $share = max($c['elapsed'] / $c['days'], min(1.0, 3 / $c['days']));   // am Anfang: mindestens 3 Tage Budget, sonst greift die Lastverteilung schon nach ein paar Suchen
-    $pace = $limit > 0 ? $used / ($limit * $share) : 0.0;
     $left = $limit > 0 ? max(0.0, $limit - $used) : INF;
     $apiLeft = smProvApiLeft($id);
     if ($apiLeft !== null) $left = min($left, $apiLeft);
     return [
         'used' => $used, 'limit' => $limit, 'left' => $left, 'api_left' => $apiLeft, 'today' => $today,
-        'avg' => $avg, 'projected' => $projected, 'fits' => $fits, 'empty_at' => $empty, 'pace' => $pace,
+        'avg' => $avg, 'projected' => $projected, 'fits' => $fits, 'empty_at' => $empty,
         'pct' => $limit > 0 ? min(1.0, $used / $limit) : 0.0, 'cycle' => $c,
         'per_day' => is_finite($left) && $c['left'] > 0 ? $left / max(1.0, ceil($c['left'])) : INF,
     ];
@@ -281,15 +261,11 @@ function smProvForecast(string $id): array
 
 /* ---------- Kontingente pro Konto ---------- */
 
-/** Kontingent eines Kontos (0 = Besucher ohne Anmeldung): ['allow' => [Dienste] oder null = alle, 'lim' => [Dienst => Credits]] */
+/** Kontingent eines Kontos: ['allow' => [Dienste] oder null = alle, 'lim' => [Dienst => Credits]]. Gäste suchen nie bei Brave. */
 function smQuotaOf(int $userId): array
 {
-    if ($userId === 0) {
-        $raw = smSetting('anon_quota');
-    } else {
-        $raw = (string)smQ('SELECT quota FROM users WHERE id = ?', [$userId])->fetchColumn();
-    }
-    return smCleanQuota(json_decode($raw, true));
+    if ($userId <= 0) return ['allow' => [], 'lim' => []];
+    return smCleanQuota(json_decode((string)smQ('SELECT quota FROM users WHERE id = ?', [$userId])->fetchColumn(), true));
 }
 
 function smCleanQuota($q): array
@@ -306,8 +282,7 @@ function smCleanQuota($q): array
 
 function smQuotaSave(int $userId, array $q): void
 {
-    $json = json_encode(smCleanQuota($q));
-    if ($userId === 0) smSetSetting('anon_quota', $json); else smQ('UPDATE users SET quota = ? WHERE id = ?', [$json, $userId]);
+    if ($userId > 0) smQ('UPDATE users SET quota = ? WHERE id = ?', [json_encode(smCleanQuota($q)), $userId]);
 }
 
 /** Darf das Konto diesen Dienst nutzen? Liefert '' oder den Grund (denied, quota). */
@@ -375,170 +350,62 @@ function smBlockText(string $id, string $why): string
         case 'quota':  return t('dein Kontingent ist aufgebraucht');
         case 'denied': return t('für dein Konto nicht freigegeben');
         case 'paused': return t('gestört, Pause bis %s Uhr', date('H:i', (int)smProvStat($id)['pause_until']));
-        case 'pace':   return t('wird geschont (Lastverteilung)');
         case 'off':    return t('nicht eingerichtet');
         case 'kind':   return t('kann diese Art der Suche nicht');
-        case 'filter': return t('kann diesen Filter nicht');
-        case 'paging': return t('kennt keine weiteren Seiten');
     }
     return $why;
-}
-
-/**
- * Wählt die Dienste für eine Suche, in der Reihenfolge, in der sie probiert werden.
- * Liefert [Liste, übersprungene Dienste mit Grund]. Mit Lastverteilung rücken Dienste, die schneller verbrauchen,
- * als ihr Kontingent bis zum Reset erlaubt, nach hinten.
- */
-function smProvPick(string $kind, int $userId, ?string $forced, int $page, int $older = 0, bool $google = false): array
-{
-    $list = [];
-    $skip = [];
-    $ids = $forced !== null ? [$forced] : smProvOrder(false);
-    // Ältere News (über eine Woche): Brave hat dort fast nichts mehr im Index. Google kann einen genauen Zeitraum.
-    if ($forced === null && $older >= 7) {
-        $range = array_values(array_intersect(['brightdata'], $ids));
-        $ids = array_values(array_unique(array_merge($range, $ids)));
-    }
-    foreach ($ids as $id) {
-        $why = smProvBlock($id, $kind, $userId);
-        if ($why === '' && $page > 1 && !smProviders()[$id]['paging']) $why = 'paging';
-        // Filter, die nur Google kann (Bildfarbe, Bildtyp, Lizenz): andere Dienste würden sie stillschweigend übergehen
-        if ($why === '' && $google && empty(smProviders()[$id]['google'])) $why = 'filter';
-        if ($why === '') { $list[] = $id; continue; }
-        if (!in_array($why, ['off', 'kind'], true) || $forced !== null) $skip[$id] = $why;
-    }
-    if ($forced === null && count($list) > 1 && smSetting('balance') === '1' && $older < 7) {
-        $pace = [];
-        foreach ($list as $i => $id) $pace[$id] = [smProvForecast($id)['pace'] > 1.15 ? 1 : 0, $i];   // etwas Spielraum, die eigene Reihenfolge soll gelten
-        $first = $list[0];
-        usort($list, function ($a, $b) use ($pace) {
-            if ($pace[$a][0] !== $pace[$b][0]) return $pace[$a][0] <=> $pace[$b][0];
-            return $pace[$a][1] <=> $pace[$b][1];
-        });
-        if ($list[0] !== $first) $skip[$first] = 'pace';
-    }
-    return [$list, $skip];
 }
 
 /* ---------- Die eigentliche Suche ---------- */
 
-/** Schlüssel für den Zwischenspeicher: alles, was das Ergebnis beeinflusst */
+/** Schlüssel für den Zwischenspeicher: alles, was die Anfrage an Brave beeinflusst (Filter danach gehören nicht dazu) */
 function smSearchParams(string $kind, string $q, array $o): array
 {
-    $p = [
+    return [
         'kind' => $kind, 'q' => $q, 'page' => $kind === 'images' ? 1 : max(1, min(10, (int)($o['page'] ?? 1))),
         'country' => (string)($o['country'] ?? 'ALL'), 'lang' => (string)($o['search_lang'] ?? 'en'),
         'safe' => (string)($o['safesearch'] ?? 'moderate'), 'fresh' => isset(smFreshness()[$o['freshness'] ?? '']) ? (string)($o['freshness'] ?? '') : '',
         'exact' => !empty($o['exact']), 'count' => !empty($o['endless']) ? 20 : max(5, min(20, (int)smSetting('per_page'))),
-        'answer' => $kind === 'web' && smSetting('answers') === '1' && max(1, (int)($o['page'] ?? 1)) === 1,
         'ui' => smLang(),
-        // Zeitstufen bei „Neueste zuerst“: nur Treffer, die mindestens so viele Tage alt sind (genauer Zeitraum bei Google)
-        'older' => $kind !== 'images' ? max(0, min(365, (int)($o['older'] ?? 0))) : 0,
         // Eigener Zeitraum (Y-m-d), Wortgenau, ausdrücklich gewählte Sprache
         'from' => (string)($o['from'] ?? ''), 'to' => (string)($o['to'] ?? ''), 'verb' => !empty($o['verb']), 'lr' => (string)($o['lr'] ?? ''),
-        // Bildfilter (bei Google direkt in der Suche) und Videolänge
-        'img' => $kind === 'images' ? array_filter(['io' => (string)($o['io'] ?? ''), 'is' => (string)($o['is'] ?? ''), 'ic' => (string)($o['ic'] ?? ''),
-                 'it' => (string)($o['it'] ?? ''), 'il' => (string)($o['il'] ?? ''), 'iq' => (string)($o['iq'] ?? '')]) : [],
-        'vdur' => $kind === 'videos' ? (string)($o['vdur'] ?? '') : '',
     ];
-    // Seite 1 bei „Alle“ ohne Zeitfilter: diese Suche liefert auch die Karten (Spiele, Kurse, Infobox …), dafür mit Googles Quelltext
-    $p['html'] = $kind === 'web' && $p['page'] === 1 && $p['fresh'] === '' && $p['older'] === 0 && $p['from'] === '' && $p['to'] === '';
-    return $p;
-}
-
-/** Sind Filter gesetzt, die nur Google kann? */
-function smNeedsGoogle(array $params): bool
-{
-    return !empty($params['img']['ic']) || !empty($params['img']['it']) || !empty($params['img']['il']);
 }
 
 /**
- * Sucht bei einem passenden Dienst (oder im Zwischenspeicher).
- * $o: country, search_lang, safesearch, page, freshness, exact, endless, src ('' = automatisch, Dienst-ID oder 'multi')
- * Das Ergebnis enthält zusätzlich: source (Dienst), sources (bei Multi), notice (warum ausgewichen wurde), answer.
+ * Sucht bei Brave (oder im Zwischenspeicher).
+ * $o: country, search_lang, safesearch, page, freshness, exact, endless, from, to, verb, lr
+ * Kann Brave gerade nicht (kein Key, Limit, Kontingent, Störung), kommt SmSearchExhausted: dann geht es zur Ausweich-Suchmaschine.
  */
 function smSearch(string $kind, string $q, array $o, int $userId = 0): array
 {
-    $src = (string)($o['src'] ?? '');
     $params = smSearchParams($kind, $q, $o);
-    if ($src === 'multi') return smSearchMulti($kind, $q, $params, $userId);
-    $forced = isset(smProviders()[$src]) ? $src : null;
-    $ck = json_encode($params);
-    // „Automatisch“ merkt sich auch, welche Reihenfolge galt: nach dem Umsortieren fragt die nächste Suche gleich den neuen ersten Dienst
-    $auto = 'auto' . substr(md5(smSetting('prov_order') . '|' . smSetting('balance')), 0, 8);
-
-    // Automatisch: zuerst der Zwischenspeicher, egal welcher Dienst geliefert hat
-    if ($hit = smCacheGet(($forced ?? $auto) . '|' . $ck)) {
+    $ck = 'brave|' . json_encode($params);
+    if ($hit = smCacheGet($ck)) {
         $hit['cached'] = true;
         return $hit;
     }
-
-    [$list, $skip] = smProvPick($kind, $userId, $forced, $params['page'], $params['older'], smNeedsGoogle($params));
-    $errors = [];
-    // Wettlauf: Antwortet der erste Dienst nicht rasch, fragt die Suchmaschine den zweiten dazu (Bilder dürfen doppelt so lange)
-    $race = isset($o['race']) && $o['race'] !== '' && $o['race'] !== null ? (int)$o['race'] : (int)smSetting('race');
-    $first = null;
-    if ($forced === null && $race > 0 && count($list) >= 2) {
-        [$wid, $wout, $errors, $bStarted] = smProvRace($list[0], $list[1], $params, $userId, $kind === 'images' ? $race * 2 : $race);
-        $list = array_slice($list, $bStarted ? 2 : 1);   // wurde der zweite gar nicht gefragt, kommt er jetzt normal dran
-        if ($wid !== null) $first = [$wid, $wout];
+    $why = smProvBlock('brave', $kind, $userId);
+    if ($why !== '') throw new SmSearchExhausted(smExhaustedText($why));
+    try {
+        $out = smProvRun('brave', $params, $userId);
+    } catch (SmSearchError $e) {
+        throw new SmSearchExhausted($e->getMessage());
     }
-    foreach (array_merge($first ? [$first[0]] : [], $list) as $id) {
-        if ($first && $id === $first[0]) {
-            $out = $first[1];
-        } else {
-            try {
-                $out = smProvRun($id, $params, $userId);
-            } catch (SmSearchError $e) {
-                $errors[$id] = $e->getMessage();
-                continue;
-            }
-        }
-        $out['source'] = $id;
-        $out['sources'] = [$id];
-        $out['notice'] = smNoticeText($id, $skip, $errors);
-        $ttl = smProvTtl($id);
-        // News und Treffer der letzten Stunde/24 Stunden veralten schnell: höchstens 1 Stunde
-        if ($kind === 'news' || in_array($params['fresh'], ['ph', 'pd'], true)) $ttl = min($ttl, 3600);
-        // Spielstände und Kurse ändern sich laufend: höchstens 5 Minuten speichern
-        if (!empty($out['sports']) || !empty($out['stock'])) $ttl = min($ttl, 300);
-        smCacheSet($id . '|' . $ck, $out, $ttl);
-        if ($forced === null) smCacheSet($auto . '|' . $ck, $out, min($ttl, 3600));
-        $out['cached'] = false;
-        return $out;
-    }
-    throw new SmSearchExhausted(smExhaustedText($kind, $skip, $errors, $forced));
+    $out['source'] = 'brave';
+    $ttl = smProvTtl('brave');
+    // News und Treffer der letzten Stunde/24 Stunden veralten schnell
+    if ($kind === 'news' || in_array($params['fresh'], ['ph', 'pd'], true)) $ttl = min($ttl, 1800);
+    smCacheSet($ck, $out, $ttl);
+    $out['cached'] = false;
+    return $out;
 }
 
-/** Liegt diese Suche schon im Zwischenspeicher? (Dann braucht es keine Warteseite.) */
-function smSearchPeek(string $kind, string $q, array $o): bool
+/** Warum Brave gerade nicht sucht, als Satz */
+function smExhaustedText(string $why): string
 {
-    $src = (string)($o['src'] ?? '');
-    $ck = json_encode(smSearchParams($kind, $q, $o));
-    if ($src === 'multi') return smCacheGet('multi|' . $ck) !== null;
-    $forced = isset(smProviders()[$src]) ? $src : null;
-    $auto = 'auto' . substr(md5(smSetting('prov_order') . '|' . smSetting('balance')), 0, 8);
-    return smCacheGet(($forced ?? $auto) . '|' . $ck) !== null;
-}
-
-/** „Ergebnisse von Brave – Google: Limit erreicht“ */
-function smNoticeText(string $used, array $skip, array $errors): array
-{
-    $why = [];
-    foreach ($skip as $id => $w) if ($w !== 'denied') $why[] = smProviders()[$id]['badge'] . ': ' . smBlockText($id, $w);
-    foreach ($errors as $id => $e) $why[] = smProviders()[$id]['badge'] . ': ' . $e;
-    return $why;
-}
-
-function smExhaustedText(string $kind, array $skip, array $errors, ?string $forced): string
-{
-    if ($forced !== null && ($skip[$forced] ?? '') === 'denied') return t('%s ist für dein Konto nicht freigegeben.', smProviders()[$forced]['name']);
-    $parts = smNoticeText('', $skip, $errors);
-    if (!$parts) {
-        if ($forced !== null) return t('%s kann diese Art der Suche nicht oder ist nicht eingerichtet.', smProviders()[$forced]['name']);
-        return t('Es ist noch kein Suchdienst eingerichtet. Ein Administrator kann unter Verwaltung → Suchdienste einen API-Key hinterlegen.');
-    }
-    return t('Gerade ist kein Suchdienst verfügbar.') . ' ' . implode(' · ', $parts);
+    if ($why === 'off') return t('Es ist noch kein Suchdienst eingerichtet. Ein Administrator kann unter Verwaltung → Suchdienste einen API-Key hinterlegen.');
+    return t('Brave Search: %s.', smBlockText('brave', $why));
 }
 
 /** Bucht Credits vorab, falls Limit und Kontingent es erlauben (gleichzeitige Suchen zählen sauber mit) */
@@ -562,38 +429,14 @@ function smProvReserve(string $id, string $kind, int $userId, float $cost): bool
     }
 }
 
-/** Eine Suche bei einem Dienst: buchen, fragen, Zustand merken, Treffer vereinheitlichen */
+/** Eine Suche bei einem Dienst: buchen, fragen, Zustand merken, Treffer vereinheitlichen. Fehler kommen als SmSearchError. */
 function smProvRun(string $id, array $params, int $userId): array
 {
-    $res = smProvRunMany([$id], $params, $userId);
-    if (isset($res[$id]['error'])) throw new SmSearchError($res[$id]['error']);
-    return $res[$id];
-}
-
-/**
- * Fragt mehrere Dienste gleichzeitig (curl_multi). Liefert Dienst => Ergebnis oder ['error' => Text].
- * Fehlgeschlagene Anfragen werden wieder gutgeschrieben, der Dienst pausiert kurz.
- */
-function smProvRunMany(array $ids, array $params, int $userId): array
-{
-    $out = [];
-    $reqs = [];
-    foreach ($ids as $id) {
-        $cost = (float)smProvGet($id, 'cost');
-        if (!smProvReserve($id, $params['kind'], $userId, $cost)) {
-            $out[$id] = ['error' => smBlockText($id, smProvBlock($id, $params['kind'], $userId) ?: 'limit')];
-            continue;
-        }
-        $reqs[$id] = smProvRequest($id, $params, trim(smProvGet($id, 'key')));
-        $reqs[$id]['cost'] = $cost;
-    }
-    // Google über Bright Data braucht meist 2 bis 5 Sekunden, Bildersuchen manchmal deutlich länger
-    $res = smHttpMulti($reqs, isset($reqs['brightdata']) ? 30 : 15);
-    // Bright Data antwortet ab und zu mit 502/504 oder leer: einmal neu versuchen, wenn noch Zeit ist (kostet nur Erfolge)
-    if (isset($res['brightdata']) && smBdRetry($res['brightdata'])) {
-        $res['brightdata'] = smHttpMulti(['brightdata' => smProvRequest('brightdata', ['retry' => true] + $params, trim(smProvGet('brightdata', 'key'))) + ['cost' => $reqs['brightdata']['cost']]], 20)['brightdata'];
-    }
-    foreach ($res as $id => $r) $out[$id] = smProvHandle($id, $r, $params, $userId, $reqs[$id]['cost']);
+    $cost = (float)smProvGet($id, 'cost');
+    if (!smProvReserve($id, $params['kind'], $userId, $cost)) throw new SmSearchError(smBlockText($id, smProvBlock($id, $params['kind'], $userId) ?: 'limit'));
+    $r = smHttpMulti(['x' => smProvRequest($id, $params, trim(smProvGet($id, 'key')))], 15)['x'];
+    $out = smProvHandle($id, $r, $params, $userId, $cost);
+    if (isset($out['error'])) throw new SmSearchError($out['error']);
     return $out;
 }
 
@@ -613,131 +456,9 @@ function smProvHandle(string $id, array $r, array $params, int $userId, float $c
     return smProvNormalize($id, $params, $data);
 }
 
-/**
- * Wettlauf zwischen den ersten beiden Diensten: $a fängt an, braucht er länger als $delay Sekunden, fragt die Suchmaschine $b dazu.
- * Die schnellere gute Antwort gewinnt. Liefert [Dienst, Ergebnis, Fehler je Dienst]. Der abgebrochene Verlierer bleibt gezählt
- * (die Anfrage ist beim Dienst ja angekommen).
- */
-function smProvRace(string $a, string $b, array $params, int $userId, float $delay): array
-{
-    $errors = [];
-    $costA = (float)smProvGet($a, 'cost');
-    if (!smProvReserve($a, $params['kind'], $userId, $costA)) {
-        $errors[$a] = smBlockText($a, smProvBlock($a, $params['kind'], $userId) ?: 'limit');
-        return [null, null, $errors, false];
-    }
-    $costB = (float)smProvGet($b, 'cost');
-    $timeout = function (string $id) { return $id === 'brightdata' ? 30 : 15; };
-    $results = [];
-    $good = function (string $id, array $r) use (&$results, $params, $userId, $costA, $costB, $a) {
-        $results[$id] = smProvHandle($id, $r, $params, $userId, $id === $a ? $costA : $costB);
-        return !isset($results[$id]['error']);
-    };
-    $startB = function () use ($b, $params, $userId, $costB) {
-        if (smProvBlock($b, $params['kind'], $userId) !== '' || !smProvReserve($b, $params['kind'], $userId, $costB)) return null;
-        return smProvRequest($b, $params, trim(smProvGet($b, 'key')));
-    };
-    // Kurzer Aussetzer bei Bright Data (leer, 502 …) in den ersten Sekunden: noch ein Versuch, gleichzeitig mit dem zweiten Dienst
-    $retryA = function (array $r) use ($a, $params, $userId, $costA) {
-        if ($a !== 'brightdata' || !smBdRetry($r) || !smProvReserve($a, $params['kind'], $userId, $costA)) return null;
-        return smProvRequest($a, ['retry' => true] + $params, trim(smProvGet($a, 'key')));
-    };
-    [$win, , $bStarted] = smHttpRace($a, smProvRequest($a, $params, trim(smProvGet($a, 'key'))), $timeout($a), $b, $startB, $timeout($b), $delay, $good, $retryA);
-    foreach ($results as $id => $r) if (isset($r['error'])) $errors[$id] = $r['error'];
-    return [$win, $win !== null ? $results[$win] : null, $errors, $bStarted];
-}
+/* ---------- HTTP: Anfragen (auch mehrere gleichzeitig) ---------- */
 
-/** Vorübergehender Fehler bei Bright Data, der einen zweiten Versuch lohnt? */
-function smBdRetry(array $r): bool
-{
-    if ($r['ms'] > 12000) return false;
-    return in_array($r['status'], [0, 502, 503, 504], true) && $r['errno'] !== CURLE_OPERATION_TIMEDOUT
-        || ($r['status'] === 200 && (trim($r['body']) === '' || stripos(substr($r['body'], 0, 200), 'recently failed') !== false));
-}
-
-/** Mehrere Dienste gleichzeitig, Treffer abwechselnd gemischt, doppelte Adressen zusammengelegt (mit allen Quellen) */
-function smSearchMulti(string $kind, string $q, array $params, int $userId): array
-{
-    $ck = 'multi|' . json_encode($params);
-    if ($hit = smCacheGet($ck)) {
-        $hit['cached'] = true;
-        return $hit;
-    }
-    $set = array_intersect(smProvOrder(), explode(',', smSetting('multi_set')));
-    if (!$set) $set = smProvOrder();
-    $ids = [];
-    $skip = [];
-    foreach ($set as $id) {
-        $why = smProvBlock($id, $kind, $userId);
-        if ($why === '' && $params['page'] > 1 && !smProviders()[$id]['paging']) $why = 'paging';
-        if ($why === '' && smNeedsGoogle($params) && empty(smProviders()[$id]['google'])) $why = 'filter';
-        if ($why === '') $ids[] = $id; elseif (!in_array($why, ['off', 'kind'], true)) $skip[$id] = $why;
-    }
-    $res = smProvRunMany($ids, $params, $userId);
-    $errors = [];
-    $ok = [];
-    foreach ($res as $id => $r) {
-        if (isset($r['error'])) $errors[$id] = $r['error']; else $ok[$id] = $r;
-    }
-    if (!$ok) throw new SmSearchExhausted(smExhaustedText($kind, $skip, $errors, null));
-
-    // Grundgerüst: Google liefert das meiste Beiwerk (Infobox, KI-Übersicht, Spielstände …), sonst Brave
-    $base = $ok['brightdata'] ?? $ok['brave'] ?? reset($ok);
-    $merged = [];
-    $index = [];
-    $lists = array_map(function ($r) { return $r['results']; }, $ok);
-    for ($i = 0; $i < 30; $i++) {
-        $any = false;
-        foreach ($lists as $id => $l) {
-            if (!isset($l[$i])) continue;
-            $any = true;
-            $r = $l[$i];
-            $k = smUrlKey($r['url']);
-            if (isset($index[$k])) {
-                $m = &$merged[$index[$k]];
-                $m['via'] = array_values(array_unique(array_merge($m['via'], $r['via'])));
-                if ($m['desc'] === '' && $r['desc'] !== '') $m['desc'] = $r['desc'];
-                if (empty($m['ts']) && !empty($r['ts'])) $m['ts'] = $r['ts'];
-                unset($m);
-                continue;
-            }
-            $index[$k] = count($merged);
-            $merged[] = $r;
-        }
-        if (!$any) break;
-    }
-    $base['results'] = $merged;
-    $order = [];
-    foreach ($merged as $i => $_) {
-        $order[] = ['web', $i];
-        if ($i === 2) foreach (['news', 'videos', 'faq', 'discussions'] as $t) if (!empty($base[$t])) $order[] = [$t];
-    }
-    if (count($merged) <= 2) foreach (['news', 'videos', 'faq', 'discussions'] as $t) if (!empty($base[$t])) $order[] = [$t];
-    $base['order'] = $order;
-    $base['more'] = false;
-    if (empty($base['answer'])) foreach ($ok as $r) if (!empty($r['answer'])) { $base['answer'] = $r['answer']; break; }
-    $base['source'] = 'multi';
-    $base['sources'] = array_keys($ok);
-    $base['notice'] = smNoticeText('multi', $skip, $errors);
-    $ttl = min(array_map('smProvTtl', array_keys($ok)));
-    if (!empty($base['sports']) || !empty($base['stock'])) $ttl = min($ttl, 300);
-    smCacheSet($ck, $base, min($ttl, 3600));
-    $base['cached'] = false;
-    return $base;
-}
-
-/** Adresse zum Vergleichen: ohne Protokoll, www., Anker und Schrägstrich am Ende */
-function smUrlKey(string $url): string
-{
-    $p = parse_url($url);
-    $host = smHost(strtolower((string)($p['host'] ?? '')));
-    $path = rtrim((string)($p['path'] ?? ''), '/');
-    return $host . $path . (isset($p['query']) ? '?' . $p['query'] : '');
-}
-
-/* ---------- HTTP: mehrere Anfragen gleichzeitig ---------- */
-
-/** Ein curl-Griff für eine Anfrage. Kopfzeilen zum Kontingent (Brave: X-RateLimit-…) landen in $hdr. */
+/** Ein curl-Griff für eine Anfrage. Kopfzeilen zum Kontingent und zu den Kosten (Brave: X-RateLimit-…, X-Request-…) landen in $hdr. */
 function smCurlNew(array $r, int $timeout, array &$hdr)
 {
     $ch = curl_init($r['url']);
@@ -756,7 +477,7 @@ function smCurlNew(array $r, int $timeout, array &$hdr)
         $p = strpos($line, ':');
         if ($p !== false) {
             $k = strtolower(trim(substr($line, 0, $p)));
-            if (strpos($k, 'x-ratelimit-') === 0 || $k === 'retry-after') $hdr[$k] = trim(substr($line, $p + 1));
+            if (strpos($k, 'x-ratelimit-') === 0 || strpos($k, 'x-request-') === 0 || $k === 'retry-after') $hdr[$k] = trim(substr($line, $p + 1));
         }
         return strlen($line);
     };
@@ -801,62 +522,7 @@ function smHttpMulti(array $reqs, int $timeout): array
     return $out;
 }
 
-/**
- * Wettlauf: Anfrage $a startet sofort. Ist sie nach $delay Sekunden noch nicht zurück, startet $b dazu ($startB() bucht vorher
- * und liefert die Anfrage oder null, wenn $b nicht darf). $good(id, Antwort) prüft eine fertige Antwort. Die erste gute gewinnt,
- * die andere wird abgebrochen. Liefert [Gewinner oder null, id => Antwort aller fertigen, ob $b gestartet wurde].
- */
-function smHttpRace(string $a, array $reqA, int $timeoutA, string $b, callable $startB, int $timeoutB, float $delay, callable $good, ?callable $retryA = null): array
-{
-    $mh = curl_multi_init();
-    $hdr = [$a => [], $b => []];
-    $hs = [$a => [smCurlNew($reqA, $timeoutA, $hdr[$a]), microtime(true)]];
-    curl_multi_add_handle($mh, $hs[$a][0]);
-    $t0 = microtime(true);
-    $done = [];
-    $winner = null;
-    $bStarted = false;
-    $bTried = false;
-    while (true) {
-        $st = curl_multi_exec($mh, $running);
-        while ($info = curl_multi_info_read($mh)) {
-            foreach ($hs as $id => [$ch, $ts]) {
-                if ($ch !== $info['handle']) continue;
-                $done[$id] = smCurlResult($ch, $ts, $hdr[$id]);
-                curl_multi_remove_handle($mh, $ch);
-                curl_close($ch);
-                unset($hs[$id]);
-                $base = $id === $a . '#2' ? $a : $id;
-                if ($winner === null && $good($base, $done[$id])) { $winner = $base; continue; }
-                // A kam schnell mit einem Aussetzer zurück: gleich noch einmal fragen (B startet parallel)
-                if ($id === $a && $retryA !== null && ($reqR = $retryA($done[$id])) !== null) {
-                    $hdr[$a . '#2'] = [];
-                    $hs[$a . '#2'] = [smCurlNew($reqR, $timeoutA, $hdr[$a . '#2']), microtime(true)];
-                    curl_multi_add_handle($mh, $hs[$a . '#2'][0]);
-                }
-            }
-        }
-        if ($winner !== null) break;
-        // B dazunehmen: nach der Wartezeit, oder sofort, wenn A schon gescheitert ist
-        if (!$bTried && (isset($done[$a]) || microtime(true) - $t0 >= $delay)) {
-            $bTried = true;
-            $reqB = $startB();
-            if ($reqB !== null) {
-                $hs[$b] = [smCurlNew($reqB, $timeoutB, $hdr[$b]), microtime(true)];
-                curl_multi_add_handle($mh, $hs[$b][0]);
-                $bStarted = true;
-                continue;
-            }
-        }
-        if (!$hs || $st !== CURLM_OK) break;
-        curl_multi_select($mh, 0.2);
-    }
-    foreach ($hs as [$ch]) { curl_multi_remove_handle($mh, $ch); curl_close($ch); }   // Verlierer abbrechen
-    curl_multi_close($mh);
-    return [$winner, $done, $bStarted];
-}
-
-/** Basisadresse eines Dienstes. Nur zum Testen per Umgebungsvariable umlenkbar (SM_API_BASE_TAVILY …). */
+/** Basisadresse eines Dienstes. Nur zum Testen per Umgebungsvariable umlenkbar (SM_API_BASE). */
 function smProvBase(string $id, string $default): string
 {
     $env = getenv('SM_API_BASE_' . strtoupper($id));
@@ -867,7 +533,6 @@ function smProvBase(string $id, string $default): string
 /** Baut die Anfrage für einen Dienst */
 function smProvRequest(string $id, array $p, string $key): array
 {
-    if ($id === 'brightdata') return smBdRequest($p, $key);
     if ($id !== 'brave') throw new SmSearchError('unknown provider');
     $country = $p['country'] !== 'ALL' && $p['country'] !== '' ? $p['country'] : '';
     $lang = ($p['lr'] ?? '') !== '' && isset(smSearchLangs()[$p['lr']]) ? $p['lr'] : $p['lang'];
@@ -909,32 +574,22 @@ function smProvErrorText(string $id, array $r, ?array $data): array
 {
     $name = smProviders()[$id]['name'];
     $st = $r['status'];
-    // Bright Data hat kurze Aussetzer: nur kurz pausieren
-    $short = $id === 'brightdata';
+    // Kurze Pausen: Brave ist meist schnell wieder da, und bis dahin übernimmt die Ausweich-Suchmaschine
     if ($st === 0) {
-        return [$r['errno'] === CURLE_OPERATION_TIMEDOUT ? t('%s hat zu lange gebraucht.', $name) : t('%s ist gerade nicht erreichbar.', $name), $short ? 30 : 600];
+        return [$r['errno'] === CURLE_OPERATION_TIMEDOUT ? t('%s hat zu lange gebraucht.', $name) : t('%s ist gerade nicht erreichbar.', $name), 120];
     }
     $detail = '';
     if ($data) {
         foreach ([$data['error']['detail'] ?? null, $data['error']['message'] ?? null, $data['detail']['error'] ?? null, $data['detail'] ?? null, $data['error'] ?? null, $data['message'] ?? null] as $c) {
             if (is_string($c) && $c !== '') { $detail = $c; break; }
         }
-    } elseif (strlen(trim((string)$r['body'])) < 300 && strpos((string)$r['body'], '<') === false) {
-        $detail = trim((string)$r['body']);   // Bright Data antwortet bei Fehlern mit einer Textzeile
     }
-    if ($id === 'brightdata' && stripos($detail, 'recently failed') !== false) {
-        // Bright Data sperrt eine Suche kurz, die eben schiefging. Betrifft nur diese eine Suche, also keine Pause für den Dienst.
-        return [t('Google konnte diese Suche gerade nicht abrufen. In ein paar Sekunden klappt es meist wieder.'), 0];
-    }
-    if ($id === 'brightdata' && $st === 400 && stripos($detail, 'zone') !== false) {
-        $msg = t('%s kennt die eingetragene Zone nicht. Den Namen der API findest du im Dashboard unter „Web Access“.', $name);
-        $pause = 3600;
-    } elseif ($st === 401 || $st === 403 || $st === 407) { $msg = t('%s nimmt den API-Key nicht an.', $name); $pause = 3600; }
+    if ($st === 401 || $st === 403 || $st === 407) { $msg = t('%s nimmt den API-Key nicht an.', $name); $pause = 3600; }
     elseif ($st === 402 || $st === 432 || $st === 433) { $msg = t('Das Guthaben bei %s ist aufgebraucht.', $name); $pause = 3600; }
     elseif ($st === 429) { $msg = t('%s bremst gerade (zu viele Anfragen oder Kontingent erschöpft).', $name); $pause = 300; }
-    elseif ($st >= 500) { $msg = t('%s hat gerade technische Probleme.', $name); $pause = $short ? 15 : 600; }
+    elseif ($st >= 500) { $msg = t('%s hat gerade technische Probleme.', $name); $pause = 120; }
     elseif ($st === 400 || $st === 422) { $msg = t('%s hat die Anfrage abgelehnt.', $name); $pause = 0; }
-    elseif ($st === 200) { $msg = $short ? t('%s hat diesmal nichts Brauchbares geliefert.', $name) : t('%s hat unverständlich geantwortet.', $name); $pause = $short ? 0 : 600; }
+    elseif ($st === 200) { $msg = t('%s hat unverständlich geantwortet.', $name); $pause = 120; }
     else { $msg = t('Unerwartete Antwort von %s (HTTP %d).', $name, $st); $pause = 600; }
     if ($detail !== '') $msg .= ' (' . mb_substr(smPlain($detail), 0, 160) . ')';
     return [$msg, $pause];
@@ -943,13 +598,9 @@ function smProvErrorText(string $id, array $r, ?array $data): array
 /** Prüft einen Key mit einer echten Suche (kostet eine Suche). Liefert Fehlertext oder ''. */
 function smProvTest(string $id, string $key): string
 {
-    if ($id === 'brightdata' && smBdZone() === '') return t('Bitte zuerst den Namen der API (Zone) eintragen.');
     $p = smSearchParams('web', 'test', ['page' => 1]);
     $p['count'] = 5;
-    $p['answer'] = false;
-    $req = smProvRequest($id, $p, trim($key));
-    $r = smHttpMulti(['x' => $req], 25)['x'];
-    if ($id === 'brightdata' && smBdRetry($r)) $r = smHttpMulti(['x' => $req], 25)['x'];
+    $r = smHttpMulti(['x' => smProvRequest($id, $p, trim($key))], 15)['x'];
     $data = json_decode($r['body'], true);
     if ($r['status'] === 200 && is_array($data)) {
         // Auch der Test kostet beim Dienst eine Suche: mitzählen
@@ -964,16 +615,12 @@ function smProvTest(string $id, string $key): string
 
 function smProvNormalize(string $id, array $p, array $d): array
 {
-    if ($id === 'brightdata') return smBdNormalize($p, $d);
     switch ($p['kind']) {
-        case 'images': $out = smNormImages($d); break;
-        case 'news':   $out = smNormNews($d); break;
-        case 'videos': $out = smNormVideos($d); break;
-        default:       $out = smNormWeb($d);
+        case 'images': return smNormImages($d);
+        case 'news':   return smNormNews($d);
+        case 'videos': return smNormVideos($d);
     }
-    foreach ($out['results'] as &$r) $r['via'] = ['brave'];
-    unset($r);
-    return $out;
+    return smNormWeb($d);
 }
 
 /** Zeitstempel aus einem Datum (ISO oder YYYY-MM-DD), 0 = unbekannt */
@@ -1020,31 +667,102 @@ function smNumF(float $n, int $dec = 0): string
     return number_format($n, $dec, smLang() === 'de' ? ',' : '.', smLang() === 'de' ? '.' : ',');
 }
 
-/* ---------- Wenn gar nichts mehr geht: Ausweichziel ---------- */
+/* ---------- Ausweich-Suchmaschine: Gäste immer, Angemeldete, wenn Brave nicht kann ---------- */
 
-/** Vorschläge für das Ausweichziel */
-function smFallbackPresets(): array
+/**
+ * Zur Auswahl stehende Suchmaschinen: Adresse der Websuche mit {q} => [Name, Bilder, News, Videos].
+ * Die Reiter-Adressen sorgen dafür, dass eine Bildersuche auch bei der anderen Suchmaschine in deren Bildersuche landet.
+ */
+function smFallbackEngines(): array
 {
     return [
-        'https://www.startpage.com/do/search?q={q}' => 'Startpage',
-        'https://duckduckgo.com/?q={q}' => 'DuckDuckGo',
-        'https://www.mojeek.com/search?q={q}' => 'Mojeek',
-        'https://www.ecosia.org/search?q={q}' => 'Ecosia',
-        'https://search.brave.com/search?q={q}' => 'Brave Search (Website)',
-        'https://www.qwant.com/?q={q}' => 'Qwant',
+        'https://www.startpage.com/do/search?q={q}' => ['Startpage', 'https://www.startpage.com/do/search?cat=images&q={q}',
+            'https://www.startpage.com/do/search?cat=news&q={q}', 'https://www.startpage.com/do/search?cat=video&q={q}'],
+        'https://duckduckgo.com/?q={q}' => ['DuckDuckGo', 'https://duckduckgo.com/?q={q}&iax=images&ia=images',
+            'https://duckduckgo.com/?q={q}&iar=news&ia=news', 'https://duckduckgo.com/?q={q}&iax=videos&ia=videos'],
+        'https://search.brave.com/search?q={q}' => ['Brave Search', 'https://search.brave.com/images?q={q}',
+            'https://search.brave.com/news?q={q}', 'https://search.brave.com/videos?q={q}'],
+        'https://www.ecosia.org/search?q={q}' => ['Ecosia', 'https://www.ecosia.org/images?q={q}',
+            'https://www.ecosia.org/news?q={q}', 'https://www.ecosia.org/videos?q={q}'],
+        'https://www.qwant.com/?q={q}' => ['Qwant', 'https://www.qwant.com/?q={q}&t=images',
+            'https://www.qwant.com/?q={q}&t=news', 'https://www.qwant.com/?q={q}&t=videos'],
+        'https://www.mojeek.com/search?q={q}' => ['Mojeek', 'https://www.mojeek.com/search?q={q}&fmt=images',
+            'https://www.mojeek.com/search?q={q}&fmt=news', ''],
+        'https://www.google.com/search?q={q}' => ['Google', 'https://www.google.com/search?q={q}&udm=2',
+            'https://www.google.com/search?q={q}&tbm=nws', 'https://www.google.com/search?q={q}&udm=7'],
+        'https://www.bing.com/search?q={q}' => ['Bing', 'https://www.bing.com/images/search?q={q}',
+            'https://www.bing.com/news/search?q={q}', 'https://www.bing.com/videos/search?q={q}'],
     ];
 }
 
-/** Adresse des Ausweichziels für eine Suche oder '' */
-function smFallbackUrl(string $q): string
+/** Zur Auswahl stehende Suchmaschinen: Adresse mit {q} => Name */
+function smFallbackPresets(): array
 {
-    $u = smCleanBangUrl(smSetting('fallback_url'));
+    return array_map(function ($e) { return $e[0]; }, smFallbackEngines());
+}
+
+/** Taugt die Adresse als Ziel? https://, mit {q}. Gäste dürfen nur aus der Liste wählen. */
+function smFallbackValid(string $u, bool $presetOnly = false): bool
+{
+    if (isset(smFallbackPresets()[$u])) return true;
+    return !$presetOnly && strpos($u, '{q}') !== false && smCleanBangUrl($u) !== '' && strpos($u, 'https://') === 0;
+}
+
+/** Standard der Installation (Verwaltung), sonst Startpage */
+function smFallbackDefault(): string
+{
+    $u = smSetting('fallback_url');
+    return smFallbackValid($u) ? $u : array_key_first(smFallbackPresets());
+}
+
+/**
+ * Welche Suchmaschine gilt für diesen Besucher: eigene Wahl des Kontos, bei Gästen die Wahl im Browser (Cookie smfb),
+ * sonst der Standard der Installation. Liefert die Adresse mit {q}.
+ */
+function smFallbackFor(?array $me): string
+{
+    $own = $me ? (string)($me['prefs']['fallback'] ?? '') : (string)($_COOKIE['smfb'] ?? '');
+    return $own !== '' && smFallbackValid($own, !$me) ? $own : smFallbackDefault();
+}
+
+/** Fertige Adresse für eine Suche */
+function smFallbackUrl(string $q, ?array $me = null, ?string $tpl = null): string
+{
+    $u = smCleanBangUrl($tpl ?? smFallbackFor($me));
     if ($u === '' || $q === '') return '';
     return str_replace('{q}', rawurlencode($q), $u);
 }
 
-function smFallbackName(): string
+/** Adresse passend zum Reiter (Bilder, News, Videos), soweit die Suchmaschine das kennt, sonst die Websuche */
+function smFallbackTabUrl(string $q, string $tab, ?array $me): string
 {
-    $u = smSetting('fallback_url');
+    $tpl = smFallbackFor($me);
+    $i = ['images' => 1, 'news' => 2, 'videos' => 3][$tab] ?? 0;
+    if ($i && ($alt = smFallbackEngines()[$tpl][$i] ?? '') !== '') $tpl = $alt;
+    return smFallbackUrl($q, $me, $tpl);
+}
+
+/** Name der Suchmaschine zu einer Adresse mit {q} */
+function smFallbackName(?array $me = null, ?string $tpl = null): string
+{
+    $u = $tpl ?? smFallbackFor($me);
     return smFallbackPresets()[$u] ?? smHost((string)parse_url($u, PHP_URL_HOST));
 }
+
+/**
+ * Lesezeichen „Bilder groß“ (app/assets/bookmarklet.js) als javascript:-Adresse. Für Bildersuchen anderer Suchmaschinen:
+ * sammelt dort die Originalbilder und zeigt sie randlos im Vollbild. Kommentare fallen weg, sonst bleibt der Code lesbar.
+ */
+function smBookmarklet(): string
+{
+    $js = (string)file_get_contents(SM_APP . '/assets/bookmarklet.js');
+    $js = preg_replace('~/\*.*?\*/~s', '', $js);
+    $js = preg_replace('~^\s+|\s+$~m', '', $js);
+    $js = preg_replace('~\n+~', "\n", trim($js));
+    $texts = ['none' => t('Auf dieser Seite habe ich keine großen Bilder gefunden.'), 'prev' => t('Vorheriges Bild'), 'next' => t('Nächstes Bild'),
+              'close' => t('Schließen'), 'full' => t('Vollbild (Taste F)'), 'open' => t('Bild in Originalgröße'),
+              'broken' => t('Dieses Bild lässt die Seite nicht laden. Weiter mit dem Pfeil.')];
+    $js = str_replace('__SM_TEXTS__', json_encode($texts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $js);
+    return 'javascript:' . rawurlencode($js);
+}
+

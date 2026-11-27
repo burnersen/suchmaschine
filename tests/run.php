@@ -215,84 +215,72 @@ check('Nicht erreichbar: nur wirklich ausgefallene', in_array('yt', $dead, true)
 smQ("DELETE FROM bang_check");
 same('Nicht erreichbar: leer, wenn alles antwortet', [], smBangSearch('', null, 'mine', 'dead', 300)['rows']);
 
-/* ---------- Reihenfolge der Suchdienste ---------- */
+/* ---------- Brave: aktiv, Limit, Gäste ---------- */
+same('Ohne Key ist Brave nicht aktiv', [], smProvOrder());
 smProvSet('brave', 'key', 'BSAtest');
-smProvSet('brightdata', 'key', '00000000-0000-0000-0000-000000000000');
-same('Google ohne Zone ist nicht aktiv', false, smProvActive('brightdata'));
-smProvSet('brightdata', 'zone', 'serp_api1');
-same('Google mit Key und Zone ist aktiv', true, smProvActive('brightdata'));
-smSetSetting('prov_order', 'brightdata,brave');
-smSetSetting('balance', '1');
-same('Reihenfolge: Websuche fragt zuerst den obersten Dienst', ['brightdata', 'brave'], smProvPick('web', 0, null, 1)[0]);
-same('Reihenfolge: Bilder können beide', ['brightdata', 'brave'], smProvPick('images', 0, null, 1)[0]);
-same('Nur-Google-Filter: Brave wird übersprungen', ['brightdata'], smProvPick('images', 0, null, 1, 0, true)[0]);
-smUsageAdd('brightdata', 'web', 0, 20);
-same('Lastverteilung: ein paar Suchen am Anfang ändern die Reihenfolge nicht', 'brightdata', smProvPick('web', 0, null, 1)[0][0] ?? null);
-smSetSetting('prov_order', 'brave,brightdata');
-same('Reihenfolge: Umsortieren wirkt sofort', 'brave', smProvPick('web', 0, null, 1)[0][0] ?? null);
-same('Unbekannte alte Dienste fallen aus der Reihenfolge', ['brightdata', 'brave'], (function () { smSetSetting('prov_order', 'tavily,brightdata,exa'); return smProvOrder(); })());
-foreach (['brave', 'brightdata'] as $pid) smProvSet($pid, 'key', '');
-smProvSet('brightdata', 'zone', '');
+same('Mit Key ist Brave aktiv', ['brave'], smProvOrder());
+same('Gäste dürfen Brave nie nutzen', 'denied', smProvBlock('brave', 'web', 0));
+same('Konto ohne Kontingent darf Brave nutzen', '', smProvBlock('brave', 'web', 1));
+smProvSet('brave', 'limit', '5');
+smUsageAdd('brave', 'web', 1, 5);
+same('Limit erreicht: Brave bremst sich selbst, bevor es Geld kostet', 'limit', smProvBlock('brave', 'web', 1));
+$thrown = '';
+try { smSearch('web', 'test', ['page' => 1], 1); } catch (SmSearchExhausted $e) { $thrown = 'exhausted'; }
+same('Limit erreicht: Suche geht zur Ausweich-Suchmaschine (statt zu Brave)', 'exhausted', $thrown);
+smProvSet('brave', 'limit', '950');
+smProvSet('brave', 'key', '');
+$thrown = '';
+try { smSearch('web', 'test2', ['page' => 1], 1); } catch (SmSearchExhausted $e) { $thrown = $e->getMessage(); }
+check('Ohne Key: Ausweich-Suchmaschine', strpos($thrown, 'kein Suchdienst eingerichtet') !== false, $thrown);
 
-/* ---------- Google über Bright Data ---------- */
-$gp = smSearchParams('images', 'katze NOT site:pinterest.com lang:de', ['page' => 1, 'country' => 'DE', 'search_lang' => 'de', 'safesearch' => 'strict',
-    'freshness' => 'pw', 'io' => 'land', 'is' => 'large', 'ic' => 'red', 'it' => 'photo', 'il' => 'cl']);
-parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
-same('Google: Suchbegriff mit Minus statt NOT, ohne lang:', 'katze -site:pinterest.com', $gq['q'] ?? null);
-same('Google: Sprache aus lang:', 'lang_de', $gq['lr'] ?? null);
-same('Google: Bildersuche', 'isch', $gq['tbm'] ?? null);
-same('Google: Filter in tbs', 'qdr:w,isz:l,iar:w,ic:specific,isc:red,itp:photo,il:cl', $gq['tbs'] ?? null);
-same('Google: SafeSearch streng', 'active', $gq['safe'] ?? null);
-same('Google: Region', 'de', $gq['gl'] ?? null);
-$gp = smSearchParams('web', 'test', ['page' => 3, 'from' => '2024-03-01', 'to' => '2024-06-30', 'verb' => true, 'lr' => 'en-gb']);
-parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
-same('Google: eigener Zeitraum und Wortgenau', 'cdr:1,cd_min:3/1/2024,cd_max:6/30/2024,li:1', $gq['tbs'] ?? null);
-same('Google: mit Zeitfilter nur der Reiter Web', '14', $gq['udm'] ?? null);
-same('Google: Seite 3 beginnt bei 20', '20', $gq['start'] ?? null);
-same('Google: Sprache ausdrücklich gewählt', 'lang_en', $gq['lr'] ?? null);
-$gp = smSearchParams('videos', 'x', ['vdur' => 'l', 'freshness' => 'ph']);
-parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
-same('Google: letzte Stunde und lange Videos', 'qdr:h,dur:l', $gq['tbs'] ?? null);
-check('Google: Datum „vor 3 Stunden“', abs(smBdTime('vor 3 Stunden') - (time() - 10800)) < 5);
-check('Google: Datum „vor einem Tag“', abs(smBdTime('vor einem Tag') - (time() - 86400)) < 5);
-check('Google: Datum „2 days ago“', abs(smBdTime('2 days ago') - (time() - 172800)) < 5);
-same('Google: Datum 22.08.2026', '2026-08-22', date('Y-m-d', smBdTime('22.08.2026')));
-same('Google: Datum 22.8.26', '2026-08-22', date('Y-m-d', smBdTime('22.8.26')));
-same('Google: kein Datum in einem Kurs', 0, smBdTime('25.458,99'));
-same('Google: Anzeige-Adresse zerlegen', ['zeit.de', '› thema › angela-merkel'], smBdDisplayHost('https://www.zeit.de › thema › angela-merkel'));
-same('Google: Weiterleitung erkannt', true, smBdIsRedirect('https://www.google.com/goto?url=CAESabc'));
-same('Google: /url?q= direkt ausgepackt', 'https://example.org/a', smBdUnwrap('https://www.google.de/url?q=https://example.org/a&sa=U'));
-same('Google: fremde Bilder nur über den eigenen Server', '', smBdImg('https://evil.example/x.png'));
-check('Google: Vorschaubild von gstatic über den eigenen Server', strpos(smBdImg('https://encrypted-tbn0.gstatic.com/images?q=tbn:x'), 'a=img') !== false);
-same('Google: eingebettetes Vorschaubild bleibt', 'data:image/png;base64,iVBORw0KGgo=', smBdImg('data:image/png;base64,iVBORw0KGgo='));
-same('Google: kaputtes eingebettetes Bild fällt weg', '', smBdImg('data:image/svg+xml;base64,PHN2Zz4='));
-same('Kurs passt nicht zur Suche: weggelassen', null, smBdStock(['title' => 'Dell Technologies Inc', 'symbol' => 'DELL', 'price' => '297,06'], 'apple aktie'));
-$stk = smBdStock(['title' => 'DAX Performance Index', 'symbol' => 'DAX', 'price' => '25.458,99', 'currency' => '25.458,99',
-    'price_change' => ['abs' => '0,97 %', 'rel' => '+243,47', 'period' => 'heute'], 'hoch' => '25.463,15'], 'dax aktuell');
-same('Kurs: Prozent und Punkte richtig zugeordnet', ['+243,47', '0,97 %', true, ''], [$stk['abs'] ?? null, $stk['pct'] ?? null, $stk['up'] ?? null, $stk['currency'] ?? null]);
-$sp = smBdSports(['events' => [['teams' => [['name' => 'Bayern', 'score' => '2'], ['name' => 'Dortmund', 'score' => '2']], 'status' => 'Endstand', 'date' => '31.10']]]);
-same('Spielstand gelesen', ['Bayern', '2', 'Dortmund', 'Endstand'], [$sp['events'][0]['teams'][0]['name'] ?? null, $sp['events'][0]['teams'][0]['score'] ?? null, $sp['events'][0]['teams'][1]['name'] ?? null, $sp['events'][0]['status'] ?? null]);
-[$ans, $alinks] = smBdAnswer(['texts' => [['type' => 'paragraph', 'snippet' => 'Der Eiffelturm ist [Beginn der Markierung] 330 Meter [Ende der Markierung] hoch. +1', 'links' => [['link' => 'https://www.toureiffel.paris/de']]],
-    ['type' => 'paragraph', 'snippet' => 'Von Google lizenziertTeilenDownload'], ['type' => 'list', 'list' => [['type' => 'paragraph', 'snippet' => 'Erster Punkt']]]]]);
-same('KI-Übersicht: Markierungen und Ballast entfernt', "Der Eiffelturm ist 330 Meter hoch.\n• Erster Punkt", $ans);
-same('KI-Übersicht: Quelle', 'https://www.toureiffel.paris/de', $alinks[0]['url'] ?? null);
-putenv('SM_BD_GOTO_BASE=http://127.0.0.1:1/');   // keine echten Abrufe bei Google in den Tests
-$web = smBdNormalize(smSearchParams('web', 'merkel', ['page' => 1]), ['general' => ['query' => 'merkel', 'detected_query' => 'merkel'], 'organic' => [
-    ['link' => 'https://de.wikipedia.org/wiki/Angela_Merkel', 'display_link' => 'https://de.wikipedia.org › wiki › Angela_Merkel', 'source' => 'Wikipedia', 'title' => 'Angela Merkel',
-     'description' => 'Angela Merkel ist eine Politikerin', 'snippet_highlighted_words' => ['Angela Merkel'], 'extensions' => [['type' => 'text', 'text' => '26.10.2026']]],
-    ['link' => 'https://www.google.com/goto?url=CAESxyz', 'display_link' => 'https://www.zeit.de › thema', 'title' => 'Zeit', 'description' => 'Text'],
-], 'knowledge' => ['name' => 'IKEA Hamburg-Altona', 'summary' => 'Möbelgeschäft', 'rating' => 4.1, 'reviews_cnt' => 13298,
-    'facts' => [['key' => 'Öffnungszeiten', 'value' => [['text' => 'Geöffnet'], ['text' => 'Schließt um 19:00']]]]],
-  'pagination' => ['next_page_start' => 10], 'related' => [['text' => 'merkel heute']]]);
-putenv('SM_BD_GOTO_BASE');
-same('Google: Treffer mit Hervorhebung, ohne HTML', '<strong>Angela Merkel</strong> ist eine Politikerin', $web['results'][0]['desc'] ?? null);
-same('Google: Datum aus den Zusatzangaben', '26.10.2026', $web['results'][0]['age'] ?? null);
-same('Google: nicht aufgelöste Weiterleitung geht über den eigenen Server', true, strpos($web['results'][1]['url'] ?? '', 'a=go') !== false);
-same('Google: Domain trotzdem aus der Anzeige-Adresse', 'zeit.de', $web['results'][1]['host'] ?? null);
-same('Google: Öffnungszeiten in der Infobox', ['Öffnungszeiten', 'Geöffnet · Schließt um 19:00'], $web['infobox']['attrs'][1] ?? null);
-same('Google: weitere Seiten', true, $web['more'] ?? null);
-same('Google: ähnliche Suchen', ['merkel heute'], $web['related'] ?? null);
-/* ---------- Neueste zuerst mit Zeitstufen, Bilder nach Qualität ---------- */
+/* ---------- Ausweich-Suchmaschine ---------- */
+same('Standard ist Startpage', 'Startpage', smFallbackName(null));
+same('Gast ohne Wahl: Standard', 'https://www.startpage.com/do/search?q=a%20b', smFallbackUrl('a b', null));
+$_COOKIE['smfb'] = 'https://duckduckgo.com/?q={q}';
+same('Gast mit eigener Wahl (Cookie)', 'https://duckduckgo.com/?q=katze', smFallbackUrl('katze', null));
+same('Bildersuche landet in der Bildersuche', 'https://duckduckgo.com/?q=katze&iax=images&ia=images', smFallbackTabUrl('katze', 'images', null));
+$_COOKIE['smfb'] = 'https://evil.example/?q={q}';
+same('Gäste können keine fremde Adresse unterschieben', 'Startpage', smFallbackName(null));
+unset($_COOKIE['smfb']);
+$fbMe = ['prefs' => ['fallback' => 'https://example.org/suche?q={q}']];
+same('Konto mit eigener Adresse', 'https://example.org/suche?q=x', smFallbackUrl('x', $fbMe));
+same('Eigene Adresse: bei Bildern die Websuche', 'https://example.org/suche?q=x', smFallbackTabUrl('x', 'images', $fbMe));
+same('Eigene Adresse ohne https wird abgelehnt', false, smFallbackValid('http://example.org/?q={q}'));
+same('Eigene Adresse ohne {q} wird abgelehnt', false, smFallbackValid('https://example.org/'));
+smSetSetting('fallback_url', 'https://www.bing.com/search?q={q}');
+same('Standard der Installation geändert', 'https://www.bing.com/images/search?q=x', smFallbackTabUrl('x', 'images', null));
+smSetSetting('fallback_url', 'https://www.startpage.com/do/search?q={q}');
+same('Brave-Bang ist wieder eine normale Bang-Seite', false, smBangReserved('brave'));
+
+/* ---------- Zusatzdienste von Brave: Vorschläge, Rechtschreibhilfe, KI-Antwort ---------- */
+$xme = ['id' => 1, 'prefs' => []];
+same('Vorschläge ohne Key aus', false, smExCan('suggest', $xme));
+smExSet('suggest', 'key', 'BSAtest');
+same('Vorschläge mit Key an', true, smExCan('suggest', $xme));
+same('Gäste bekommen keine Vorschläge', false, smExCan('suggest', null));
+same('Konto hat Vorschläge abgeschaltet', false, smExCan('suggest', ['id' => 1, 'prefs' => ['x_suggest' => 'off']]));
+smExSet('suggest', 'limit', '3');
+smExBook('suggest', 1, 3);
+same('Vorschläge: Limit erreicht, die Bremse greift', false, smExCan('suggest', $xme));
+smExSet('suggest', 'limit', '');
+same('Vorschläge: Standardlimit mit Puffer', 9950.0, smExLimit('suggest'));
+check('Vorschläge: Anfrage mit Land und Sprache', strpos(smExRequest('suggest', 'berlin', 'k', ['country' => 'DE', 'search_lang' => 'de'])['url'], 'country=DE&lang=de') !== false);
+smExSet('suggest', 'key', '');
+smExSet('answer', 'key', 'BSAtest');
+smExSet('answer', 'limit', '0.10');
+same('KI-Antwort: Limit in Dollar', true, smExCan('answer', $xme, 0.07));
+smExBook('answer', 1, 0.06);
+same('KI-Antwort: nächste Antwort würde das Limit reißen, also keine', false, smExCan('answer', $xme, 0.07));
+same('KI-Antwort: echter Preis aus der Kopfzeile', 0.0617, smExCost('answer', ['headers' => ['x-request-total-cost' => '0.0617']]));
+smExSet('answer', 'key', '');
+smExSet('answer', 'limit', '');
+same('Markdown der Antwort: fett und Liste, HTML bleibt Text', '<p>Ist <strong>330 m</strong> &lt;b&gt;</p><ul><li>eins</li><li>zwei</li></ul>', smMiniMarkdown("Ist **330 m** <b>\n\n*   eins\n- zwei"));
+smCacheSet('spell|' . smPrefs($xme)['country'] . '|' . smPrefs($xme)['search_lang'] . '|wetter berln', ['s' => 'wetter berlin'], 60);
+same('Rechtschreibhilfe: Vorschlag (aus dem Zwischenspeicher)', 'wetter berlin', smSpellcheck('wetter berln', $xme));
+same('Rechtschreibhilfe: ohne Key und ohne Zwischenspeicher nichts', '', smSpellcheck('katzn', $xme));
+same('Rechtschreibhilfe: Gäste nie', '', smSpellcheck('wetter berln', null));
+
+/* ---------- Neueste zuerst mit Zeitstufen ---------- */
 same('Zeitstufen: nach dem Jahr kommt alles Ältere', ['pw', 'all', ''], [smNextFresh('pd'), smNextFresh('py'), smNextFresh('all')]);
 $tp = ['news_fresh' => 'pd', 'news_expand' => true, 'sort_web' => 'date', 'sort_news' => 'date', 'sort_videos' => 'date'] + smPrefs(null);
 $_GET = [];
@@ -306,60 +294,7 @@ $tf = smSearchFilters('web', $tp);
 same('Letzte Stufe: älter als ein Jahr', ['', 'all', 'py'], [$tf['fresh'], $tf['f_q'], $tf['xf']]);
 same('Nächste Stufe: Woche nach 24 Stunden', ['f' => 'pw', 'xf' => 'pd', 'p' => null], smNextTier('news', ['casc' => true, 'auto' => true], 'pd', null)[0] ?? null);
 $_GET = [];
-same('Bilder: beste Qualität zuerst (Stufe ab 4 MP)', 'q4', smSearchFilters('images', $tp)['iq']);
-$_GET = ['isort' => 'rel'];
-same('Bilder nach Relevanz: keine Stufen', '', smSearchFilters('images', $tp)['iq']);
-$_GET = [];
-same('Bilder: nächste Stufe', ['iq' => 'q2', 'p' => null], smNextTier('images', [], '', ['iq_next' => 'q2'])[0] ?? null);
-parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('images', 'x', ['iq' => 'q4'])), PHP_URL_QUERY), $gq);
-same('Google: Bilder ab 4 MP', 'isz:lt,islt:4mp', $gq['tbs'] ?? null);
-parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('web', 'x', ['older' => 365])), PHP_URL_QUERY), $gq);
-same('Google: älter als ein Jahr ohne Anfang', 'cdr:1,cd_min:,cd_max:' . date('n/j/Y', intdiv(time(), 3600) * 3600 - 365 * 86400), $gq['tbs'] ?? null);
-parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('videos', 'x', ['freshness' => 'pw', 'older' => 1])), PHP_URL_QUERY), $gq);
-check('Google: Woche ohne den letzten Tag', strpos($gq['tbs'] ?? '', 'cdr:1,cd_min:') === 0 && strpos($gq['tbs'] ?? '', 'cd_max:' . date('n/j/Y', intdiv(time(), 3600) * 3600 - 86400)) !== false, $gq['tbs'] ?? '');
-
-/* ---------- Karten: Sport aus Googles Seite, Infobox, Proxy-Land ---------- */
-$start = gmdate('Y-m-d\TH:i:s\Z', strtotime('tomorrow 14:00'));
-$past = gmdate('Y-m-d\TH:i:s\Z', strtotime('-3 days 18:30'));
-$sportHtml = '<div><div class="ZtSsId">Hansa Rostock</div><span class="mKwiob imso-ani">12. Platz 3. Liga</span>'
-    . '<div class="box"><span class="imso-ln">3. Liga</span><span class="imso_mh__lr-dt-ds">heute 19:00</span>'
-    . '<div class="imso_mh__first-tn-ed"><img id="dimg_1" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div class="imso_mh__tm-nm"><span aria-hidden="true">Hansa Rostock</span></div></div>'
-    . '<div class="imso_mh__second-tn-ed"><div class="imso_mh__tm-nm"><span aria-hidden="true">Havelse</span></div></div></div>'
-    . '<div data-mid="m1" data-start-time="' . $start . '"><table><tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Fortuna Köln</span></td></tr>'
-    . '<tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Hansa Rostock</span></td></tr></table></div>'
-    . '<div data-mid="m2" data-start-time="' . $past . '"><div class="imspo_mt__match-status">Endstand</div><table>'
-    . '<tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Verl</span></td><td><div class="imspo_mt__t-sc">1</div></td></tr>'
-    . '<tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Hansa Rostock</span></td><td><div class="imspo_mt__t-sc">3</div><svg class="imspo_mt__triangle"></svg></td></tr></table></div></div>'
-    . "<script>(function(){var s='data:image/png;base64,iVBORw0KGgo\\x3d';var ii=['dimg_1'];})();</script>";
-$sp = smBdSportsHtml($sportHtml);
-same('Sport-Karte: Kopf', ['Hansa Rostock', '12. Platz 3. Liga'], [$sp['title'] ?? null, $sp['sub'] ?? null]);
-same('Sport-Karte: Spiel von heute', ['3. Liga', 'heute 19:00', 'Hansa Rostock', 'Havelse'], [$sp['main']['league'] ?? null, $sp['main']['when'] ?? null, $sp['main']['teams'][0]['name'] ?? null, $sp['main']['teams'][1]['name'] ?? null]);
-same('Sport-Karte: Wappen aus dem Skript', 'data:image/png;base64,iVBORw0KGgo=', $sp['main']['teams'][0]['logo'] ?? null);
-same('Sport-Karte: kommendes Spiel zuerst, mit eigener Uhrzeit', [t('morgen %s', '14:00'), 'Fortuna Köln'], [$sp['events'][0]['when'] ?? null, $sp['events'][0]['teams'][0]['name'] ?? null]);
-same('Sport-Karte: Ergebnis mit Sieger', ['Endstand', '1', '3', true], [$sp['events'][1]['status'] ?? null, $sp['events'][1]['teams'][0]['score'] ?? null, $sp['events'][1]['teams'][1]['score'] ?? null, $sp['events'][1]['teams'][1]['win'] ?? null]);
-same('Sport-Karte: fremde Seite ohne Sport', null, smBdSportsHtml('<html><body><p>nichts</p></body></html>'));
-$ib = smBdInfobox(['name' => 'Dell Technologies Inc', 'summary' => 'NYSE: DELL', 'description' => 'Apple Inc. ist ein US-amerikanischer Hersteller.'], 'apple aktie');
-same('Infobox: falscher Name wird aus der Beschreibung korrigiert', ['Apple Inc.', ''], [$ib['title'] ?? null, $ib['subtitle'] ?? null]);
-same('Infobox: passender Name bleibt', 'IKEA Kaarst', smBdInfobox(['name' => 'IKEA Kaarst', 'description' => 'Möbelhaus'], 'ikea kaarst')['title'] ?? null);
-$body = json_decode(smBdRequest(smSearchParams('web', 'x', ['country' => 'DE']), 'k')['body'], true);
-same('Bright Data: Abruf aus dem Land der Suche', 'de', $body['country'] ?? null);
-same('Bright Data: ohne Land kein Land', null, json_decode(smBdRequest(smSearchParams('web', 'x', ['country' => 'ALL']), 'k')['body'], true)['country'] ?? null);
-same('Seite 1 ohne Zeitfilter holt die Karten mit', [true, false], [smSearchParams('web', 'x', ['page' => 1])['html'], smSearchParams('web', 'x', ['page' => 1, 'freshness' => 'pd'])['html']]);
-[$ans] = smBdAnswer(['texts' => [['type' => 'paragraph', 'snippet' => 'Er ist 76 Jahre alt.'], ['type' => 'paragraph', 'snippet' => 'Möchten Sie mehr über seine Karriere erfahren?']]]);
-same('KI-Übersicht ohne Rückfrage am Ende', 'Er ist 76 Jahre alt.', $ans);
-
-/* ---------- Light JSON (schlankes Format der Zone) ---------- */
-$lt = smBdNormalize(smSearchParams('web', 'x', ['page' => 2]), ['general' => ['query' => 'x', 'country' => 'Deutschland'], 'organic' => [
-    ['link' => 'https://example.org/a', 'title' => 'A', 'description' => 'Text', 'global_rank' => '1'],
-    ['link' => '/goto?url=CAESabc', 'title' => 'B', 'description' => 'Text', 'global_rank' => '2']]]);
-same('Light JSON: relative Google-Links gehen nicht verloren', 2, count($lt['results']));
-same('Light JSON: Format erkannt', 'light', smProvGet('brightdata', 'fmt'));
-$li = smBdNormalize(smSearchParams('images', 'x', []), ['general' => ['query' => 'x'], 'images' => [
-    ['link' => 'https://www.vier-pfoten.de/katze', 'original_image' => 'https://media.example.org/k.jpg', 'title' => 'Katze als Haustier', 'source' => 'Vier Pfoten',
-     'image' => 'data:image/png;base64,iVBORw0KGgo=']]]);
-same('Light JSON: Bildtitel und Website', ['Katze als Haustier', 'Vier Pfoten'], [$li['results'][0]['title'] ?? null, $li['results'][0]['host'] ?? null]);
-smBdNormalize(smSearchParams('web', 'x', ['page' => 2]), ['general' => ['search_engine' => 'google', 'query' => 'x'], 'organic' => []]);
-same('Full JSON: Format erkannt', 'full', smProvGet('brightdata', 'fmt'));
+same('Bilder: keine Zeitstufen', null, smNextTier('images', ['casc' => true, 'auto' => true], 'pd', null));
 
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
@@ -400,16 +335,16 @@ same('Installer-Format: falsche Prüfsumme wird abgelehnt', null, smPayloadParse
 same('Installer-Format: Pfad außerhalb von app/ wird abgelehnt', null, smPayloadParse($payload . "../x.php\t" . hash('sha256', 'x') . "\t" . base64_encode('x') . "\n"));
 
 /* ---------- Zähler auf den Stand laut Dashboard setzen ---------- */
-$from = smProvCycle('brightdata')['from'];
-$base0 = smUsageSum('brightdata', $from);
-smUsageAdd('brightdata', 'web', 1, 10);
-smProvSetUsed('brightdata', 4);
-same('Dashboard-Stand: niedriger als gezählt', 4.0, round(smUsageSum('brightdata', $from), 3));
-smUsageAdd('brightdata', 'web', 1, 1.5);
-same('Dashboard-Stand: zählt danach weiter', 5.5, round(smUsageSum('brightdata', $from), 3));
-smProvSetUsed('brightdata', 250);
-same('Dashboard-Stand: höher als gezählt', 250.0, round(smUsageSum('brightdata', $from), 3));
-same('Dashboard-Stand: eigener Verbrauch des Kontos bleibt', 11.5, round(smUsageSum('brightdata', $from, 1), 3));
+$from = smProvCycle('brave')['from'];
+smQ("DELETE FROM usage_log WHERE provider = 'brave'");
+smUsageAdd('brave', 'web', 1, 10);
+smProvSetUsed('brave', 4);
+same('Dashboard-Stand: niedriger als gezählt', 4.0, round(smUsageSum('brave', $from), 3));
+smUsageAdd('brave', 'web', 1, 1.5);
+same('Dashboard-Stand: zählt danach weiter', 5.5, round(smUsageSum('brave', $from), 3));
+smProvSetUsed('brave', 250);
+same('Dashboard-Stand: höher als gezählt', 250.0, round(smUsageSum('brave', $from), 3));
+same('Dashboard-Stand: eigener Verbrauch des Kontos bleibt', 11.5, round(smUsageSum('brave', $from, 1), 3));
 
 /* ---------- Unterschrift der Updates (Ed25519) ---------- */
 if (function_exists('sodium_crypto_sign_keypair')) {

@@ -3,7 +3,7 @@
 <?php if ($n['host'] !== '') require __DIR__ . '/_resmenu.php'; ?>
             <a class="news__link" href="<?= h($n['url']) ?>"<?= $rel . $target ?> data-res-link>
                 <span class="news__body">
-                    <span class="news__src"><?php $fav = $n['favicon']; $host = $n['host']; require __DIR__ . '/_fav.php'; ?><?= h($n['source'] ?: $n['host']) ?><?php require __DIR__ . '/_srcbadge.php'; ?></span>
+                    <span class="news__src"><?php $fav = $n['favicon']; $host = $n['host']; require __DIR__ . '/_fav.php'; ?><?= h($n['source'] ?: $n['host']) ?></span>
                     <span class="news__title"><?= smHl($n['title']) ?></span>
                     <span class="news__desc"><?= smHl($n['desc']) ?></span>
                     <span class="news__age"><?= !empty($n['breaking']) ? '<b class="live">' . h(t('Eilmeldung')) . '</b> ' : '' ?><?= h($nage) ?></span>

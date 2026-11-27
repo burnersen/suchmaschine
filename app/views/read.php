@@ -3,7 +3,6 @@
 $target = $prefs['newtab'] ? ' target="_blank"' : '';
 $rel = ' rel="noopener noreferrer"';
 $imgOn = smImgProxyOn();
-$fcOn = smProvActive('brightdata') && smBdUnlockerZone() !== '';
 $host = smHost((string)parse_url($u, PHP_URL_HOST));
 $data = null;
 if ($r && $r['ok']) {
@@ -50,13 +49,6 @@ if ($r && $r['ok']) {
         <strong><?= h(t('Die Seite konnte nicht geladen werden.')) ?></strong>
 <?php else: ?>
         <strong><?= h(t('Auf dieser Seite wurde kein Artikel gefunden.')) ?></strong> <?= h(t('Manche Seiten zeigen ihren Inhalt erst mit JavaScript an oder halten automatische Abrufe auf.')) ?>
-<?php endif; ?>
-<?php if ($why !== 'paywall' && $fcOn && empty($r['unlocked'])): ?>
-        <form method="post" action="<?= h(smUrl(['a' => 'read', 'u' => $u] + ($view ? ['v' => $view] : []))) ?>" class="reader__fc">
-            <?= smCsrfField($me) ?><input type="hidden" name="do" value="unlock">
-            <button type="submit" class="btn btn--small"><?= h(t('Über Bright Data versuchen')) ?></button>
-            <small class="muted"><?= h(t('Kostet 1 Anfrage bei Bright Data. Der Web Unlocker lädt die Seite wie ein Browser.')) ?></small>
-        </form>
 <?php endif; ?>
     </div>
 <?php else: ?>

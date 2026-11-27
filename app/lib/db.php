@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 5);
+define('SM_SCHEMA', 6);
 
 function smFatal(string $msg): void
 {
@@ -154,6 +154,15 @@ function smMigrate(PDO $pdo, int $from): void
             OR k LIKE 'p\_parallel\_%' ESCAPE '\' OR k LIKE 'p\_firecrawl\_%' ESCAPE '\'");
         $pdo->exec("DELETE FROM pstat WHERE provider IN ('tavily', 'exa', 'parallel', 'firecrawl')");
     }
+    if ($from >= 1 && $from < 6) {
+        // 3.0: nur noch Brave. Google über Bright Data, Reihenfolge, Lastverteilung, „Alle zusammen“, Wettlauf, Warteseite,
+        // Karten und Suchvorschläge sind raus. Gäste dürfen die Seite benutzen, ihre Suchen gehen zur Ausweich-Suchmaschine.
+        $pdo->exec("DELETE FROM settings WHERE k LIKE 'p\_brightdata\_%' ESCAPE '\' OR k IN ('prov_order', 'balance', 'multi_set', 'answers', 'wiki',
+            'stream', 'race', 'suggest', 'fallback_auto', 'anon_quota', 'public_hour')");
+        $pdo->exec("DELETE FROM pstat WHERE provider <> 'brave'");
+        $pdo->exec("INSERT INTO settings (k, v) VALUES ('public', '1') ON CONFLICT(k) DO UPDATE SET v = '1'");
+        $pdo->exec("DELETE FROM cache");
+    }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();
 }
@@ -188,26 +197,15 @@ function smDefaults(): array
         'search_lang'   => smLang() === 'de' ? 'de' : 'en',
         'safesearch'    => 'moderate',
         'per_page'      => '10',
-        'public'        => '0',     // Suchen ohne Anmeldung erlaubt?
-        'public_hour'   => '20',    // dann höchstens so viele Suchen pro Stunde und Adresse
+        'public'        => '1',     // Seite ohne Anmeldung nutzbar? (Gäste suchen nie bei Brave, sondern bei der Ausweich-Suchmaschine)
         'auto_update'   => '0',
         'img_proxy'     => '1',     // große Bilder über den eigenen Server laden
-        // Suchdienste (seit 1.2.0): Reihenfolge, Lastverteilung, Multi-Quellen, Ausweichziel
-        'prov_order'    => 'brightdata,brave',
-        'balance'       => '1',     // Credits gleichmäßig über den Abrechnungszeitraum verteilen
-        'multi_set'     => 'brightdata,brave',
-        'answers'       => '1',     // KI-Übersicht von Google mitnehmen (kostet nichts extra)
-        'wiki'          => '1',     // Wikipedia-Kurzinfo, wenn der Suchdienst keine eigene liefert
-        'stream'        => '1',     // Seite sofort zeigen, Treffer kommen nach (seit 2.3)
-        'race'          => '3',     // Wettlauf: nach so vielen Sekunden ohne Antwort zusätzlich den nächsten Dienst fragen (0 = aus)
-        'suggest'       => '1',     // Suchvorschläge von Google im Suchfeld (kostenlos, über den eigenen Server)
-        'fallback_auto' => '1',     // alles leer oder gestört: automatisch weiterleiten
+        // Ausweich-Suchmaschine: Standard für Gäste und für Konten ohne eigene Wahl, wenn Brave nicht kann
         'fallback_url'  => 'https://www.startpage.com/do/search?q={q}',
         'warn_pct'      => '80',    // Warnhinweis für Administratoren ab diesem Verbrauch
         'weather_src'   => 'brightsky',
         'shortener'     => '1',
         'ipv4_host'     => '',      // eigene Subdomain nur mit IPv4 (A-Eintrag), um die IPv4 auch bei IPv6-Verbindung zu zeigen
-        'anon_quota'    => '',
         'bang_auto'     => '1',     // Bang-Liste einmal pro Woche frisch von GitHub (Kagi) holen
         'bang_check'    => '1',     // Zielseiten der Bangs nach und nach auf Erreichbarkeit prüfen
         'bang_ref'      => '1',     // bei Bangs die Adresse der Suchmaschine als Herkunft mitschicken (nie den Suchbegriff)
@@ -268,7 +266,7 @@ function smUsageAdd(string $provider, string $kind, int $userId, float $credits,
         [date('Y-m-d'), $provider, $kind, $userId, $credits, $req]);
 }
 
-/** Verlauf nach Kalendermonaten: ['2026-11' => ['brave' => 12.0, 'brightdata' => 3.0], …] */
+/** Verlauf nach Kalendermonaten: ['2026-11' => ['brave' => 12.0], …] */
 function smUsageHistory(int $months = 6): array
 {
     $out = [];

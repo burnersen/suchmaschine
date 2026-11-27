@@ -170,11 +170,11 @@
             var lq = q.toLowerCase();
             var mine = !useHist ? [] : hist().filter(function (x) { return !lq || (x.toLowerCase().indexOf(lq) !== -1 && x.toLowerCase() !== lq); })
                 .slice(0, lq ? 4 : 8).map(function (x) { return { kind: 'hist', text: x }; });
+            var my = ++seq;   // noch laufende Bang-Vorschläge gelten nicht mehr
             items = mine;
             draw(q);
-            // Vorschläge von Google (über den eigenen Server, kostenlos) unter den eigenen letzten Suchen
+            // Vorschläge von Brave (Autosuggest, über den eigenen Server) unter den eigenen letzten Suchen
             if (!sugUrl || q.length < 2 || q.charAt(0) === '!') return;
-            var my = ++seq;
             function add(list) {
                 if (my !== seq || document.activeElement !== input || input.value.trim() !== q) return;
                 var have = {};
@@ -190,7 +190,7 @@
                     .then(function (r) { return r.ok ? r.json() : null; })
                     .then(function (j) { if (j && Array.isArray(j.list)) { sugCache[lq] = j.list; add(j.list); } })
                     .catch(function () {});
-            }, 120);
+            }, 200);
         }
 
         function draw(q) {
@@ -415,34 +415,30 @@
         var msg = b && b.getAttribute && b.getAttribute('data-confirm-btn') || (f.getAttribute && f.getAttribute('data-confirm'));
         if (msg && !window.confirm(msg)) { ev.preventDefault(); ev.stopImmediatePropagation(); loading(false); }
     }, true);
-    // Merken, dass JavaScript läuft (dann gibt es bei neuen Suchen sofort eine Warteseite)
-    var smPath = ($('[data-theme-toggle]') && $('[data-theme-toggle]').getAttribute('data-path')) || '/';
-    if (document.cookie.indexOf('smjs=1') < 0) document.cookie = 'smjs=1; path=' + smPath + '; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
-    // Warteseite: Suche anstoßen, danach die Seite neu laden (kommt dann aus dem Zwischenspeicher)
-    $$('[data-warm]').forEach(function (w) {
-        loading(true);
-        var done = function () { location.replace(location.href); };
-        if (!window.fetch) { done(); return; }
-        fetch(w.getAttribute('data-warm'), { credentials: 'same-origin' }).then(done, function () {
-            document.cookie = 'smsw=1; path=' + smPath + '; max-age=60; SameSite=Lax';
-            done();
-        });
+    // Auswahl, die sofort speichert (Suchmaschine der Gäste auf der Startseite), der Knopf wird dann nicht gebraucht
+    $$('select[data-autosubmit-select]').forEach(function (s) {
+        var b = $('[data-nojs]', s.form);
+        if (b) b.hidden = true;
+        s.addEventListener('change', function () { loading(true); s.form.submit(); });
     });
-
-    // Karten über den Treffern (Spiele, Kurse, Infobox …) kommen bei „Neueste zuerst“ kurz nach der Liste
-    // Hatte Google gerade einen Aussetzer (503), noch einmal nach 16 Sekunden (Bright Data sperrt eine Suche so lange)
-    $$('[data-cards]').forEach(function (slot) {
-        if (!window.fetch) return;
-        function get(again) {
-            fetch(slot.getAttribute('data-cards'), { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
-                .then(function (r) {
-                    if (r.status === 503 && again) { setTimeout(function () { get(false); }, 16000); return ''; }
-                    return r.status === 200 ? r.text() : '';
-                })
-                .then(function (html) { if (html.trim()) { slot.innerHTML = html; slot.classList.add('is-in'); } })
-                .catch(function () {});
+    // KI-Antwort von Brave: auf Knopfdruck oder automatisch, die Trefferliste wartet nicht darauf
+    $$('[data-answer]').forEach(function (box) {
+        var btn = $('[data-answer-go]', box), out = $('[data-answer-text]', box), spin = $('.spinner', box), go = $('.answer__go', box);
+        function get() {
+            if (!window.fetch) { box.hidden = true; return; }
+            btn.disabled = true;
+            spin.hidden = false;
+            fetch(box.getAttribute('data-answer'), { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+                .then(function (r) { return r.status === 200 ? r.text() : ''; })
+                .then(function (html) {
+                    if (!html.trim()) { box.hidden = true; return; }
+                    out.innerHTML = html;
+                    go.hidden = true;
+                    $('.answer__note', box).hidden = false;
+                }, function () { out.textContent = box.getAttribute('data-error'); go.hidden = true; });
         }
-        get(true);
+        btn.addEventListener('click', get);
+        if (box.hasAttribute('data-answer-auto')) get();
     });
 
     // Filter in der Trefferliste ohne OK-Knopf: Auswahl wirkt sofort, ein Zeitraum, sobald beide Tage stehen (oder einer, mit Enter)
@@ -710,6 +706,7 @@
             if (src) srcA.href = src;
             lb.hidden = false;
             body.style.overflow = 'hidden';
+            themeDark(true);
             // Volle Auflösung über den eigenen Server nachladen, bis dahin bleibt das Vorschaubild stehen
             var full = a.getAttribute('data-full');
             lb.classList.remove('is-sharp');
@@ -724,12 +721,22 @@
             if (isFull()) exitFull();
             lb.hidden = true;
             body.style.overflow = '';
+            themeDark(false);
             // War die Großansicht über die Adresse (?view=…) geöffnet: zurück zur Rasteradresse
             if (/[?&]view=/.test(location.search) && window.history && history.replaceState) history.replaceState(null, '', lb.getAttribute('data-grid-url'));
             if (tiles[cur]) tiles[cur].focus();
         }
 
-        /* Vollbild: Fullscreen-API des Browsers, ohne sie (iPhone) ein randloses Ersatz-Vollbild per CSS */
+        /* Statusleiste schwarz, solange die Vorschau offen ist: Als App auf dem Startbildschirm (iPad, iPhone) färbt das System
+           den Streifen oben nach theme-color. Sonst bleibt dort beim Vollbild ein grauer oder weißer Rand. */
+        function themeDark(on) {
+            $$('meta[name="theme-color"]').forEach(function (m) {
+                if (!m.hasAttribute('data-orig')) m.setAttribute('data-orig', m.getAttribute('content'));
+                m.setAttribute('content', on ? '#000000' : m.getAttribute('data-orig'));
+            });
+        }
+
+        /* Vollbild: Fullscreen-API des Browsers, ohne sie (iPhone, App auf dem Startbildschirm) ein randloses Ersatz-Vollbild per CSS */
         function nativeEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
         function isFull() { return lb.classList.contains('is-full'); }
         function sync() {
@@ -746,6 +753,8 @@
                 if (pr && pr.catch) pr.catch(function () { pseudo(true); });
             } else if (fsApi === 'webkit') {
                 lb.webkitRequestFullscreen();
+                // Manche iPads melden die Funktion, tun als App vom Startbildschirm aber nichts: dann das Ersatz-Vollbild
+                setTimeout(function () { if (nativeEl() !== lb && !isFull()) pseudo(true); }, 400);
             } else {
                 pseudo(true);
             }
@@ -830,6 +839,19 @@
         body.appendChild(ta); ta.select();
         try { document.execCommand('copy'); } catch (e) {}
         ta.remove();
+    }
+    // Teilen über das Teilen-Menü des Geräts (Handy, iPad, Mac), nur wo der Browser es kann
+    if (navigator.share) {
+        var showShare = function (root) { $$('[data-share]', root).forEach(function (b) { b.hidden = false; }); };
+        showShare(document);
+        new MutationObserver(function (ms) { ms.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) showShare(n); }); }); })
+            .observe(document.body, { childList: true, subtree: true });
+        document.addEventListener('click', function (ev) {
+            var b = ev.target.closest('[data-share]');
+            if (!b) return;
+            ev.preventDefault();
+            navigator.share({ url: b.getAttribute('data-share'), title: b.getAttribute('data-share-title') || undefined }).catch(function () {});
+        });
     }
     // Kopier-Knöpfe (auch in nachgeladenen Treffern)
     document.addEventListener('click', function (ev) {
@@ -1610,54 +1632,4 @@
     /* ---------- Hintergrundarbeit (Bang-Liste aktualisieren, Erreichbarkeit prüfen): kurz nach dem Laden, ohne auf die Antwort zu warten ---------- */
     var tick = body.getAttribute('data-tick');
     if (tick && window.fetch) setTimeout(function () { fetch(tick, { credentials: 'same-origin', keepalive: true }).catch(function () {}); }, 2500);
-    /* ---------- Verwaltung → Suchdienste: Reihenfolge durch Ziehen (Maus und Finger) oder mit den Pfeilen ---------- */
-    $$('[data-provsort]').forEach(function (list) {
-        function renumber() {
-            var all = $$('.provsort__item', list);
-            all.forEach(function (li, i) {
-                $('.provsort__nr', li).textContent = i + 1;
-                $('[data-prio]', li).value = i + 1;
-                $('[data-move="-1"]', li).disabled = i === 0;
-                $('[data-move="1"]', li).disabled = i === all.length - 1;
-            });
-        }
-        function moved(li) { li.classList.add('is-moved'); renumber(); }
-        list.addEventListener('click', function (ev) {
-            var b = ev.target.closest('[data-move]');
-            if (!b) return;
-            var li = b.closest('.provsort__item'), d = +b.getAttribute('data-move');
-            if (d < 0 && li.previousElementSibling) list.insertBefore(li, li.previousElementSibling);
-            if (d > 0 && li.nextElementSibling) list.insertBefore(li.nextElementSibling, li);
-            moved(li);
-            // Fokus bleibt auf dem Pfeil; ist der jetzt aus (ganz oben/unten), auf den anderen
-            (b.disabled ? $('[data-move="' + (-d) + '"]', li) : b).focus();
-        });
-        renumber();
-        // Ziehen mit Pointer-Events: geht mit Maus, Finger und Stift gleich
-        var drag = null;
-        list.addEventListener('pointerdown', function (ev) {
-            var li = ev.target.closest('.provsort__item');
-            if (!li || ev.target.closest('button, input, a') || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
-            // Am Handy nur am Griff, damit man die Seite noch normal scrollen kann
-            if (ev.pointerType !== 'mouse' && !ev.target.closest('.provsort__grip')) return;
-            drag = li;
-            li.classList.add('is-drag');
-            li.setPointerCapture(ev.pointerId);
-            ev.preventDefault();
-        });
-        list.addEventListener('pointermove', function (ev) {
-            if (!drag) return;
-            var over = document.elementFromPoint(ev.clientX, ev.clientY);
-            var li = over && over.closest('.provsort__item');
-            if (!li || li === drag || li.parentNode !== list) return;
-            var r = li.getBoundingClientRect();
-            list.insertBefore(drag, ev.clientY > r.top + r.height / 2 ? li.nextElementSibling : li);
-            renumber();
-        });
-        function end() { if (!drag) return; drag.classList.remove('is-drag'); moved(drag); drag = null; }
-        list.addEventListener('pointerup', end);
-        list.addEventListener('pointercancel', end);
-        // Das eingebaute Ziehen des Browsers (draggable) nicht zusätzlich starten
-        list.addEventListener('dragstart', function (ev) { ev.preventDefault(); });
-    });
 })();

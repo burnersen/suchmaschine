@@ -9,7 +9,7 @@ defined('SM_VERSION') || exit;
 function smPageRead(array $me, bool $post): void
 {
     $u = trim((string)($_GET['u'] ?? $_POST['u'] ?? ''));
-    $u = smLink(smBdRealUrl($u));
+    $u = smLink($u);
     if ($u === '' || strlen($u) > 2000) smRedirect(smBase());
     $view = ($_GET['v'] ?? '') === 'all' ? 'all' : '';
     $k = hash('sha256', 'read|' . $me['id'] . '|' . date('YmdH'));
@@ -20,30 +20,7 @@ function smPageRead(array $me, bool $post): void
         $err = t('Für diese Stunde sind genug Seiten im Lesemodus geöffnet worden. Bitte später wieder.');
     } else {
         smQ('INSERT INTO throttle (k, fails, last) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET fails = fails + 1, last = excluded.last', [$k, time()]);
-        $html = null;
-        $unlocked = false;
-        // Auf Wunsch über den Web Unlocker von Bright Data (für Seiten, die nur mit JavaScript laufen oder Abrufe vom Server sperren).
-        // Kostet 1 Anfrage aus demselben Kontingent wie die Google-Suche.
-        if ($post && ($_POST['do'] ?? '') === 'unlock') {
-            $why = smProvBlock('brightdata', 'web', $me['id']);
-            if ($why !== '') {
-                $err = 'Bright Data: ' . smBlockText('brightdata', $why);
-            } elseif (!smProvReserve('brightdata', 'read', $me['id'], 1)) {
-                $err = 'Bright Data: ' . smBlockText('brightdata', 'limit');
-            } else {
-                [$html, $uerr] = smBdUnlock($u);
-                if ($html !== null) {
-                    $unlocked = true;
-                } else {
-                    smUsageAdd('brightdata', 'read', $me['id'], -1, -1);
-                    $err = $uerr;
-                }
-            }
-        }
-        if ($err === '') {
-            $r = smReadPage($u, $html);
-            $r['unlocked'] = $unlocked;
-        }
+        $r = smReadPage($u);
     }
     if ($r && $r['ok'] && $view === 'all' && !empty($r['alt'])) {
         $r['blocks'] = $r['alt'];
