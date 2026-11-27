@@ -716,8 +716,40 @@
                 hi.src = full;
             }
             wake();
+            if (playing) slideNext();
         }
+        /* Diashow: läuft nur, wenn man sie startet. Nach dem letzten Bild geht es von vorne los. Sekunden werden im Browser gemerkt. */
+        var playBtn = $('[data-lb-play]', lb), secsSel = $('[data-lb-secs]', lb), slideT = 0, playing = false;
+        var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+        if (playBtn && secsSel) {
+            playBtn.hidden = false;
+            $('[data-lb-secs-wrap]', lb).hidden = false;
+            secsSel.value = store('sm.slide') || '5';
+            if (!secsSel.value) secsSel.value = '5';
+            secsSel.addEventListener('change', function () { store('sm.slide', secsSel.value); if (playing) slideNext(true); });
+            playBtn.addEventListener('click', function () { slide(!playing); });
+        }
+        function slideNext(restart) {
+            clearTimeout(slideT);
+            if (!playing) return;
+            slideT = setTimeout(function () {
+                var n = $$('.grid__item', grid).length;
+                if (!n || lb.hidden) { slide(false); return; }
+                show(cur + 1 < n ? cur + 1 : 0);
+            }, (parseInt(secsSel.value, 10) || 5) * 1000);
+        }
+        function slide(on) {
+            playing = !!on && !!playBtn;
+            if (!playBtn) return;
+            lb.classList.toggle('is-playing', playing);
+            playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+            playBtn.setAttribute('aria-label', playBtn.getAttribute(playing ? 'data-label-off' : 'data-label-on'));
+            playBtn.title = playBtn.getAttribute('aria-label');
+            if (playing) slideNext(); else clearTimeout(slideT);
+        }
+
         function hide() {
+            slide(false);
             if (isFull()) exitFull();
             lb.hidden = true;
             body.style.overflow = '';
@@ -809,12 +841,13 @@
             if (vt) show($$('.grid__item', grid).indexOf(vt));
         }
         document.addEventListener('keydown', function (ev) {
-            if (lb.hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+            if (lb.hidden || ev.ctrlKey || ev.metaKey || ev.altKey || isTyping(ev.target)) return;
             if (document.querySelector('.overlay:not([hidden])')) return;
             if (ev.key === 'Escape') { ev.preventDefault(); if (isFull()) exitFull(); else hide(); }
             else if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(cur - 1); }
             else if (ev.key === 'ArrowRight') { ev.preventDefault(); show(cur + 1); }
             else if (ev.key === 'f' || ev.key === 'F') { ev.preventDefault(); toggleFull(); }
+            else if (ev.key === 's' || ev.key === 'S') { ev.preventDefault(); slide(!playing); }
         });
     }
 

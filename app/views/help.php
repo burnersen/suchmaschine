@@ -113,7 +113,7 @@ $combos = $de ? [
     <section class="panel" id="bildergross">
         <h2><?= h(t('Bilder groß, auch bei anderen Suchmaschinen')) ?></h2>
         <h3><?= h(t('Worum geht es?')) ?></h3>
-        <p><?= h(t('Suchst du hier angemeldet über Brave, brauchst du nichts davon: Bild antippen, dann oben den Vollbild-Knopf (oder Taste F).')) ?></p>
+        <p><?= h(t('Suchst du hier angemeldet über Brave, brauchst du nichts davon: Bild antippen, dann oben den Vollbild-Knopf (oder Taste F). Daneben startest du die Diashow und wählst, wie viele Sekunden jedes Bild bleibt.')) ?></p>
         <p><?= h(t('Landest du bei einer anderen Suchmaschine (als Gast oder wenn Brave nicht kann), zeigen die ihre Bilder oft nur klein. Dafür gibt es das Lesezeichen „Bilder groß“: einmal pro Gerät einrichten, danach auf der fremden Bilderseite antippen, und die Bilder erscheinen groß auf Schwarz.')) ?></p>
         <p><a class="btn btn--primary" href="<?= h(smBookmarklet()) ?>" data-bookmarklet title="<?= h(t('In die Lesezeichenleiste ziehen')) ?>">🖼️ <?= h(t('Bilder groß')) ?></a>
             <button type="button" class="btn" data-copy-text="<?= h(smBookmarklet()) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Lesezeichen-Code kopieren')) ?></button></p>
@@ -127,7 +127,7 @@ $combos = $de ? [
             <ol class="bullets"><li><?= h(t('Oben auf „Lesezeichen-Code kopieren“ tippen.')) ?></li><li><?= h(t('Irgendeine Seite als Lesezeichen sichern (Menü ⋮, dann der Stern).')) ?></li><li><?= h(t('Menü ⋮ → Lesezeichen, beim neuen Lesezeichen auf ⋮ → Bearbeiten. Name „Bilder groß“, bei der Adresse alles löschen und den Code einfügen, speichern.')) ?></li></ol></details>
 
         <h3><?= h(t('So benutzt du es')) ?></h3>
-        <ol class="bullets"><li><?= h(t('Bei der anderen Suchmaschine die Bildersuche öffnen und warten, bis die Bilder zu sehen sind. Am besten klappt es mit Bing.')) ?></li><li><?= h(t('Rechner, iPad, iPhone: das Lesezeichen „Bilder groß“ antippen. Android: oben in die Adresszeile „Bilder groß“ tippen und den Lesezeichen-Vorschlag darunter antippen (einfach Enter geht dort nicht).')) ?></li><li><?= h(t('Blättern: wischen, Pfeiltasten oder links/rechts ins Bild tippen. ⛶ oder Taste F: Vollbild. ↗: Bild in Originalgröße öffnen. ×, Esc oder nach unten wischen: schließen.')) ?></li></ol>
+        <ol class="bullets"><li><?= h(t('Bei der anderen Suchmaschine die Bildersuche öffnen und warten, bis die Bilder zu sehen sind. Am besten klappt es mit Bing.')) ?></li><li><?= h(t('Rechner, iPad, iPhone: das Lesezeichen „Bilder groß“ antippen. Android: oben in die Adresszeile „Bilder groß“ tippen und den Lesezeichen-Vorschlag darunter antippen (einfach Enter geht dort nicht).')) ?></li><li><?= h(t('Blättern: wischen, Pfeiltasten oder links/rechts ins Bild tippen. ⛶ oder Taste F: Vollbild. ▶ oder Taste S: Diashow starten und anhalten, daneben die Sekunden pro Bild (nach dem letzten Bild geht es von vorne los). ↗: Bild in Originalgröße öffnen. ×, Esc oder nach unten wischen: schließen.')) ?></li></ol>
 
         <h3><?= h(t('Wenn es nicht klappt')) ?></h3>
         <ul class="bullets"><li><?= h(t('Du nutzt die Suchmaschine als App vom Startbildschirm? Dort gibt es keine Lesezeichen. Die Bilderseite dann in Safari öffnen (Safari- oder Kompass-Symbol bzw. „In Safari öffnen“) und das Lesezeichen dort antippen.')) ?></li><li><?= h(t('„Keine großen Bilder gefunden“: Erst etwas nach unten scrollen, damit die Seite Bilder lädt, dann noch einmal antippen. Oder Bing als Suchmaschine nehmen (Einstellungen → Suche bzw. auf der Startseite).')) ?></li><li><?= h(t('Ein einzelnes Bild bleibt schwarz: Die Seite, auf der es liegt, lässt es nicht laden. Einfach weiterblättern.')) ?></li><li><?= h(t('Am iPhone geht der Vollbild-Knopf nicht (das erlaubt Apple nur für Videos). Die Ansicht ist dort aber ohnehin schon randlos.')) ?></li><li><?= h(t('Das Lesezeichen läuft nur in deinem Browser und schickt nichts an diesen Server oder sonst wohin.')) ?></li></ul>
@@ -311,6 +311,7 @@ $combos = $de ? [
             <div><dt><kbd>Enter</kbd></dt><dd><?= h(t('markierten Treffer öffnen, mit Strg/⌘ im neuen Tab')) ?></dd></div>
             <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd><?= h(t('vorige/nächste Ergebnisseite, in der Bildvorschau blättern (auch Wischen)')) ?></dd></div>
             <div><dt><kbd>F</kbd></dt><dd><?= h(t('Bildvorschau im Vollbild, nochmal F beendet es')) ?></dd></div>
+            <div><dt><kbd>S</kbd></dt><dd><?= h(t('Diashow in der Bildvorschau starten und anhalten')) ?></dd></div>
             <div><dt><kbd>?</kbd></dt><dd><?= h(t('Übersicht aller Tastenkürzel (auf deutschen Tastaturen Shift + ß)')) ?></dd></div>
             <div><dt><kbd>Esc</kbd></dt><dd><?= h(t('Übersicht, Menüs, Bildvorschau und Vollbild schließen')) ?></dd></div>
             <div><dt><kbd>↓</kbd> <kbd>↑</kbd> <?= h(t('im Suchfeld')) ?></dt><dd><?= h(t('durch die Vorschläge aus den letzten Suchen blättern')) ?></dd></div>

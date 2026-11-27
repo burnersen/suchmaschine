@@ -1,6 +1,6 @@
 /* Suchmaschine – Lesezeichen „Bilder groß“ (Bookmarklet).
    Läuft auf einer fremden Seite (z. B. Bing- oder DuckDuckGo-Bildersuche), sammelt die Bilder in der größten Fassung,
-   die die Seite verrät, und zeigt sie randlos auf Schwarz: Pfeile, Wischen, F = Vollbild, Esc = schließen.
+   die die Seite verrät, und zeigt sie randlos auf Schwarz: Pfeile, Wischen, F = Vollbild, S = Diashow, Esc = schließen.
    Schickt nichts irgendwohin und lädt nichts nach außer den Bildern selbst.
    Wird beim Ausliefern zu einer javascript:-Adresse (ganze Kommentarzeilen fallen weg, darum keine Kommentare hinter Code). */
 (function () {
@@ -47,7 +47,7 @@
     });
     if (!list.length) { alert(L.none); return; }
 
-    var cur = 0, startX = 0, startY = 0, idle = 0;
+    var cur = 0, startX = 0, startY = 0, idle = 0, slideT = 0, playing = false;
     var box = document.createElement('div');
     box.id = 'sm-big';
     box.setAttribute('style', 'position:fixed;inset:0;z-index:2147483647;background:#000;display:flex;align-items:center;justify-content:center;touch-action:none;font:14px/1.4 system-ui,sans-serif;color:#fff');
@@ -73,7 +73,29 @@
     var bClose = btn('×', 'right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top))', close, L.close);
     var bFull = btn('⛶', 'right:max(70px,calc(env(safe-area-inset-right) + 58px));top:max(12px,env(safe-area-inset-top));font-size:20px', full, L.full);
     var bOpen = btn('↗', 'right:max(128px,calc(env(safe-area-inset-right) + 116px));top:max(12px,env(safe-area-inset-top));font-size:20px', function () { window.open(list[cur].u, '_blank', 'noopener'); }, L.open);
-    var ctrls = [cap, bPrev, bNext, bClose, bFull, bOpen];
+    /* Diashow: Knopf startet und stoppt, Auswahl = Sekunden pro Bild, nach dem letzten Bild wieder von vorne */
+    var bPlay = btn('▶', 'right:max(186px,calc(env(safe-area-inset-right) + 174px));top:max(12px,env(safe-area-inset-top));font-size:18px', function () { slide(!playing); }, L.play);
+    var sel = document.createElement('select');
+    sel.title = L.secs;
+    sel.setAttribute('style', 'position:absolute;right:max(244px,calc(env(safe-area-inset-right) + 232px));top:max(16px,calc(env(safe-area-inset-top) + 4px));height:40px;padding:0 6px;border:0;border-radius:20px;background:rgba(0,0,0,.5);color:#fff;font:14px system-ui,sans-serif;transition:opacity .3s');
+    [2, 3, 5, 8, 10, 15, 30, 60].forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n + ' s'; sel.appendChild(o); });
+    try { sel.value = localStorage.getItem('smBigSecs') || '5'; } catch (e) { sel.value = '5'; }
+    if (!sel.value) sel.value = '5';
+    sel.addEventListener('change', function () { try { localStorage.setItem('smBigSecs', sel.value); } catch (e) {} if (playing) next(); });
+    sel.addEventListener('click', function (e) { e.stopPropagation(); });
+    box.appendChild(sel);
+    var ctrls = [cap, bPrev, bNext, bClose, bFull, bOpen, bPlay, sel];
+    function next() {
+        clearTimeout(slideT);
+        if (playing) slideT = setTimeout(function () { show(cur + 1); }, (parseInt(sel.value, 10) || 5) * 1000);
+    }
+    function slide(on) {
+        playing = on;
+        bPlay.textContent = on ? '❚❚' : '▶';
+        bPlay.title = on ? L.stop : L.play;
+        bPlay.style.color = on ? '#7cc4ff' : '#fff';
+        if (on) next(); else clearTimeout(slideT);
+    }
 
     function show(i) {
         cur = (i + list.length) % list.length;
@@ -85,6 +107,7 @@
         pre.referrerPolicy = 'no-referrer';
         pre.src = list[(cur + 1) % list.length].u;
         wake();
+        if (playing) next();
     }
     function go(d) { show(cur + d); }
     function full() {
@@ -94,6 +117,8 @@
         if (rq) { try { var p = rq.call(box); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
     }
     function close() {
+        clearTimeout(slideT);
+        playing = false;
         var fe = document.fullscreenElement || document.webkitFullscreenElement;
         if (fe) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
         document.removeEventListener('keydown', key, true);
@@ -111,6 +136,7 @@
         else if (e.key === 'ArrowLeft') go(-1);
         else if (e.key === 'Escape' && !(document.fullscreenElement || document.webkitFullscreenElement)) close();
         else if (e.key === 'f' || e.key === 'F') full();
+        else if (e.key === 's' || e.key === 'S') slide(!playing);
         else return;
         e.preventDefault();
         e.stopPropagation();

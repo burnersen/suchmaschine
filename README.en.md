@@ -79,7 +79,7 @@ Enter the keys after installing under **Admin → Search services**. Every key (
 - **Fallback search engine of your choice**, straight away and without a stop in between when Brave can’t, and always for guests.
 - **Page by page or endless scrolling**, per account.
 - **Time filter**, **language and region**, **verbatim**, **spelling correction** with "Search instead for …" and “Did you mean …?”, **"Feeling lucky"**.
-- **Large image preview** with arrow keys and swiping, plus a **real full-screen mode** (button or key `F`) for TVs and big screens: borderless on black, controls fade out. The image is loaded in **full resolution through your own server**, without loosening the strict security rules and without using a Brave search. For other search engines’ image search there is the **“Big images”** bookmark.
+- **Large image preview** with arrow keys and swiping, plus a **real full-screen mode** (button or key `F`) and a **slideshow** (button or key `S`, seconds per image selectable, starts over after the last image) for TVs and big screens: borderless on black, controls fade out. The image is loaded in **full resolution through your own server**, without loosening the strict security rules and without using a Brave search. For other search engines’ image search there is the **“Big images”** bookmark.
 - **File type filter** (PDF, DOCX, XLSX, PPTX, TXT, EPUB, CSV, ODT and more, or type any other extension). Kept while paging and endless scrolling.
 - **Help page** with every search operator Brave supports (`site:`, `filetype:`, `intitle:`, `"…"`, `OR`, `NOT`, `-` …), clickable examples and an overview of your own bangs, lenses and domain lists.
 - **Suggestions while typing:** from your own recent searches (stored only in the browser) and, if set up, from Brave.
@@ -112,7 +112,7 @@ Three optional extras, each with its own Brave plan, key, monthly limit and brak
 
 With Brave the image preview shows every image in full resolution and full screen. For other search engines’ image search there is the **“Big images”** bookmark (Help → Big images):
 
-- Tap it on the other image page: it collects the images in the largest version the page reveals and shows them **edge to edge on black**. Swipe or use the arrow keys to browse, `F` toggles full screen, `Esc` or swiping down closes.
+- Tap it on the other image page: it collects the images in the largest version the page reveals and shows them **edge to edge on black**. Swipe or use the arrow keys to browse, `F` toggles full screen, `S` starts and stops a slideshow (seconds per image selectable), `Esc` or swiping down closes.
 - On a computer drag the button to the bookmarks bar. On iPad and iPhone bookmark any page, edit the bookmark and replace the address with the copied code.
 - It works best with **Bing’s image search**, where the originals are right in the page. With other search engines you get the largest previews, depending on the page.
 - The bookmark only runs in your browser and sends nothing to the server or anywhere else.
