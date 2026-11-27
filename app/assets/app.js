@@ -1310,11 +1310,17 @@
         });
         paint();
     })();
+    /* ---------- Drucken: jeder Knopf mit data-print (Lesemodus, Jahreskalender …) ---------- */
+    $$('[data-print]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            document.body.classList.remove('print-area');   // normale Seite drucken, nicht die Druckfläche der QR-Werkzeuge
+            window.print();
+        });
+    });
+
     /* ---------- Lesemodus: Drucken und als PDF speichern (mit Vorschau, Bilder nach Wahl) ---------- */
     var readerDoc = $('[data-reader]');
     if (readerDoc) (function () {
-        var printBtn = $('[data-print]');
-        if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
         var data = JSON.parse(($('#reader-data') || {}).textContent || 'null');
         var panel = $('[data-pdfpanel]'), openBtn = $('[data-pdf-open]');
         if (!data || !panel || !openBtn || !window.HTMLCanvasElement) return;

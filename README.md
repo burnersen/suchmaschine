@@ -123,7 +123,8 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 
 - **Warteseite sofort:** Nach Enter steht die Seite mit Suchfeld, Filtern und „Suche läuft …“ sofort da, auch bei Hostern, die Antworten sonst erst am Stück schicken (z. B. Plesk mit nginx vor Apache). Die Suche läuft im Hintergrund, danach lädt die Seite die fertigen Treffer aus dem Zwischenspeicher. Wer bei Plesk unter *Apache & nginx Settings* `fastcgi_buffering off;` einträgt, bekommt zusätzlich das Streaming ohne Umweg.
 - **Länger zwischenspeichern:** Google-Ergebnisse bleiben standardmäßig 6 Stunden (News und die letzten 24 Stunden 1 Stunde, Spielstände und Kurse 5 Minuten). Wiederholte Suchen und „Zurück“ sind sofort da und kosten nichts.
-- **Menü ⋮ auch bei News und Videos:** Hochstufen, Herabstufen, Blockieren, nur auf dieser Domain suchen, ohne Werbung lesen, QR-Code, Adresse kopieren.
+- **Drucken repariert:** Jahreskalender, Feiertage, Werkzeuge und Suchergebnisse drucken sauber (vorher tat der Knopf beim Kalender nichts, und Werkzeug-Seiten druckten leer).
+- **Menü ⋮ auch bei News und Videos** (und besser erkennbar): Hochstufen, Herabstufen, Blockieren, nur auf dieser Domain suchen, ohne Werbung lesen, QR-Code, Adresse kopieren.
 - Bei Googles Weiterleitungs-Links funktionieren „Ohne Werbung lesen“, QR-Code und „Adresse kopieren“ jetzt auch.
 
 ## Neu in 2.4: Live-Karten wie bei Google

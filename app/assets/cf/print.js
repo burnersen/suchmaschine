@@ -75,7 +75,9 @@ function printPages(svgs, pageCss, margin) {
     let st = document.getElementById('print-page-style');
     if (!st) { st = el('style', { id: 'print-page-style' }); document.head.append(st); }
     st.textContent = '@page { size: ' + pageCss + '; margin: ' + (margin || '0') + '; }';
+    document.body.classList.add('print-area');
     window.print();
+    window.addEventListener('afterprint', function () { document.body.classList.remove('print-area'); }, { once: true });
 }
 CF.printPages = printPages;
 
