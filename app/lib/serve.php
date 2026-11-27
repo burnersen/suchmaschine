@@ -27,6 +27,30 @@ function smServeAsset(): void
     exit;
 }
 
+/**
+ * ?a=printcss&s=A6&m=0&one=1: Stylesheet für den Druckrahmen der QR-Werkzeuge. s = Papierformat (A3 bis A6, auto oder „62mm 29mm“),
+ * m = Rand in mm, one = ein einzelner Code mittig statt ganzer Seiten.
+ */
+function smServePrintCss(): void
+{
+    $s = is_string($_GET['s'] ?? null) ? trim($_GET['s']) : 'auto';
+    if (!preg_match('/^(A[3-6]|auto|\d{1,3}(\.\d{1,2})?mm \d{1,3}(\.\d{1,2})?mm)$/', $s)) $s = 'auto';
+    $m = is_string($_GET['m'] ?? null) ? (int)$_GET['m'] : 0;
+    $m = max(0, min(30, $m));
+    $one = !empty($_GET['one']);
+    smHeaders();
+    header('Content-Type: text/css; charset=utf-8');
+    header('Cache-Control: public, max-age=86400');
+    echo '@page { size: ' . $s . '; margin: ' . $m . "mm; }\n"
+        . "html, body { margin: 0; padding: 0; background: #fff; }\n"
+        . "* { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; box-sizing: border-box; }\n"
+        . ($one
+            ? "body { display: flex; align-items: center; justify-content: center; height: 100vh; }\nsvg { display: block; width: 70%; height: auto; max-height: 90vh; }\n"
+            : "svg { display: block; width: 100vw; height: 100vh; overflow: hidden; break-after: page; page-break-after: always; break-inside: avoid; }\n"
+              . "svg:last-child { break-after: auto; page-break-after: auto; }\n");
+    exit;
+}
+
 function smServeOpenSearch(): void
 {
     smHeaders();

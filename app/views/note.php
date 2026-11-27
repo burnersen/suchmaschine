@@ -1,11 +1,11 @@
 <?php defined('SM_VERSION') || exit;
-/** Abholseite für einen Text-Schnipsel. Entschlüsselt wird nur im Browser, der Schlüssel steht hinter dem # im Link. */
+/** Abholseite für einen Text-Schnipsel. Entschlüsselt wird nur im Browser: neue Schnipsel (v2) mit dem Passwort, alte mit dem Schlüssel hinter dem # im Link. */
 ?>
 <main class="auth">
-    <div class="auth__card note-page" data-note="<?= h($noteId) ?>" data-salt="<?= h($info['salt'] ?? '') ?>" data-pass="<?= !empty($info['pass']) ? '1' : '0' ?>"
+    <div class="auth__card note-page" data-note="<?= h($noteId) ?>" data-salt="<?= h($info['salt'] ?? '') ?>" data-pass="<?= !empty($info['pass']) ? '1' : '0' ?>" data-v="<?= (int)($info['v'] ?? 1) ?>"
          data-l-wrong="<?= h(t('Der Schlüssel im Link passt nicht. Wurde der Link vollständig kopiert?')) ?>" data-l-nokey="<?= h(t('Im Link fehlt der Schlüssel (der Teil nach dem #). Bitte den vollständigen Link verwenden.')) ?>"
          data-l-gone="<?= h(t('Der Schnipsel wurde jetzt gelöscht. Kopiere den Text, wenn du ihn brauchst.')) ?>" data-l-left="<?= h(t('Noch %d Abrufe möglich.')) ?>"
-         data-l-copy="<?= h(t('Kopieren')) ?>" data-l-done="<?= h(t('Kopiert')) ?>" data-l-err="<?= h(t('Das hat nicht geklappt. Bitte noch einmal versuchen.')) ?>">
+         data-l-copy="<?= h(t('Kopieren')) ?>" data-l-done="<?= h(t('Kopiert')) ?>" data-l-err="<?= h(t('Das hat nicht geklappt. Bitte noch einmal versuchen.')) ?>" data-l-https="<?= h(t('Entschlüsseln geht nur über HTTPS.')) ?>">
         <a class="auth__logo" href="<?= h(smBase()) ?>"><?= smLogoHtml(true) ?><span class="auth__name"><?= smSiteNameHtml() ?></span></a>
         <h1 class="auth__title"><?= h(t('Text-Schnipsel')) ?></h1>
 <?php if (!$info): ?>

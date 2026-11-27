@@ -571,15 +571,7 @@ CF.views.create = {
                         } catch (e) { CF.toast(T('Kopieren von Bildern unterstützt dieser Browser nicht.'), 'warn'); }
                     }, 'copy', { disabled: !has }),
                     btn(T('Drucken'), 'btn-second btn-sm', () => {
-                        let pa = document.getElementById('print-area');
-                        if (!pa) { pa = el('div', { id: 'print-area' }); document.body.append(pa); }
-                        pa.className = '';
-                        const pst = document.getElementById('print-page-style');
-                        if (pst) pst.textContent = '';
-                        pa.innerHTML = current.svg;
-                        document.body.classList.add('print-area');
-                        window.print();
-                        window.addEventListener('afterprint', function () { document.body.classList.remove('print-area'); }, { once: true });
+                        CF.printPages([current.svg], 'auto', '12mm', true);
                     }, 'printer', { disabled: !has }),
                     btn(T('Im Verlauf merken'), 'btn-ghost btn-sm', () => { const id = CF.Store.put('h', { t: current.text, f: format, src: 'create', type: CF.Parse.content(current.text, {}, CF.lang).type, title: CF.Parse.content(current.text, {}, CF.lang).summary, fav: true }); if (id) CF.toast(T('Im Verlauf gespeichert (mit Stern)')); }, 'star', { disabled: !has }),
                     btn(T('Als Etiketten'), 'btn-ghost btn-sm', () => {

@@ -217,6 +217,7 @@ function smDefaults(): array
         'ipv4_host'     => '',      // eigene Subdomain nur mit IPv4 (A-Eintrag), um die IPv4 auch bei IPv6-Verbindung zu zeigen
         'bang_auto'     => '1',     // Bang-Liste einmal pro Woche frisch von GitHub (Kagi) holen
         'bang_check'    => '1',     // Zielseiten der Bangs nach und nach auf Erreichbarkeit prüfen
+        'bang_autodel'  => '1',     // Bangs, deren Domain per https dauerhaft nicht antwortet, für alle automatisch löschen
         'bang_ref'      => '1',     // bei Bangs die Adresse der Suchmaschine als Herkunft mitschicken (nie den Suchbegriff)
     ];
 }

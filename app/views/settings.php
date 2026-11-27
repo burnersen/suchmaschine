@@ -160,7 +160,7 @@ $lists = smDomainLists($me);
         </form>
     </section>
 
-<?php elseif ($tab === 'browser'): $loginUrl = $token !== '' ? smOrigin() . '?token=' . rawurlencode($token) : ''; ?>
+<?php elseif ($tab === 'browser'): $loginUrl = $token !== '' ? smOrigin() . '?token=' . rawurlencode($token) : ''; $loginHash = $token !== '' ? smOrigin() . '?a=login#token=' . rawurlencode($token) : ''; ?>
     <section class="panel">
         <h2><?= h(t('Als Standardsuche im Browser')) ?></h2>
         <p><?= h(t('Firefox: in der Adressleiste auf das Lupen-Symbol mit Plus klicken. Chrome und Edge: Einstellungen → Suchmaschinen → hinzufügen, mit dieser Adresse:')) ?></p>
@@ -181,10 +181,12 @@ $lists = smDomainLists($me);
         <label class="field"><span><?= h(t('Dein Token')) ?></span>
             <span class="copyfield"><input type="password" value="<?= h($token) ?>" readonly data-reveal spellcheck="false" aria-label="<?= h(t('Dein Token')) ?>"><button type="button" class="btn btn--small" data-copy-text="<?= h($token) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span></label>
         <label class="field"><span><?= h(t('Login-Adresse (z. B. als Lesezeichen)')) ?></span>
-            <span class="copyfield"><input type="password" value="<?= h($loginUrl) ?>" readonly data-reveal spellcheck="false"><button type="button" class="btn btn--small" data-copy-text="<?= h($loginUrl) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span></label>
+            <span class="copyfield"><input type="password" value="<?= h($loginHash) ?>" readonly data-reveal spellcheck="false"><button type="button" class="btn btn--small" data-copy-text="<?= h($loginHash) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span>
+            <small class="muted"><?= h(t('Der Token steht hinter dem #. Diesen Teil schickt der Browser nie an den Server, er landet also in keinem Zugriffsprotokoll. Die alte Form mit ?token=… geht weiterhin.')) ?></small></label>
         <label class="field"><span><?= h(t('Such-Adresse für den Browser (%s = Suchbegriff)', '%s')) ?></span>
             <span class="copyfield"><input type="password" value="<?= h($loginUrl . '&q=%s') ?>" readonly data-reveal spellcheck="false"><button type="button" class="btn btn--small" data-copy-text="<?= h($loginUrl . '&q=%s') ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Kopieren')) ?></button></span></label>
         <p class="muted small"><?= h(t('Firefox: Auf dieser Seite in der Adressleiste auf das Lupen-Symbol mit Plus klicken, dann wird die Suchmaschine mit deinem Token hinzugefügt (OpenSearch).')) ?></p>
+        <p class="muted small"><?= h(t('Gut zu wissen: Bei der Such-Adresse mit ?token=… steht der Token in den Zugriffsprotokollen des Webservers (Apache, nginx, Hoster). Wer das nicht möchte, meldet sich einmal mit der Login-Adresse oben an (danach bleibt der Browser 365 Tage angemeldet) und nimmt als Browser-Suche die Adresse ohne Token. Bei eigenem Server kann man Query-Strings auch aus den Protokollen heraushalten, z. B. nginx: log_format mit $uri statt $request_uri.')) ?></p>
         <div class="form__actions">
             <form method="post" action="<?= h($surl('browser')) ?>#token" data-confirm="<?= h(t('Neuen Token erzeugen? Der alte funktioniert dann nicht mehr, auch nicht in Lesezeichen und Browser-Suchen.')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="token_gen"><button type="submit" class="btn"><?= h(t('Neu erzeugen')) ?></button></form>
             <form method="post" action="<?= h($surl('browser')) ?>#token" data-confirm="<?= h(t('Token löschen?')) ?>"><?= smCsrfField($me) ?><input type="hidden" name="do" value="token_del"><button type="submit" class="btn btn--danger"><?= h(t('Token löschen')) ?></button></form>

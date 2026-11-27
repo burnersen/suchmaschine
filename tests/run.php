@@ -154,14 +154,36 @@ smShortDelete(77, 'Urlaub');
 same('Kurzlink gelöscht', null, smShortFind('Urlaub'));
 [, $ne] = smNoteCreate(77, '{"iv":"<x>","ct":"a"}', 24, 1, false, '');
 check('Schnipsel: kaputter Inhalt wird abgelehnt', $ne !== '');
-[$nid] = smNoteCreate(77, '{"v":1,"iv":"AAAA","ct":"BBBB"}', 24, 2, false, 'Test');
-same('Schnipsel: erster Abruf, noch 1 übrig', 1, smNoteFetch($nid)['left'] ?? null);
-same('Schnipsel: zweiter Abruf, danach weg', 0, smNoteFetch($nid)['left'] ?? null);
-same('Schnipsel: ist gelöscht', null, smNoteFetch($nid));
 $auth = str_repeat('ab', 32);
-[$pid] = smNoteCreate(77, '{"v":1,"iv":"AAAA","ct":"BBBB","salt":"CCCC"}', 24, 1, true, '', $auth);
+[, $ne] = smNoteCreate(77, '{"v":1,"iv":"AAAA","ct":"BBBB"}', 24, 2, false, 'Test');
+check('Schnipsel: ohne Passwort wird abgelehnt (Pflicht)', $ne !== '');
+[$nid, $ne] = smNoteCreate(77, '{"v":2,"iv":"AAAA","ct":"BBBB","salt":"CCCC"}', 24, 2, true, 'Test', $auth);
+check('Schnipsel: kurze Kennung (8 Zeichen)', (bool)preg_match('/^[A-Za-z0-9]{8}$/', $nid), $nid . ' ' . $ne);
+same('Schnipsel: erster Abruf, noch 1 übrig', 1, smNoteFetch($nid, $auth)['left'] ?? null);
+same('Schnipsel: zweiter Abruf, danach weg', 0, smNoteFetch($nid, $auth)['left'] ?? null);
+same('Schnipsel: ist gelöscht', null, smNoteFetch($nid, $auth));
+same('Schnipsel: Version für die Abholseite', 2, (smNoteExists(smNoteCreate(77, '{"v":2,"iv":"AAAA","ct":"BBBB","salt":"CCCC"}', 24, 1, true, '', $auth)[0])['v'] ?? 0));
+check('Kurzlink auf Schnipsel: verständliche Meldung', smShortCreate(77, smOrigin() . '?n=Ab3xK9pQ')[1] !== '' && strpos(smShortCreate(77, smOrigin() . '?n=Ab3xK9pQ')[1], 'Schnipsel') !== false);
+[$pid] = smNoteCreate(77, '{"v":2,"iv":"AAAA","ct":"BBBB","salt":"CCCC"}', 24, 1, true, '', $auth);
 same('Schnipsel mit Passwort: falscher Prüfwert verbraucht nichts', 'pass', smNoteFetch($pid, str_repeat('00', 32)));
 check('Schnipsel mit Passwort: richtiger Prüfwert', is_array(smNoteFetch($pid, $auth)));
+
+/* ---------- 3.4: Bangs ---------- */
+same('Bang-Sprache: .de ist Deutsch', 'de', smBangLang(['d' => 'www.heise.de', 'u' => 'https://www.heise.de/suche/?q={q}', 'n' => 'heise']));
+same('Bang-Sprache: de.wikipedia ist Deutsch', 'de', smBangLang(['d' => 'de.wikipedia.org', 'u' => 'https://de.wikipedia.org/w/index.php?search={q}', 'n' => 'Wikipedia']));
+same('Bang-Sprache: .com ist Englisch', 'en', smBangLang(['d' => 'github.com', 'u' => 'https://github.com/search?q={q}', 'n' => 'GitHub']));
+same('Bang-Sprache: .fr ist andere', 'xx', smBangLang(['d' => 'www.leboncoin.fr', 'u' => 'https://www.leboncoin.fr/recherche?text={q}', 'n' => 'leboncoin']));
+same('Bang-Sprache: fr.wikipedia ist andere', 'xx', smBangLang(['d' => 'fr.wikipedia.org', 'u' => 'https://fr.wikipedia.org/w/index.php?search={q}', 'n' => 'Wikipedia FR']));
+same('Bang-Sprache: uk.example.com ist Englisch', 'en', smBangLang(['d' => 'uk.farnell.com', 'u' => 'https://uk.farnell.com/search?st={q}', 'n' => 'Farnell']));
+same('Bangs: nur https', '', smCleanBangUrl('http://example.org/?q={q}'));
+same('Bangs: Zahlen-Kürzel bleiben beim Löschen erhalten', ['1337x'], smCleanBangOff(array_keys(array_flip(['1337x']))));
+same('Bangs: rein numerisches Kürzel', ['1337'], smCleanBangOff(array_keys(array_flip(['1337']))));
+$bl0 = ['own' => [['t' => 'meins', 'n' => 'Meins', 'u' => 'https://example.org/?q={q}']], 'off' => ['alt']];
+[$bl1] = smBangEdit($bl0, 'bang_bulkdel', ['ts' => ['meins', 'w']], function ($t) { return $t === 'w'; });
+same('Bangs: mehrere auf einmal löschen', [[], ['alt', 'w']], [$bl1['own'], $bl1['off']]);
+$bl2 = smBangUndoApply($bl1, smBangDiff($bl0, $bl1));
+same('Bangs: Rückgängig stellt alles wieder her', [$bl0['own'], $bl0['off']], [$bl2['own'], $bl2['off']]);
+same('Startpage-Einstellungslink wird zur Suche', 'https://www.startpage.com/sp/search?query={q}&prfe=abcdef0123456789abcd', smFallbackNormalize('https://www.startpage.com/do/mypage.pl?prfe=abcdef0123456789abcd'));
 
 /* ---------- 2.0: Netz und Werkzeuge ---------- */
 check('IPv6: privat, lokal und versteckte IPv4 sind nicht öffentlich', !smNetIpPublic('::1') && !smNetIpPublic('fd00::1') && !smNetIpPublic('fe80::1') && !smNetIpPublic('::ffff:192.168.1.1') && !smNetIpPublic('64:ff9b::a00:1') && !smNetIpPublic('2002:c0a8:0101::1'));
