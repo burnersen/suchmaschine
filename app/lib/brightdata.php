@@ -171,6 +171,8 @@ function smBdIsRedirect(string $u): bool
 /** Weiterleitungen mit dem Ziel im Klartext (/url?q=…) gleich auspacken */
 function smBdUnwrap(string $u): string
 {
+    // Light JSON schreibt Googles Weiterleitungen ohne Domain („/goto?url=…“)
+    if (preg_match('~^/(goto|url)\?~', $u)) $u = 'https://www.google.com' . $u;
     if (!preg_match('~^https://(www\.)?google\.[a-z.]{2,8}/url\?~i', $u)) return $u;
     parse_str((string)parse_url($u, PHP_URL_QUERY), $qs);
     $t = smLink($qs['q'] ?? $qs['url'] ?? '');
@@ -321,8 +323,16 @@ function smBdExtDate(array $o): string
 
 /* ---------- Antworten vereinheitlichen ---------- */
 
+/** Welches Datenformat die Zone liefert: full (Full JSON) oder light (Light JSON, ohne Karten und Zusatzinfos) */
+function smBdFormat(array $d): string
+{
+    return isset($d['general']['search_engine']) || isset($d['general']['results_cnt']) ? 'full' : 'light';
+}
+
 function smBdNormalize(array $p, array $d): array
 {
+    // Merken, was die Zone gerade liefert (nur wenn es sich ändert), damit die Verwaltung darauf hinweisen kann
+    if (isset($d['general']) && smProvGet('brightdata', 'fmt') !== ($fmt = smBdFormat($d))) smProvSet('brightdata', 'fmt', $fmt);
     switch ($p['kind']) {
         case 'images': return smBdImages($d);
         case 'news':   $out = smBdNews($d); break;
@@ -459,10 +469,12 @@ function smBdImages(array $d): array
         $page = smLink(smBdUnwrap((string)($o['link'] ?? '')));
         if ($thumb === '' || $page === '') continue;
         $src = smLink($o['original_image'] ?? '');
-        // Bei Bildern heißt „title“ die Website, der eigentliche Titel steht in image_alt
-        $site = smPlain((string)($o['title'] ?? ''));
+        // Full JSON: „title“ ist die Website, der eigentliche Titel steht in image_alt. Light JSON: „title“ ist der Titel.
+        $full = isset($o['image_alt']);
+        $site = $full ? smPlain((string)($o['title'] ?? '')) : smPlain((string)($o['source'] ?? ''));
+        if (!$full && ($site === '' || mb_strlen($site) > 40)) $site = smHost((string)parse_url(smBdIsRedirect($page) ? $src : $page, PHP_URL_HOST));
         $out[] = [
-            'title' => smPlain((string)($o['image_alt'] ?? $o['source'] ?? '')),
+            'title' => smPlain((string)($full ? $o['image_alt'] : ($o['title'] ?? $o['source'] ?? ''))),
             'page' => smBdIsRedirect($page) ? smBdGoUrl($page) : $page,
             'src' => $src, 'thumb' => $thumb,
             'host' => $site !== '' ? $site : smHost((string)parse_url($src, PHP_URL_HOST)),

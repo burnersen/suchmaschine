@@ -106,6 +106,9 @@ $without = array_values(array_diff($order, $withKey));
                     <input type="number" name="cache[<?= h($id) ?>]" min="0" max="<?= $id === 'brave' ? 60 : 168 ?>" value="<?= (int)smProvGet($id, 'cache') ?>">
                     <small class="muted"><?= h($id === 'brave' ? t('Brave erlaubt nur kurzes Speichern (höchstens 60).') : t('Gleiche Suche in dieser Zeit kostet nichts.')) ?></small></label>
             </div>
+<?php if ($id === 'brightdata' && smProvGet('brightdata', 'fmt') === 'light'): ?>
+            <div class="alert alert--warn"><?= h(t('Deine Zone liefert „Light JSON“. Die Suche funktioniert damit, aber ohne Karten (Spiele, Kurse, Öffnungszeiten, Infobox, KI-Übersicht), ohne Favicons, Vorschaubilder und ähnliche Suchen, und bei News kommen weniger Treffer. Schneller ist es kaum. Empfehlung: in Bright Data unter „Data format“ wieder „Full JSON“ wählen.')) ?></div>
+<?php endif; ?>
 <?php if ($id === 'brightdata'): ?>
             <div class="form__row">
                 <label class="field"><span><?= h(t('Zone der SERP API')) ?></span>
