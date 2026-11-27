@@ -16,5 +16,5 @@
             <a href="<?= h(smUrl(['a' => 'help'])) ?>#bildergross"><?= h(t('Bilder dort groß ansehen')) ?></a></small>
     </form>
 <?php endif; ?>
-    <p class="home__help"><a href="<?= h(smUrl(['a' => 'help'])) ?>"><?= h(t('Hilfe: alles, was diese Suchmaschine kann')) ?></a> · <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Werkzeuge')) ?></a></p>
+    <p class="home__help"><a href="<?= h(smUrl(['a' => 'help'])) ?>"><?= h(t('Hilfe: alles, was diese Suchmaschine kann')) ?></a> · <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Werkzeuge')) ?></a> · <a href="<?= h(smUrl(['a' => 'recipes'])) ?>"><?= h(t('Rezepte')) ?></a></p>
 </main>

@@ -112,7 +112,7 @@ function smReadPage(string $url, ?string $html = null): array
     }
 
     // 1. Rezept aus den strukturierten Daten
-    foreach (smJsonLd($xp) as $o) {
+    foreach (array_merge(smJsonLd($xp), smMicroRecipes($xp)) as $o) {
         if (!smLdIs($o, 'Recipe')) continue;
         $b = [];
         $img = smLdImage($o['image'] ?? null) ?: $hero;
@@ -120,18 +120,21 @@ function smReadPage(string $url, ?string $html = null): array
         $desc = smPlain((string)($o['description'] ?? ''));
         if ($desc !== '') $b[] = ['t' => 'p', 'x' => $desc];
         $facts = [];
+        $yield = 0.0;
         foreach (['recipeYield' => 'Portionen', 'prepTime' => 'Vorbereitung', 'cookTime' => 'Kochen', 'totalTime' => 'Gesamt'] as $k => $label) {
             $v = $o[$k] ?? null;
             if (is_array($v)) $v = reset($v);
             if (!is_scalar($v) || trim((string)$v) === '') continue;
             $v = in_array($k, ['prepTime', 'cookTime', 'totalTime'], true) ? smIsoDuration((string)$v) : smPlain((string)$v);
+            // Portionen als Zahl, damit der Browser die Zutaten umrechnen kann
+            if ($k === 'recipeYield' && preg_match('/\d+(?:[.,]\d+)?/', $v, $ym)) $yield = (float)str_replace(',', '.', $ym[0]);
             if ($v !== '') $facts[] = t($label) . ': ' . $v;
         }
-        if ($facts) $b[] = ['t' => 'p', 'x' => implode(' · ', $facts), 'c' => 'facts'];
+        if ($facts) $b[] = ['t' => 'p', 'x' => implode(' · ', $facts), 'c' => 'facts'] + ($yield > 0 && $yield <= 200 ? ['yield' => $yield] : []);
         $ing = array_values(array_filter(array_map(function ($x) { return is_scalar($x) ? smPlain((string)$x) : ''; }, (array)($o['recipeIngredient'] ?? []))));
         if ($ing) {
             $b[] = ['t' => 'h', 'x' => t('Zutaten')];
-            foreach ($ing as $x) $b[] = ['t' => 'li', 'x' => $x];
+            foreach ($ing as $x) $b[] = ['t' => 'li', 'x' => $x, 'c' => 'ing'];
         }
         $steps = smLdSteps($o['recipeInstructions'] ?? []);
         if ($steps) {
@@ -159,7 +162,7 @@ function smReadPage(string $url, ?string $html = null): array
     }
     $junk = '/(^|[\s_-])(ad|ads|advert\w*|anzeige|werbung|sponsor\w*|promo\w*|banner|cookie\w*|consent|gdpr|newsletter|subscribe|abo|paywall|share|sharing|social|'
           . 'comment\w*|kommentar\w*|related|recommend\w*|teaser|outbrain|taboola|popup|modal|overlay|sidebar|breadcrumb\w*|pagination|footer|header|nav\w*|menu|toolbar|'
-          . 'author-box|tags?|rating|print|jump|toc|skip)([\s_-]|$)/i';
+          . 'author-box|tags?|rating|print|jump|toc|skip|references?|reflist|footnotes?|citations?|fussnoten|einzelnachweise|navbox|catlinks)([\s_-]|$)/i';
     foreach (iterator_to_array($xp->query('//*[@class or @id or @role or @aria-hidden or @hidden]')) as $n) {
         if (!$n->parentNode || in_array(strtolower($n->nodeName), ['html', 'body', 'article', 'main'], true)) continue;
         $sig = $n->getAttribute('class') . ' ' . $n->getAttribute('id');
@@ -179,6 +182,8 @@ function smReadPage(string $url, ?string $html = null): array
         $links = 0;
         foreach ($p->getElementsByTagName('a') as $a) $links += mb_strlen(trim($a->textContent));
         $pts = (1 + min(3, $len / 100) + substr_count($txt, ',') * .2) * (1 - min(.9, $links / max(1, $len)));
+        // Listenpunkte zählen weniger: sonst gewinnen lange Quellen- und Linklisten gegen den Fließtext
+        if (strtolower($p->nodeName) === 'li') $pts *= .3;
         foreach ([$p->parentNode, $p->parentNode ? $p->parentNode->parentNode : null] as $i => $anc) {
             if (!$anc instanceof DOMElement) continue;
             $id = spl_object_id($anc);
@@ -198,9 +203,14 @@ function smReadPage(string $url, ?string $html = null): array
     }
     arsort($score);
     $best = $nodes[array_key_first($score)];
-    // Liegt der Text auf mehrere Geschwister verteilt (häufig), den gemeinsamen Eltern nehmen
-    if ($best->parentNode instanceof DOMElement && isset($score[spl_object_id($best->parentNode)]) && $score[spl_object_id($best->parentNode)] > $score[spl_object_id($best)] * .8) {
-        $best = $best->parentNode;
+    // Liegt der Text auf mehrere Geschwister verteilt (häufig, z. B. Abschnitte bei Wikipedia), den gemeinsamen Eltern nehmen
+    $top = $score[spl_object_id($best)];
+    for ($up = 0; $up < 2 && $best->parentNode instanceof DOMElement && strtolower($best->parentNode->nodeName) !== 'body'; $up++) {
+        $par = $best->parentNode;
+        $sib = 0;
+        foreach ($nodes as $id => $n) if ($n->parentNode === $par && $score[$id] >= $top * .25) $sib++;
+        if ($sib >= 2 || (isset($score[spl_object_id($par)]) && $score[spl_object_id($par)] > $score[spl_object_id($best)] * .8)) $best = $par;
+        else break;
     }
     $blocks = [];
     $seenImg = [];
@@ -212,7 +222,10 @@ function smReadPage(string $url, ?string $html = null): array
         $out['blocks'] = $recipe;
         $out['kind'] = 'recipe';
         $out['ok'] = true;
-        $out['alt'] = array_slice($blocks, 0, 600);   // der ganze Artikel, mit seinen Bildern
+        // Der ganze Artikel mit seinen Bildern, aber nur, wenn es dort wirklich mehr zu lesen gibt
+        $more = 0;
+        foreach ($blocks as $b) if ($b['t'] !== 'img') $more += mb_strlen($b['x']);
+        $out['alt'] = $more >= 800 ? array_slice($blocks, 0, 600) : null;
         return $out;
     }
     $text = 0;
@@ -328,6 +341,72 @@ function smJsonLd(DOMXPath $xp): array
     return $all;
 }
 
+/**
+ * Rezepte im Microdata-Format (itemscope itemtype="…schema.org/Recipe", z. B. ichkoche.at, swissmilk.ch),
+ * umgebaut in dieselbe Form wie JSON-LD
+ */
+function smMicroRecipes(DOMXPath $xp): array
+{
+    $out = [];
+    foreach ($xp->query('//*[@itemscope and contains(@itemtype, "schema.org/Recipe")]') as $root) {
+        $props = [];
+        foreach ($xp->query('.//*[@itemprop]', $root) as $el) {
+            // Eigenschaften verschachtelter Objekte (Bewertung, Nährwerte, Schritte …) gehören nicht zum Rezept selbst
+            $owner = $el->parentNode;
+            while ($owner && $owner !== $root && !($owner instanceof DOMElement && $owner->hasAttribute('itemscope'))) $owner = $owner->parentNode;
+            if ($owner !== $root) continue;
+            foreach (preg_split('/\s+/', trim($el->getAttribute('itemprop'))) as $name) {
+                if ($el->hasAttribute('content')) $v = $el->getAttribute('content');
+                elseif ($el->hasAttribute('datetime')) $v = $el->getAttribute('datetime');
+                elseif (in_array(strtolower($el->nodeName), ['img', 'source'], true)) $v = $el->getAttribute('src') ?: $el->getAttribute('data-src');
+                elseif (strtolower($el->nodeName) === 'meta') $v = $el->getAttribute('content');
+                elseif (strtolower($el->nodeName) === 'link' || strtolower($el->nodeName) === 'a') $v = $el->getAttribute('href') ?: $el->textContent;
+                else $v = smMicroText($el);
+                $v = trim(preg_replace('/\s+/u', ' ', (string)$v));
+                if ($v !== '') $props[$name][] = $v;
+            }
+        }
+        if (empty($props['recipeIngredient']) && empty($props['ingredients'])) continue;
+        $out[] = [
+            '@type' => 'Recipe', 'name' => $props['name'][0] ?? '', 'description' => $props['description'][0] ?? '',
+            'image' => $props['image'][0] ?? '', 'recipeYield' => $props['recipeYield'][0] ?? '',
+            'prepTime' => $props['prepTime'][0] ?? '', 'cookTime' => $props['cookTime'][0] ?? '', 'totalTime' => $props['totalTime'][0] ?? '',
+            'recipeIngredient' => $props['recipeIngredient'] ?? $props['ingredients'] ?? [],
+            'recipeInstructions' => smMicroSteps($xp, $root),
+            'author' => $props['author'][0] ?? '',
+        ];
+    }
+    return $out;
+}
+
+/** Text eines Elements, mit Leerzeichen an Zellen- und Absatzgrenzen („1 kg“ | „Kartoffeln“ statt „1 kgKartoffeln“) */
+function smMicroText(DOMNode $n): string
+{
+    if ($n instanceof DOMText) return $n->data;
+    if (!$n instanceof DOMElement) return '';
+    $tag = strtolower($n->nodeName);
+    if (in_array($tag, ['script', 'style', 'noscript', 'button', 'svg'], true)) return '';
+    $t = '';
+    foreach ($n->childNodes as $c) $t .= smMicroText($c);
+    return in_array($tag, ['td', 'th', 'tr', 'div', 'p', 'li', 'br', 'dd', 'dt', 'h2', 'h3', 'h4'], true) ? ' ' . $t . ' ' : $t;
+}
+
+/** Zubereitung aus Microdata: jedes itemprop="recipeInstructions" ein Schritt, Listen darin aufgeteilt */
+function smMicroSteps(DOMXPath $xp, DOMElement $root): array
+{
+    $steps = [];
+    foreach ($xp->query('.//*[@itemprop="recipeInstructions"]', $root) as $el) {
+        $lis = $xp->query('.//li', $el);
+        if ($lis->length > 1) {
+            foreach ($lis as $li) if (($t = trim(preg_replace('/\s+/u', ' ', smMicroText($li)))) !== '') $steps[] = $t;
+            continue;
+        }
+        $t = trim(preg_replace('/\s+/u', ' ', smMicroText($el)));
+        if ($t !== '') $steps[] = $t;
+    }
+    return $steps;
+}
+
 function smLdIs(array $o, string $type): bool
 {
     $t = $o['@type'] ?? '';
@@ -375,4 +454,17 @@ function smIsoDuration(string $d): string
     $h = intdiv($min, 60);
     $mm = $min % 60;
     return trim(($h ? t('%d Std.', $h) . ' ' : '') . ($mm ? t('%d Min.', $mm) : ''));
+}
+
+/**
+ * Getestete Rezeptseiten für den Bereich „Rezepte“: direct = klappt mit Link und Lesezeichen,
+ * bookmark = die Seite sperrt Server-Abrufe, klappt aber mit dem Lesezeichen „Lesen & Drucken“.
+ */
+function smRecipeSites(): array
+{
+    return [
+        'tested'   => 1795737600,
+        'direct'   => ['backenmachtgluecklich.de', 'bbcgoodfood.com', 'bettybossi.ch', 'bonappetit.com', 'budgetbytes.com', 'cuisineaz.com', 'daskochrezept.de', 'delish.com', 'eat-this.org', 'eatsmarter.de', 'edeka.de', 'einfachbacken.de', 'einfachkochen.de', 'emmikochteinfach.de', 'essen-und-trinken.de', 'fooby.ch', 'food.com', 'freundin.de', 'gaumenfreundin.de', 'giallozafferano.it', 'gutekueche.at', 'hellofresh.de', 'ichkoche.at', 'jamieoliver.com', 'kaufland.de', 'kingarthurbaking.com', 'kitchenstories.com', 'kochkarussell.com', 'kochtrotz.de', 'kuechenchaotin.de', 'kuechengoetter.de', 'lecker.de', 'leckerschmecker.me', 'lidl-kochen.de', 'loveandlemons.com', 'malteskitchen.de', 'oetker.de', 'recipetineats.com', 'sallys-blog.de', 'springlane.de', 'swissmilk.ch', 'tasty.co', 'zuckerjagdwurst.com'],
+        'bookmark' => ['ah.nl', 'allrecipes.com', 'chefkoch.de', 'cookieandkate.com', 'kochbar.de', 'rewe.de', 'seriouseats.com', 'simplyrecipes.com', 'thekitchn.com'],
+    ];
 }

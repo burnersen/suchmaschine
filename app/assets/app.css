@@ -1239,3 +1239,16 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .howto ol { margin: 8px 0 2px; }
 #bildergross h3 { margin: 18px 0 6px; font-size: 16px; }
 
+/* ---------- 3.1: Portionen umrechnen, geteilter Link ---------- */
+.servings { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 4px 6px 4px 14px; border: 1px solid var(--line); border-radius: 999px; }
+.servings__label { color: var(--text-2); font-size: 14px; }
+.servings__val { min-width: 2.2em; text-align: center; font-variant-numeric: tabular-nums; }
+.servings__btn { width: 36px; height: 36px; font-size: 20px; line-height: 1; }
+.servings__btn:disabled { opacity: .35; }
+@media print { .servings { display: none !important; } }
+.share__url { overflow-wrap: anywhere; }
+.share__acts { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.recipes__form { display: flex; gap: 8px; flex-wrap: wrap; }
+.recipes__form input[type="url"] { flex: 1 1 260px; min-width: 0; height: 44px; font-size: 16px; }
+.recipes__sites { display: flex; flex-wrap: wrap; gap: 6px; }
+

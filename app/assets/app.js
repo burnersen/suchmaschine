@@ -1340,6 +1340,58 @@
         });
     });
 
+    /* ---------- Rezept im Lesemodus: Portionen umrechnen (Zutaten, Ausdruck und PDF rechnen mit) ---------- */
+    $$('[data-yield]').forEach(function (facts) {
+        var base = parseFloat(facts.getAttribute('data-yield')), cur = base;
+        var ings = $$('[data-ing]');
+        if (!base || !ings.length) return;
+        var de = (document.documentElement.lang || 'de') !== 'en';
+        var frac = { '½': 0.5, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
+        var numRe = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?(?:\s*[½⅓⅔¼¾⅛])?|[½⅓⅔¼¾⅛])(\s*[-–]\s*(\d+(?:[.,]\d+)?))?/;
+        function num(t) {
+            t = t.trim();
+            var m;
+            if ((m = /^(\d+)\s+(\d+)\/(\d+)$/.exec(t))) return +m[1] + m[2] / m[3];
+            if ((m = /^(\d+)\/(\d+)$/.exec(t))) return m[1] / m[2];
+            if ((m = /^(\d+(?:[.,]\d+)?)?\s*([½⅓⅔¼¾⅛])$/.exec(t))) return (m[1] ? parseFloat(m[1].replace(',', '.')) : 0) + frac[m[2]];
+            return parseFloat(t.replace(',', '.'));
+        }
+        function fmt(v) {
+            if (v >= 20) v = Math.round(v);
+            else if (v >= 3) v = Math.round(v * 2) / 2;
+            else v = Math.round(v * 4) / 4;
+            if (v === 0) v = 0.25;
+            var i = Math.floor(v), r = v - i, sym = { 0.25: '¼', 0.5: '½', 0.75: '¾' }[r];
+            if (sym) return (i ? i : '') + sym;
+            return String(v).replace('.', de ? ',' : '.');
+        }
+        ings.forEach(function (li) { li.setAttribute('data-orig', li.textContent); });
+        var factsOrig = facts.textContent;
+        function apply() {
+            var f = cur / base;
+            ings.forEach(function (li) {
+                var o = li.getAttribute('data-orig'), m = numRe.exec(o);
+                if (!m || f === 1) { li.textContent = o; return; }
+                var out = fmt(num(m[1]) * f) + (m[3] ? '–' + fmt(num(m[3]) * f) : '');
+                li.textContent = out + o.slice(m[0].length);
+            });
+            facts.firstChild.textContent = factsOrig.replace(/\d+(?:[.,]\d+)?/, fmt(cur));
+            val.textContent = fmt(cur);
+            minus.disabled = cur <= 1;
+        }
+        var box = document.createElement('div');
+        box.className = 'servings';
+        box.innerHTML = '<span class="servings__label"></span><button type="button" class="iconbtn servings__btn">−</button><strong class="servings__val"></strong><button type="button" class="iconbtn servings__btn">+</button>';
+        $('.servings__label', box).textContent = facts.getAttribute('data-label');
+        var btns = $$('button', box), minus = btns[0], plus = btns[1], val = $('.servings__val', box);
+        minus.setAttribute('aria-label', facts.getAttribute('data-minus'));
+        plus.setAttribute('aria-label', facts.getAttribute('data-plus'));
+        minus.addEventListener('click', function () { cur = Math.max(1, cur > base && cur - 1 < base ? base : cur - 1); apply(); });
+        plus.addEventListener('click', function () { cur = cur < base && cur + 1 > base ? base : cur + 1; apply(); });
+        facts.parentNode.insertBefore(box, facts.nextSibling);
+        apply();
+    });
+
     /* ---------- Lesemodus: Drucken und als PDF speichern (mit Vorschau, Bilder nach Wahl) ---------- */
     var readerDoc = $('[data-reader]');
     if (readerDoc) (function () {
@@ -1399,7 +1451,9 @@
         }
         var val = function (n) { var e = panel.querySelector('input[name=' + n + ']:checked') || panel.querySelector('input[name=' + n + ']'); return e ? e.value : ''; };
         function build() {
-            var blocks = data.blocks.map(function (b, i) { return b.t === 'img' ? (imgs[i] && imgs[i].on ? { t: 'img', img: imgs[i] } : null) : b; }).filter(Boolean);
+            // Text so, wie er gerade auf der Seite steht (z. B. nach dem Umrechnen der Portionen)
+            var live = function (b, i) { var el = readerDoc.querySelector('[data-b="' + i + '"]'); return el ? { t: b.t, x: el.textContent, c: b.c } : b; };
+            var blocks = data.blocks.map(function (b, i) { return b.t === 'img' ? (imgs[i] && imgs[i].on ? { t: 'img', img: imgs[i] } : null) : live(b, i); }).filter(Boolean);
             var tmpl = pageLbl.getAttribute('data-tmpl') || '%d / %d';
             return window.smPdfLayout({
                 title: data.title, meta: data.meta, source: data.source, note: data.note, blocks: blocks,

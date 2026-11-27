@@ -150,6 +150,16 @@ function smRender(string $view, array $vars = [], bool $layout = true): void
     }
 }
 
+// PHP 8.0 kennt array_is_list noch nicht (der Lesemodus braucht es für JSON-LD)
+if (!function_exists('array_is_list')) {
+    function array_is_list(array $a): bool
+    {
+        $i = 0;
+        foreach ($a as $k => $_) if ($k !== $i++) return false;
+        return true;
+    }
+}
+
 function smClientIp(): string
 {
     return (string)($_SERVER['REMOTE_ADDR'] ?? '');

@@ -233,6 +233,16 @@ $thrown = '';
 try { smSearch('web', 'test2', ['page' => 1], 1); } catch (SmSearchExhausted $e) { $thrown = $e->getMessage(); }
 check('Ohne Key: Ausweich-Suchmaschine', strpos($thrown, 'kein Suchdienst eingerichtet') !== false, $thrown);
 
+/* ---------- Adresse im Suchfeld ---------- */
+same('Adresse mit https: Lesemodus', ['https://www.chefkoch.de/rezepte/123/kuchen.html', true], smQueryUrl('https://www.chefkoch.de/rezepte/123/kuchen.html'));
+same('Adresse ohne https, mit Pfad', ['https://chefkoch.de/rezepte/123', true], smQueryUrl('chefkoch.de/rezepte/123'));
+same('Bloße Domain mit https: Seite öffnen', ['https://www.ostsee-zeitung.de', false], smQueryUrl('https://www.ostsee-zeitung.de'));
+same('www-Domain ohne Pfad: Seite öffnen', ['https://www.spiegel.de', false], smQueryUrl('www.spiegel.de'));
+same('„node.js“ bleibt eine Suche', null, smQueryUrl('node.js'));
+same('Suche mit Leerzeichen bleibt eine Suche', null, smQueryUrl('chefkoch.de rezepte'));
+same('Rechnung bleibt eine Suche', null, smQueryUrl('2.5/3'));
+check('Lesezeichen „Lesen & Drucken“ zeigt auf den Lesemodus', strpos(rawurldecode(smReadBookmarklet()), '?a=read&u=') !== false);
+
 /* ---------- Ausweich-Suchmaschine ---------- */
 same('Standard ist Startpage', 'Startpage', smFallbackName(null));
 same('Gast ohne Wahl: Standard', 'https://www.startpage.com/do/search?q=a%20b', smFallbackUrl('a b', null));

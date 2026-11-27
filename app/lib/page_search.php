@@ -79,6 +79,26 @@ function smSearchFilters(string $tab, ?array $prefs = null): array
     return $f;
 }
 
+/**
+ * Ist die Eingabe eine Adresse? Liefert [Adresse, hat einen Pfad] oder null.
+ * Mit https:// immer; ohne nur mit Pfad (chefkoch.de/rezepte/…), damit Suchen wie „node.js“ Suchen bleiben.
+ */
+function smQueryUrl(string $q): ?array
+{
+    $q = trim($q);
+    if ($q === '' || preg_match('/\s/u', $q)) return null;
+    $scheme = (bool)preg_match('~^https?://~i', $q);
+    if (!$scheme && preg_match('~^www\.~i', $q) && strpos($q, '/') === false) return ['https://' . $q, false];
+    $u = $scheme ? $q : 'https://' . $q;
+    $p = parse_url($u);
+    $host = strtolower((string)($p['host'] ?? ''));
+    if ($host === '' || !preg_match('/^([a-z0-9äöüß-]+\.)+[a-z]{2,}$/u', $host) || isset($p['user']) || isset($p['pass'])) return null;
+    $path = (string)($p['path'] ?? '');
+    $hasPath = trim($path, '/') !== '' || isset($p['query']);
+    if (!$scheme && !$hasPath) return null;
+    return [smLink($u), $hasPath];
+}
+
 function smPageSearch(?array $me): void
 {
     $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 400));
@@ -101,6 +121,13 @@ function smPageSearch(?array $me): void
     if (!$part && ($bang = smBangTarget($q, $me))) {
         if ($bang['internal']) smRedirect($bang['to']);
         smExternalRedirect($bang['to'], $q, '', 0, smSetting('bang_ref') === '1');
+    }
+
+    // Adresse eingefügt (z. B. ein Rezept von Chefkoch): mit Konto gleich in den Lesemodus (Drucken, PDF, nur das Rezept),
+    // ohne Konto oder bei einer bloßen Domain direkt zur Seite
+    if (!$part && ($_GET['web'] ?? '') !== '1' && ($qu = smQueryUrl($q)) !== null && $qu[0] !== '') {
+        if ($me && $qu[1]) smRedirect(smUrl(['a' => 'read', 'u' => $qu[0]]));
+        smExternalRedirect($qu[0], $q);
     }
 
     $lenses = smLenses($me);

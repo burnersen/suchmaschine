@@ -48,6 +48,9 @@ function smRun(): void
 
     // Hintergrundarbeit für die Bangs (Liste aktualisieren, Erreichbarkeit prüfen), angestoßen per JavaScript, ohne Anmeldung
     if ($a === 'bangtick') smServeBangTick();
+    // Lesezeichen „Lesen & Drucken“: Seite aus dem Browser hochladen (kommt von der fremden Seite, darum ohne Formular-Prüfung,
+    // erlaubt nur mit dem persönlichen Schlüssel des Kontos)
+    if ($a === 'readin' && $post) smServeReadIn();
 
     $me = smUser();
 
@@ -107,7 +110,7 @@ function smRun(): void
     // Gäste: Startseite, Bangs, Sofort-Antworten, Werkzeuge und Hilfe. Suchen gehen bei ihnen immer zur Ausweich-Suchmaschine.
     // Mit „Nur mit Anmeldung“ (Verwaltung → Einstellungen) sehen Gäste nur die Anmeldung.
     $public = smSetting('public') === '1';
-    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'qr', 'tools', 'bangs', 'fb'], true))) {
+    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'qr', 'tools', 'bangs', 'fb', 'recipes'], true))) {
         if ($a === 'qr') {
             http_response_code(403);
             exit;
@@ -118,7 +121,11 @@ function smRun(): void
     // Aus dem Teilen-Menü des Handys: geteilte Adresse kürzen (oder geteilten Text suchen)
     if ($a === '' && (isset($_GET['share_url']) || isset($_GET['share_text']))) {
         $shared = trim((string)($_GET['share_url'] ?? '') !== '' ? (string)$_GET['share_url'] : (string)($_GET['share_text'] ?? ''));
-        if (preg_match('~https?://\S+~', $shared, $sm)) smRedirect(smToolUrl('kurzlinks', ['url' => $sm[0]]));
+        // Geteilte Adresse: fragen, was damit passieren soll (lesen und drucken, Kurzlink, Seite öffnen)
+        if (preg_match('~https?://\S+~', $shared, $sm) && ($su = smLink($sm[0])) !== '') {
+            smRender('share', ['me' => $me, 'prefs' => smPrefs($me), 'u' => $su, 'title' => t('Geteilter Link') . ' – ' . smSiteName()]);
+            return;
+        }
         smRedirect(smUrl(['q' => mb_substr($shared, 0, 400)]));
     }
 
@@ -128,6 +135,9 @@ function smRun(): void
             return;
         case 'suggest':
             smServeSuggest($me);
+            return;
+        case 'recipes':
+            smRender('recipes', ['me' => $me, 'prefs' => smPrefs($me), 'title' => t('Rezepte') . ' – ' . smSiteName()]);
             return;
         case 'answer':
             smServeAnswer($me);

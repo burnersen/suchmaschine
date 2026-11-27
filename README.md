@@ -214,9 +214,24 @@ Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die S
 
 ## Lesemodus und PDF
 
-Im Menü **⋮** an jedem Treffer steht **„Ohne Werbung lesen“** (nur mit Konto).
+Jede Seite lässt sich ohne Werbung lesen, drucken oder als PDF speichern (nur mit Konto). Drei Wege dorthin:
 
-- Der eigene Server holt die Seite und schneidet den eigentlichen Inhalt heraus: Werbung, Menüs, Cookie-Banner, Kommentare und Skripte fliegen raus. Angezeigt wird alles in deiner Schrift und deinen Farben.
+- **Link ins Suchfeld einfügen** (z. B. `https://www.chefkoch.de/rezepte/…` oder `chefkoch.de/rezepte/…`), Enter. Eine bloße Domain wie `spiegel.de` öffnet einfach die Seite, Suchen wie `node.js` bleiben Suchen.
+- Im Menü **⋮** an jedem Treffer: **„Ohne Werbung lesen“**.
+- Lesezeichen **„Lesen & Drucken“** (Hilfe → Lesen & Drucken oder im Bereich *Rezepte*): auf der offenen Seite antippen, und sie erscheint im Lesemodus. Das Lesezeichen ist persönlich und schickt die Seite mit, die dein Browser schon geladen hat. Darum klappt es auch bei Seiten, die Server aussperren (z. B. Chefkoch, REWE, kochbar).
+- Als App auf Android oder am PC installiert, erscheint die Suchmaschine auch im **Teilen-Menü**: geteilte Links lassen sich lesen und drucken, kürzen oder öffnen.
+
+### Rezepte
+
+Unter **Rezepte** (Konto-Menü und Startseite) gibt es ein Feld für Rezept-Links, das Lesezeichen und eine Liste aller getesteten Rezeptseiten, getrennt nach „klappt mit Link“ und „klappt mit dem Lesezeichen“. Erkannt werden Rezepte im JSON-LD- und im Microdata-Format (schema.org), das liefern fast alle Rezeptseiten mit.
+
+- Nur das Rezept: Bild, Zutaten, Zeiten, Zubereitung. **„Rezept drucken“** druckt genau das.
+- **Portionen umrechnen** mit + und −: Mengen wie `250 ml`, `1/2 TL`, `1½ EL` oder `2-3 EL` rechnen sich um, auch im Ausdruck und im PDF.
+- „Ganzer Artikel“ schaltet auf den Text der Seite mit allen Bildern.
+
+### Lesen und PDF
+
+- Der eigene Server holt die Seite (oder bekommt sie vom Lesezeichen) und schneidet den eigentlichen Inhalt heraus: Werbung, Menüs, Cookie-Banner, Kommentare und Skripte fliegen raus. Angezeigt wird alles in deiner Schrift und deinen Farben.
 - **Rezepte** werden über ihre strukturierten Daten erkannt (schema.org), die fast jede Rezeptseite für Suchmaschinen mitliefert: Zutaten, Zubereitung, Zeiten, Bild. Ein Klick schaltet auf den ganzen Artikel mit allen Bildern um.
 - **Als PDF speichern:** mit Live-Vorschau, Schrift (klar oder klassisch), Größe, Zeilenabstand, 1 oder 2 Spalten und Rändern. **Bilder nach Wahl:** Antippen lässt ein Bild weg, so kommt nur ins PDF, was du willst. Das PDF entsteht im Browser, ohne fremde Dienste. Es kann Umlaute, ß und €, aber keine Zeichen außerhalb Westeuropas. Dafür gibt es **Drucken** mit einem sauberen Drucklayout (der Browser kann dort auch „Als PDF sichern“).
 

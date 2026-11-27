@@ -25,17 +25,17 @@ if ($r && $r['ok']) {
     <div class="reader__bar">
         <a class="btn btn--small" href="<?= h($u) ?>"<?= $rel . $target ?>><?= h(t('Original öffnen')) ?> ↗</a>
 <?php if ($data): ?>
-        <button type="button" class="btn btn--small" data-print><?= h(t('Drucken')) ?></button>
+        <button type="button" class="btn btn--small<?= ($r['kind'] ?? '') === 'recipe' ? ' btn--primary' : '' ?>" data-print><?= h(($r['kind'] ?? '') === 'recipe' ? t('Rezept drucken') : t('Drucken')) ?></button>
         <button type="button" class="btn btn--small btn--primary" data-pdf-open hidden><?= h(t('Als PDF speichern')) ?></button>
 <?php if (!empty($r['alt']) || !empty($r['was_recipe'])): ?>
         <span class="seg seg--small">
-            <a href="<?= h(smUrl(['a' => 'read', 'u' => $u])) ?>"<?= $view === '' ? ' class="is-active"' : '' ?>><?= h(t('Nur das Rezept')) ?></a>
-            <a href="<?= h(smUrl(['a' => 'read', 'u' => $u, 'v' => 'all'])) ?>"<?= $view === 'all' ? ' class="is-active"' : '' ?>><?= h(t('Ganzer Artikel')) ?></a>
+            <a href="<?= h(smUrl(['a' => 'read', 'u' => $u, 'h' => ($h ?? '') ?: null])) ?>"<?= $view === '' ? ' class="is-active"' : '' ?>><?= h(t('Nur das Rezept')) ?></a>
+            <a href="<?= h(smUrl(['a' => 'read', 'u' => $u, 'v' => 'all', 'h' => ($h ?? '') ?: null])) ?>"<?= $view === 'all' ? ' class="is-active"' : '' ?>><?= h(t('Ganzer Artikel')) ?></a>
         </span>
 <?php endif; ?>
 <?php endif; ?>
     </div>
-    <p class="reader__legal small"><?= h(t('Lesemodus zum privaten Lesen. Inhalt und Rechte liegen bei %s. Bitte nicht weiterverbreiten. Nichts davon wird auf diesem Server gespeichert.', $host)) ?></p>
+    <p class="reader__legal small"><?= h(t('Lesemodus zum privaten Lesen. Inhalt und Rechte liegen bei %s. Bitte nicht weiterverbreiten. Nichts davon wird auf diesem Server dauerhaft gespeichert.', $host)) ?></p>
 
 <?php if ($error !== ''): ?>
     <div class="alert alert--error"><?= h($error) ?></div>
@@ -45,10 +45,16 @@ if ($r && $r['ok']) {
         <strong><?= h(t('Dieser Artikel steht hinter einer Bezahlschranke.')) ?></strong> <?= h(t('Der Lesemodus umgeht keine Bezahlschranken. Bitte das Original öffnen.')) ?>
 <?php elseif ($why === 'blocked'): ?>
         <strong><?= h(t('Die Seite lässt den Abruf durch den Server nicht zu.')) ?></strong>
+        <?= h(t('So klappt es trotzdem: die Seite im Browser öffnen und dort das Lesezeichen „Lesen & Drucken“ antippen. Dann schickt dein Browser die Seite mit.')) ?>
+        <a href="<?= h(smUrl(['a' => 'help'])) ?>#lesen"><?= h(t('So richtest du es ein')) ?></a>
 <?php elseif ($why === 'fetch' || $why === 'status'): ?>
         <strong><?= h(t('Die Seite konnte nicht geladen werden.')) ?></strong>
 <?php else: ?>
         <strong><?= h(t('Auf dieser Seite wurde kein Artikel gefunden.')) ?></strong> <?= h(t('Manche Seiten zeigen ihren Inhalt erst mit JavaScript an oder halten automatische Abrufe auf.')) ?>
+<?php endif; ?>
+<?php if ($why !== 'paywall' && $why !== 'blocked' && empty($h)): ?>
+        <br><?= h(t('Mit dem Lesezeichen „Lesen & Drucken“ klappt es meist trotzdem, weil dann dein Browser die fertige Seite mitschickt.')) ?>
+        <a href="<?= h(smUrl(['a' => 'help'])) ?>#lesen"><?= h(t('So richtest du es ein')) ?></a>
 <?php endif; ?>
     </div>
 <?php else: ?>
@@ -65,12 +71,12 @@ foreach ($data['blocks'] as $i => $b):
     switch ($b['t']):
         case 'h': ?>        <h2><?= h($b['x']) ?></h2>
 <?php break; case 'h3': ?>        <h3><?= h($b['x']) ?></h3>
-<?php break; case 'li': case 'oli': ?>            <li><?= h($b['x']) ?></li>
+<?php break; case 'li': case 'oli': ?>            <li data-b="<?= $i ?>"<?= ($b['c'] ?? '') === 'ing' ? ' data-ing' : '' ?>><?= h($b['x']) ?></li>
 <?php break; case 'quote': ?>        <blockquote><?= h($b['x']) ?></blockquote>
 <?php break; case 'pre': ?>        <pre><?= h($b['x']) ?></pre>
 <?php break; case 'cap': ?>        <p class="reader__cap"><?= h($b['x']) ?></p>
 <?php break; case 'img': ?>        <figure class="reader__fig"><img src="<?= h($b['src']) ?>" alt="<?= h($b['alt']) ?>" loading="<?= $i < 3 ? 'eager' : 'lazy' ?>" data-pdf-img="<?= $i ?>"></figure>
-<?php break; default: ?>        <p<?= ($b['c'] ?? '') === 'facts' ? ' class="reader__facts"' : '' ?>><?= h($b['x']) ?></p>
+<?php break; default: ?>        <p data-b="<?= $i ?>"<?= ($b['c'] ?? '') === 'facts' ? ' class="reader__facts"' : '' ?><?= !empty($b['yield']) ? ' data-yield="' . h((string)$b['yield']) . '" data-label="' . h(t('Portionen')) . '" data-minus="' . h(t('Weniger Portionen')) . '" data-plus="' . h(t('Mehr Portionen')) . '"' : '' ?>><?= h($b['x']) ?></p>
 <?php endswitch; endforeach; if ($open) echo "        </$open>\n"; ?>
         <p class="reader__src"><?= h($data['source']) ?><br><?= h($data['note']) ?></p>
     </article>
