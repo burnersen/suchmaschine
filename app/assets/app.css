@@ -1300,3 +1300,4 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .resmenu:not([open]) .resmenu__btn { opacity: 1; }
 .resmenu__btn:hover, .resmenu[open] .resmenu__btn { color: var(--accent); border-color: var(--accent); }
 @media (pointer: coarse) { .resmenu__btn { width: 40px; height: 40px; } .resmenu__btn svg { width: 22px; height: 22px; } }
+.alert--warn { background: color-mix(in srgb, #f9ab00 14%, var(--bg)); border: 1px solid color-mix(in srgb, #f9ab00 45%, transparent); color: var(--text); }

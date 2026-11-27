@@ -348,6 +348,19 @@ same('Seite 1 ohne Zeitfilter holt die Karten mit', [true, false], [smSearchPara
 [$ans] = smBdAnswer(['texts' => [['type' => 'paragraph', 'snippet' => 'Er ist 76 Jahre alt.'], ['type' => 'paragraph', 'snippet' => 'Möchten Sie mehr über seine Karriere erfahren?']]]);
 same('KI-Übersicht ohne Rückfrage am Ende', 'Er ist 76 Jahre alt.', $ans);
 
+/* ---------- Light JSON (schlankes Format der Zone) ---------- */
+$lt = smBdNormalize(smSearchParams('web', 'x', ['page' => 2]), ['general' => ['query' => 'x', 'country' => 'Deutschland'], 'organic' => [
+    ['link' => 'https://example.org/a', 'title' => 'A', 'description' => 'Text', 'global_rank' => '1'],
+    ['link' => '/goto?url=CAESabc', 'title' => 'B', 'description' => 'Text', 'global_rank' => '2']]]);
+same('Light JSON: relative Google-Links gehen nicht verloren', 2, count($lt['results']));
+same('Light JSON: Format erkannt', 'light', smProvGet('brightdata', 'fmt'));
+$li = smBdNormalize(smSearchParams('images', 'x', []), ['general' => ['query' => 'x'], 'images' => [
+    ['link' => 'https://www.vier-pfoten.de/katze', 'original_image' => 'https://media.example.org/k.jpg', 'title' => 'Katze als Haustier', 'source' => 'Vier Pfoten',
+     'image' => 'data:image/png;base64,iVBORw0KGgo=']]]);
+same('Light JSON: Bildtitel und Website', ['Katze als Haustier', 'Vier Pfoten'], [$li['results'][0]['title'] ?? null, $li['results'][0]['host'] ?? null]);
+smBdNormalize(smSearchParams('web', 'x', ['page' => 2]), ['general' => ['search_engine' => 'google', 'query' => 'x'], 'organic' => []]);
+same('Full JSON: Format erkannt', 'full', smProvGet('brightdata', 'fmt'));
+
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
 same('Aussehen: Größe begrenzt', 150, $lk['fs']);
