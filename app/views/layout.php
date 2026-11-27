@@ -89,7 +89,7 @@ $flash = smFlash();
     </nav>
 </header>
 <?php endif; ?>
-<?php if ($me && $me['is_admin'] && !$bare && empty($_COOKIE['sm_warn_off']) && ($warns = smProvWarnings())): ?>
+<?php if ($me && $me['is_admin'] && !$bare && empty($_COOKIE['sm_warn_off']) && ($warns = smPlanWarnings())): ?>
 <div class="warnbar" data-warnbar role="status">
     <span><strong><?= h(t('Guthaben wird knapp:')) ?></strong> <?= h(implode(' · ', $warns)) ?></span>
     <a href="<?= h(smUrl(['a' => 'admin', 'tab' => 'usage'])) ?>"><?= h(t('Verbrauch ansehen')) ?></a>

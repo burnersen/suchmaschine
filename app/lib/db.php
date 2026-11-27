@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 6);
+define('SM_SCHEMA', 7);
 
 function smFatal(string $msg): void
 {
@@ -163,6 +163,15 @@ function smMigrate(PDO $pdo, int $from): void
         $pdo->exec("INSERT INTO settings (k, v) VALUES ('public', '1') ON CONFLICT(k) DO UPDATE SET v = '1'");
         $pdo->exec("DELETE FROM cache");
     }
+    if ($from >= 1 && $from < 7) {
+        // 3.2: alle Brave-Pläne zählen in Requests. Die KI-Antwort zählte bisher in Dollar: Zähler auf Requests umstellen,
+        // ein Dollar-Limit (z. B. 4,50) wird zum Standard von 70 Requests. Zwischenspeicher der Suche: 60 statt 15 Minuten.
+        $pdo->exec("UPDATE usage_log SET credits = req WHERE provider = 'x_answer'");
+        $pdo->exec("UPDATE settings SET v = '70' WHERE k = 'x_answer_limit' AND CAST(v AS REAL) < 20");
+        $pdo->exec("UPDATE settings SET v = '60' WHERE k = 'cache_min' AND v = '15'");
+        // „Kosten pro Suche“ und „Stichtag“ gibt es nicht mehr (1 Request = 1 Suche, das Reset-Datum meldet Brave selbst)
+        $pdo->exec("DELETE FROM settings WHERE k IN ('p_brave_cost', 'p_brave_start')");
+    }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();
 }
@@ -192,7 +201,7 @@ function smDefaults(): array
         'logo_type'     => '',
         'logo_v'        => '0',
         'monthly_limit' => '950',
-        'cache_min'     => '15',
+        'cache_min'     => '60',
         'country'       => smLang() === 'de' ? 'DE' : 'ALL',
         'search_lang'   => smLang() === 'de' ? 'de' : 'en',
         'safesearch'    => 'moderate',

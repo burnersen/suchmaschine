@@ -6,17 +6,16 @@ defined('SM_VERSION') || exit;
 
 /**
  * Die Zusatzdienste. limit = Standardlimit pro Kalendermonat (Brave rechnet diese Pläne pro Monat ab),
- * money = gezählt wird in Dollar (Answers kostet je nach Textmenge), sonst in Anfragen.
  */
 function smExtras(): array
 {
     return [
-        'suggest' => ['name' => t('Suchvorschläge'), 'plan' => 'Autosuggest', 'limit' => 9950, 'money' => false,
+        'suggest' => ['name' => t('Suchvorschläge'), 'plan' => 'Autosuggest', 'limit' => 9950,
                       'desc' => t('Vorschläge beim Tippen. Das Monatsguthaben reicht für etwa 10.000 Anfragen, jeder Vorschlag bleibt eine Stunde im Zwischenspeicher.')],
-        'spell'   => ['name' => t('Rechtschreibhilfe'), 'plan' => 'Spellcheck', 'limit' => 9950, 'money' => false,
+        'spell'   => ['name' => t('Rechtschreibhilfe'), 'plan' => 'Spellcheck', 'limit' => 9950,
                       'desc' => t('„Meintest du …?“ über den Treffern. Brave korrigiert Tippfehler meist schon selbst, darum fragt die Suchmaschine nur, wenn nicht: bei „Wortgenau“ und wenn kaum etwas gefunden wurde. Etwa 10.000 Anfragen im Monat.')],
-        'answer'  => ['name' => t('KI-Antwort'), 'plan' => 'Answers', 'limit' => 4.5, 'money' => true,
-                      'desc' => t('Eine kurze Antwort von Brave zur Suche, auf Knopfdruck oder automatisch. Brave rechnet nach Anfrage und Textmenge ab, eine Antwort kostet meist 5 bis 7 Cent. Das Monatsguthaben von 5 $ reicht also für etwa 70 bis 90 Antworten. Gezählt wird der echte Preis, den Brave mitschickt.')],
+        'answer'  => ['name' => t('KI-Antwort'), 'plan' => 'Answers', 'limit' => 70,
+                      'desc' => t('Kurze Antwort über den Treffern, auf Knopfdruck oder automatisch.')],
     ];
 }
 
@@ -44,7 +43,7 @@ function smExActive(string $id): bool
     return isset(smExtras()[$id]) && trim(smExGet($id, 'key')) !== '' && smExGet($id, 'on') !== '0';
 }
 
-/** Monatslimit (Anfragen oder Dollar), 0 = ohne Grenze */
+/** Monatslimit in Requests, 0 = ohne Grenze */
 function smExLimit(string $id): float
 {
     $v = smExGet($id, 'limit');
@@ -121,12 +120,11 @@ function smExRequest(string $id, string $q, string $key, ?array $prefs = null): 
             'headers' => ['Accept: application/json', 'X-Subscription-Token: ' . $key]];
 }
 
-/** Preis einer Antwort laut Brave (Dollar), sonst grob geschätzt */
+/** Preis einer Anfrage laut Brave (Dollar, Kopfzeile x-request-total-cost), sonst der Richtwert des Plans */
 function smExCost(string $id, array $r): float
 {
-    if (!smExtras()[$id]['money']) return 1.0;
     $c = $r['headers']['x-request-total-cost'] ?? '';
-    return is_numeric($c) ? max(0.0, (float)$c) : 0.07;
+    return is_numeric($c) ? max(0.0, (float)$c) : smPlans()[$id]['price'];
 }
 
 /** Key prüfen. Liefert Fehlertext oder ''. Answers wird nicht getestet: jede Antwort kostet etwa 6 Cent. */
@@ -136,7 +134,7 @@ function smExTest(string $id, string $key): string
     $r = smHttpMulti(['x' => smExRequest($id, $id === 'answer' ? 'Antworte nur mit OK.' : 'wetter', trim($key))], $id === 'answer' ? 30 : 10)['x'];
     $d = json_decode($r['body'], true);
     if ($r['status'] === 200 && is_array($d)) {
-        smExBook($id, 0, smExCost($id, $r));
+        smExBook($id, 0, 1);
         return '';
     }
     $msg = smProvErrorText('brave', $r, is_array($d) ? $d : null)[0];
@@ -212,17 +210,9 @@ function smSpellcheck(string $q, ?array $me): string
 
 /* ---------- KI-Antwort ---------- */
 
-/** Was eine Antwort voraussichtlich kostet: Durchschnitt der letzten, mindestens 7 Cent */
-function smAnswerEstimate(): float
-{
-    $r = smQ("SELECT SUM(credits) AS c, SUM(req) AS n FROM usage_log WHERE provider = 'x_answer' AND user_id <> -1 AND day >= ?", [date('Y-m-01')])->fetch();
-    $avg = $r && (int)$r['n'] > 0 ? (float)$r['c'] / (int)$r['n'] : 0.0;
-    return max(0.07, $avg * 1.2);
-}
-
 /**
  * ?a=answer&q=…: KI-Antwort von Brave als HTML-Stück (für den Knopf über den Treffern oder automatisch).
- * Antworten bleiben eine Stunde im Zwischenspeicher. Ist das Limit (in Dollar) erreicht, gibt es nur einen Hinweis.
+ * Antworten bleiben eine Stunde im Zwischenspeicher. Ist das Limit (in Requests) erreicht, gibt es nur einen Hinweis.
  */
 function smServeAnswer(?array $me): void
 {
@@ -237,16 +227,16 @@ function smServeAnswer(?array $me): void
         $hit = smCacheGet($ck);
         $text = $hit !== null ? (string)($hit['t'] ?? '') : null;
         if ($text === null) {
-            $est = smAnswerEstimate();
-            if (!smExCan('answer', $me, $est)) {
+            if (!smExCan('answer', $me)) {
                 $html = '<p class="muted small">' . h(t('Das Monatslimit für KI-Antworten ist erreicht. Ab dem 1. geht es weiter.')) . '</p>';
             } else {
-                smExBook('answer', (int)$me['id'], $est);
+                smExBook('answer', (int)$me['id'], 1);
                 $r = smHttpMulti(['x' => smExRequest('answer', $q, trim(smExGet('answer', 'key')), $prefs)], 45)['x'];
                 $d = json_decode($r['body'], true);
                 $text = $r['status'] === 200 && is_array($d) ? trim((string)($d['choices'][0]['message']['content'] ?? '')) : null;
-                // Vorab gebuchte Schätzung durch den echten Preis ersetzen (bei Fehlern: gutschreiben)
-                smExBook('answer', (int)$me['id'], ($text !== null ? smExCost('answer', $r) : 0.0) - $est, $text !== null ? 0 : -1);
+                // Gezählt wird in Requests wie im Dashboard. Der echte Preis fließt in den Dollar-Durchschnitt, Fehler werden gutgeschrieben.
+                if ($text !== null) smPlanAddCost('answer', smExCost('answer', $r));
+                else smExBook('answer', (int)$me['id'], -1, -1);
                 if ($text === null) {
                     smExFailed('answer', $r);
                     $html = '<p class="muted small">' . h(t('Brave konnte gerade keine Antwort liefern.')) . '</p>';

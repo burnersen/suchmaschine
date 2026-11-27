@@ -6,7 +6,7 @@
 Fast results from Brave Search, and when Brave can’t, straight away the search engine of your choice.<br>
 Entirely within the free monthly quotas for normal private use, with a built-in brake before the limit.</p>
 
-<p align="center"><a href="README.md">Deutsche Version</a> · <a href="../../releases/latest">Download the latest version</a></p>
+<p align="center"><a href="README.md">Deutsche Version</a> · <a href="../../releases/latest">Download the latest version</a> · <a href="../../releases">What changed when</a></p>
 
 <p align="center"><img src="docs/en/ergebnisse.png" alt="Results page with top stories and overview panel" width="820"></p>
 
@@ -41,26 +41,26 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
-[Cost](#what-does-it-cost) · [Setting up Brave](#setting-up-brave-getting-api-keys) · [Features](#features) · [Guests and fallback](#guests-and-fallback-search-engine) · [Helpers from Brave](#helpers-from-brave) · [Big images](#big-images-also-with-other-search-engines) · [New in 1.5](#new-in-15) · [New in 1.4](#new-in-14) · [Reader mode and PDF](#reader-mode-and-pdf) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Building it yourself](#building-it-yourself) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+[Cost](#what-does-it-cost) · [Setting up Brave](#setting-up-brave-getting-api-keys) · [Features](#features) · [Guests and fallback](#guests-and-fallback-search-engine) · [Helpers from Brave](#helpers-from-brave) · [Big images](#big-images-also-with-other-search-engines) · [Tools](#tools) · [Appearance](#appearance-and-loading) · [Reader mode, recipes and PDF](#reader-mode-and-pdf) · [More features](#more-features) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Building it yourself](#building-it-yourself) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
 
 ## What does it cost?
 
-Nothing for normal private use. Brave adds **$5 of credit per month** to every plan, which covers:
+Nothing for normal private use. Brave adds **$5 of credit per month** to every plan. Everything is counted in **requests**, exactly like the Brave dashboard:
 
-| Brave plan | For | Free per month (about) | Default limit here |
+| Brave plan | For | $5 covers | Brake here (default) |
 |---|---|---|---|
-| [Search](https://brave.com/search/api/) | the search itself (web, images, news, videos) | 1,000 searches | 950 |
+| [Search](https://brave.com/search/api/) | the search itself (web, images, news, videos) | 1,000 requests | 950 |
 | Autosuggest | suggestions while typing | 10,000 requests | 9,950 |
 | Spellcheck | “Did you mean …?” | 10,000 requests | 9,950 |
-| Answers | AI answer above the results | 70 to 90 answers (depends on text length) | $4.50 |
+| Answers | AI answer above the results | about 80 requests (Brave also charges by text length) | 70 |
 
 - Only **Search** is needed, the other three are optional. It even works without any key: every search then goes straight to the fallback search engine.
-- Every service gets **its own limit** in the admin page, set just below the free quota by default. When a limit is reached, the search engine stops **before** any costs arise.
-- **Reset date:** Brave reports when the Search quota restarts, the search engine takes it over automatically. The other three count per calendar month.
-- **Usage according to the dashboard:** enter what Brave’s dashboard shows as used at any time. The counter is set to exactly that and keeps counting from there.
-- **Keep automatic top-up switched off.** To be doubly safe, also set a “Monthly usage limit” of $5 for every plan in the Brave dashboard.
-- A **cache** makes reloading, the back button and paging free (up to 60 minutes, more is not allowed by Brave’s terms).
-- **Instant answers**, **bangs**, **tools** and every search that goes to the **fallback search engine** cost nothing.
+- **Brake:** one limit in requests per plan, just below the free credit by default. When it is reached, the search engine stops **before** any costs arise.
+- Under *Admin → Search services* and *Admin → Usage* every plan looks like the Brave dashboard: **Requests**, **Credits remaining**, **Credits used this month** ($x / $5), **Burn rate** and **Runway**. The dollars are calculated from the requests (for Answers with the real average price Brave reports with every answer).
+- **Requests according to dashboard:** enter the number from the Brave dashboard at any time, the counter takes over exactly that value and keeps counting from there.
+- **Keep automatic top-up switched off.** To be doubly safe, set a “Monthly usage limit” of $5 for every plan in the Brave dashboard.
+- A **cache** of 60 minutes (the maximum Brave’s terms allow) makes reloading, the back button and paging free.
+- **Instant answers**, **bangs**, **tools**, **reader mode** and every search that goes to the **fallback search engine** cost nothing.
 
 ## Setting up Brave (getting API keys)
 
@@ -106,7 +106,7 @@ Three optional extras, each with its own Brave plan, key, monthly limit and brak
 
 - **Search suggestions** while typing (Brave *Autosuggest*), below your own recent searches. Every suggestion is cached for an hour.
 - **“Did you mean …?”** (Brave *Spellcheck*). Brave usually fixes typos in the search itself (“Results for …”), so the search engine only asks when it doesn’t: with “Verbatim” and when hardly anything was found.
-- **AI answer** above the results (Brave *Answers*): off, on request (default) or automatic. The result list never waits for it. Brave charges per request **and per amount of text** here, an answer usually costs 5 to 7 cents. The search engine counts the real price Brave reports with every answer and stops before the limit.
+- **AI answer** above the results (Brave *Answers*): off, on request (default) or automatic. The result list never waits for it. An answer costs about 6 cents at Brave, so the brake is at 70 requests a month.
 
 ## Big images, also with other search engines
 
@@ -126,9 +126,8 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
 
-## New in 2.0: the big tools upgrade
+## Tools
 
-> **Version 2.0 is a mega upgrade.** 15 small helpers become **47 tools**, many of them real little apps. They all run on your own server or right in the browser, none of them asks a search service, none costs credits. The update installs with one click as usual, your data and short links stay.
 
 <p align="center"><img src="docs/en/werkzeuge.png" alt="Tools with search, favourites and groups" width="820"></p>
 
@@ -159,7 +158,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Short links 2.0** (ideas from [ShrinkURL](https://github.com/burnersen/ShrinkURL)): custom name, expiry date, visit limit (“only once”), password, intermediate page against messenger previews, preview with `+` at the end, remove tracking parameters, change the target later, on/off, **statistics as a daily counter only** (no IP, no cookie), target title, check targets for dead links, CSV, bookmarklet, entry in the phone's share menu.
 - **Text snippets:** encrypted in the browser (AES-256-GCM), the key is only in the link after the `#`. Expiry, “gone after reading”, optional password (a wrong password does not use up a view).
 
-**Calculating:** calculator that works as you type (history, scientific, degrees/radians), percent and VAT, rule of three, live units (now also fuel economy, pressure, energy, power, angle, cooking), currencies with several targets and **ECB rate history**, compound interest, savings plan, loan with repayment plan, fuel costs, split the bill, Roman numerals, Morse code with sound and light.
+**Calculating:** calculator that works as you type (history, scientific, degrees/radians), percent and VAT, rule of three, live units (also fuel economy, pressure, energy, power, angle, cooking), currencies with several targets and **ECB rate history**, compound interest, savings plan, loan with repayment plan, fuel costs, split the bill, Roman numerals, Morse code with sound and light.
 
 **Time and date:** several timers at once, Pomodoro, interval training, alarm, stopwatch with laps (timers survive a reload), countdown with title, full screen and link, **working days with the holidays of a German state**, weekday, **bridge day planner**, holidays as a **calendar file (.ics)**, printable year calendar, world clock with meeting planner.
 
@@ -173,19 +172,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 **Privacy stays:** passwords, QR contents, hashes, JWTs, regexes and texts never leave the browser. Outbound requests (network tools, link X-ray) are made only by your server, only to public addresses, without storing anything. The scan engine (zxing-wasm, MIT) lives on your server and is only loaded when you scan.
 
-## New in 1.5
-
-- **Tools reorganised:** a tile overview by group (calculating, time and date, chance, sharing and security, weather and network); every tool opens on **its own page** instead of one long list, with related tools below. Reachable everywhere via the **grid icon at the top right**, also for visitors when searching without an account is allowed.
-- **Settings tidied up:** login token and “default search in the browser” are now together under **Settings → Browser**. The administrator edits the look for everyone under **Admin → Appearance**.
-- **Getting API keys, step by step,** right next to each search service in the admin page.
-- **1.5.1:** currency rates once a day after the ECB plus a “Fetch rates now” button. “My IP address” can also show your IPv4 on an IPv6 connection (and vice versa), ideally via your own IPv4-only subdomain (Admin → Settings), otherwise on click via ipify.org. The appearance preview stays visible while scrolling.
-- **1.5.2:** endless scrolling only loads more after you reach the bottom and deliberately pull on.
-- **1.5.3:** “Usage according to dashboard” sets a service's counter to exactly the dashboard value and keeps counting from there (for every service that does not report its usage).
-- **1.5.4 and 1.5.5:** signed updates tried and switched off again. Updates are checked by checksums; signing stays optional (see [BUILD.md](BUILD.md)).
-- Small fixes: the name on the results page is no longer cut off, a more compact currency card, tabs on phones show that they scroll. Without any search service, the administrator is sent to the setup instead of being redirected.
-- **For developers:** code split by topic, English texts in `app/lang/en.php`, automated tests, checks on every push, reproducible builds, optional signed updates. Users still get **one single installation file**. How it is built: [BUILD.md](BUILD.md).
-
-## New in 1.4
+## Appearance and loading
 
 - **Appearance** (Settings → Appearance, per account, with an installation default): 17 light and dark designs, including muted ones (Paper, Mist, Sage, Slate, Dusk), the colour mixer from “Kaufen” with sliders, colour code, live preview, contrast warning and automatic matching, five built-in fonts served from your own server (Atkinson Hyperlegible, Lexend, Source Sans 3, Inter, Literata, all SIL OFL, nothing from Google), sizes, line spacing, spacing and list width.
 - **Endless or paged for all tabs.** **Loading with resistance:** plain scrolling loads nothing; only after reaching the bottom and deliberately pulling on (a clear swipe on phones, several wheel notches) do more results load. **Images:** 200 per request, paging is free afterwards.
@@ -197,24 +184,23 @@ Any page can be read without ads, printed or saved as PDF (accounts only): **pas
 
 **Please use it fairly:** for private reading and archiving only. Accounts only, at most 60 pages per hour, nothing is stored on the server, paywalls are not bypassed, and source, date and “for private use only” appear in the view and on every PDF page. Rights remain with the original sites.
 
-## New in 1.3
+## Newest first and links
 
 - **Newest first** is the default for "All" and news. Every account can change it under *Settings → Search*, the administrator sets the default for everyone. Switch any time with "Sorting" above the results.
 - **News from the last 24 hours.** At the end of the list it continues with the last week, then the last month and the last year. If there is no recent news at all, the range widens right away. Range and widening are per account.
-- **Reset date from the service:** Brave reports with every search when its quota restarts. The used amount can be synced under **“Usage according to dashboard”**.
 - **New tab everywhere:** "Open links in a new tab" applies to every outgoing link, including weather, overview panel and loaded results.
 - **Bangs without flashing:** the redirect page is empty and uses the page colours; a "Continue" button only appears after 2 seconds if the target hangs.
 
-## New in 1.2
+## More features
 
 **Search service, failures, fallback**
 - Searches go to **Brave Search**. If Brave returns an error or cannot be reached, it pauses briefly so no search has to wait for it, and searches go straight to the fallback search engine meanwhile. The admin page shows last success, last error and average response time.
 
-**Usage, forecast, quotas:** per service used/limit, period, **reset date with days left**, today, **daily average**, **projection until the reset** and a clear verdict whether it lasts. A banner warns administrators from 80 % (configurable). **Per-account quotas** decide which services an account may use and how many credits it gets; "Split fairly" divides the limits evenly.
+**Usage and quotas:** under *Admin → Usage* all four Brave plans like the dashboard (requests, credits, burn rate, runway, reset) with a field for the requests according to the dashboard, plus monthly history and usage per account. A banner warns administrators from 80 % of a brake (configurable). **Per-account quotas** decide whether an account may use Brave and how many searches it gets; “Split fairly” divides the limit evenly.
 
 **Instant answers (free):** `(12.5 + 7) * 3`, `200 + 19%`, `15% of 80` (own parser, no `eval`) · `100 usd in eur` (ECB rates, cached daily) · `10 km in miles`, `20 °c in f`, `1 gib in mb` · `weather london` (German Weather Service via Bright Sky, Open-Meteo or wttr.in) · `my ip` · `week`, `week 12` · `date` · `dice`, `2d20`, `coin`, `random 1-49` · `timer 5 min`, `stopwatch`, `countdown christmas` · `password 32`, `passphrase` · `qr https://…` · `short https://…`.
 
-**Tools** (grid icon at the top right): 47 helpers in one place, by group, with search, favourites and “recently used”, each on a page of its own (see [New in 2.0](#new-in-20-the-big-tools-upgrade)). In the search box: `days between 2026-01-01 and 2026-12-24`, `workdays between 2026-12-01 and 2026-12-31 bavaria`, `age 1940-05-12`, `holidays 2027 bavaria`, `bridge days 2027 nrw`, `lotto`, `!qr Hello`, `!pw`, `!short https://…`.
+**Tools** (grid icon at the top right): 47 helpers in one place, by group, with search, favourites and “recently used”, each on a page of its own (see [Tools](#tools)). In the search box: `days between 2026-01-01 and 2026-12-24`, `workdays between 2026-12-01 and 2026-12-31 bavaria`, `age 1940-05-12`, `holidays 2027 bavaria`, `bridge days 2027 nrw`, `lotto`, `!qr Hello`, `!pw`, `!short https://…`.
 
 **Filters and results:** strict sort by date (newest first, undated last), **max. 3 results per domain** (on by default), **"Reset all filters"**, a large **×** in the search box, and in the **⋮ menu**: search only this domain, archive at web.archive.org and archive.today, show as QR code, copy address.
 
@@ -290,4 +276,4 @@ Free hobby software, provided **as is, without any warranty**. Use at your own r
 
 GNU Affero General Public License v3.0, see [LICENSE](LICENSE).
 
-Built in since 2.0: scan engine [zxing-wasm](https://github.com/Sec-ant/zxing-wasm) (MIT) with zxing-cpp (Apache 2.0), details in `app/assets/vendor/LIZENZEN.txt`. Passphrase word lists: German from [dys2p/wordlists-de](https://github.com/dys2p/wordlists-de) (CC0), English from the [EFF](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) word lists (CC BY 3.0 US). Icons in the style of Lucide (ISC).
+Built in: scan engine [zxing-wasm](https://github.com/Sec-ant/zxing-wasm) (MIT) with zxing-cpp (Apache 2.0), details in `app/assets/vendor/LIZENZEN.txt`. Passphrase word lists: German from [dys2p/wordlists-de](https://github.com/dys2p/wordlists-de) (CC0), English from the [EFF](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) word lists (CC BY 3.0 US). Icons in the style of Lucide (ISC).

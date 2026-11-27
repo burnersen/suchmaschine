@@ -1,6 +1,6 @@
 <?php
 /* Suchmaschine – der Suchdienst: Brave Search.
-   Key, Stichtag, Monatslimit, Zähler, Prognose, Zwischenspeicher und Zustand (ein gestörter Dienst pausiert kurz),
+   Key, Monatslimit, Zähler, Prognose, Zwischenspeicher und Zustand (ein gestörter Dienst pausiert kurz),
    dazu Kontingente pro Konto. Geht Brave nicht, leitet die Suche zur Ausweich-Suchmaschine weiter (smFallback…). */
 defined('SM_VERSION') || exit;
 
@@ -629,28 +629,6 @@ function smParseTime($s): int
     if (!is_string($s) || trim($s) === '') return 0;
     $t = strtotime($s);
     return $t !== false && $t > 0 && $t < time() + 86400 * 2 ? $t : 0;
-}
-
-/* ---------- Warnhinweis für Administratoren ---------- */
-
-/** Dienste, bei denen es knapp wird: [Text, …] */
-function smProvWarnings(): array
-{
-    $pct = max(1, min(100, (int)smSetting('warn_pct'))) / 100;
-    $w = [];
-    foreach (smProvOrder() as $id) {
-        $f = smProvForecast($id);
-        if ($f['limit'] <= 0) continue;
-        $name = smProviders()[$id]['name'];
-        if ($f['used'] >= $f['limit'] - (float)smProvGet($id, 'cost')) {
-            $w[] = t('%s: Limit erreicht, neu ab %s.', $name, smDate($f['cycle']['end']));
-        } elseif ($f['pct'] >= $pct) {
-            $w[] = t('%s: %d %% verbraucht, noch %s bis zum Reset am %s.', $name, (int)round($f['pct'] * 100), smNumF($f['left']), smDate($f['cycle']['end']));
-        } elseif (!$f['fits'] && $f['empty_at']) {
-            $w[] = t('%s: reicht beim jetzigen Tempo nur bis etwa %s (Reset am %s).', $name, smDate($f['empty_at']), smDate($f['cycle']['end']));
-        }
-    }
-    return $w;
 }
 
 /** Datum kurz: 25.11.2026 / 2026-11-25 */

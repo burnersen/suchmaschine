@@ -6,7 +6,7 @@
 Schnelle Ergebnisse von Brave Search, und wenn Brave nicht kann, sofort die Suchmaschine deiner Wahl.<br>
 Bei normaler privater Nutzung komplett in den kostenlosen Monatskontingenten, mit eingebauter Bremse vor dem Limit.</p>
 
-<p align="center"><a href="README.en.md">English version</a> · <a href="../../releases/latest">Neueste Version herunterladen</a></p>
+<p align="center"><a href="README.en.md">English version</a> · <a href="../../releases/latest">Neueste Version herunterladen</a> · <a href="../../releases">Was sich wann geändert hat</a></p>
 
 <p align="center"><img src="docs/de/ergebnisse.png" alt="Ergebnisseite mit Treffern, Top-Meldungen und Kurzinfo" width="820"></p>
 
@@ -45,26 +45,26 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Brave einrichten](#brave-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Gäste und Ersatz-Suchmaschine](#gäste-und-ersatz-suchmaschine) · [Hilfen von Brave](#hilfen-von-brave) · [Bilder groß](#bilder-groß-auch-bei-anderen-suchmaschinen) · [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Brave einrichten](#brave-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Gäste und Ersatz-Suchmaschine](#gäste-und-ersatz-suchmaschine) · [Hilfen von Brave](#hilfen-von-brave) · [Bilder groß](#bilder-groß-auch-bei-anderen-suchmaschinen) · [Werkzeuge](#werkzeuge) · [Aussehen](#aussehen-und-nachladen) · [Lesemodus, Rezepte und PDF](#lesemodus-und-pdf) · [Weitere Funktionen](#weitere-funktionen) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
-Bei normaler privater Nutzung nichts. Brave gibt bei jedem Plan **5 $ Guthaben pro Monat** dazu, das reicht für:
+Bei normaler privater Nutzung nichts. Brave gibt bei jedem Plan **5 $ Guthaben pro Monat** dazu. Gezählt wird überall in **Requests**, genau wie im Brave-Dashboard:
 
-| Brave-Plan | Wofür | Frei pro Monat (etwa) | Standardlimit hier |
+| Brave-Plan | Wofür | 5 $ reichen für | Bremse hier (Standard) |
 |---|---|---|---|
-| [Search](https://brave.com/search/api/) | die Suche selbst (Web, Bilder, News, Videos) | 1.000 Suchen | 950 |
-| Autosuggest | Suchvorschläge beim Tippen | 10.000 Anfragen | 9.950 |
-| Spellcheck | „Meintest du …?“ | 10.000 Anfragen | 9.950 |
-| Answers | KI-Antwort über den Treffern | 70 bis 90 Antworten (nach Textmenge) | 4,50 $ |
+| [Search](https://brave.com/search/api/) | die Suche selbst (Web, Bilder, News, Videos) | 1.000 Requests | 950 |
+| Autosuggest | Suchvorschläge beim Tippen | 10.000 Requests | 9.950 |
+| Spellcheck | „Meintest du …?“ | 10.000 Requests | 9.950 |
+| Answers | KI-Antwort über den Treffern | etwa 80 Requests (Brave rechnet hier auch nach Textmenge) | 70 |
 
 - Nur **Search** ist nötig, die anderen drei sind freiwillig. Ganz ohne Key geht es auch: Dann landet jede Suche direkt bei der Ersatz-Suchmaschine.
-- Pro Dienst stellst du in der Verwaltung ein **eigenes Limit** ein. Voreingestellt ist immer knapp unter dem Freikontingent. Ist ein Limit erreicht, hält die Suchmaschine an, **bevor** Kosten entstehen.
-- **Reset-Datum:** Brave meldet selbst, wann das Search-Kontingent neu startet, das übernimmt die Suchmaschine automatisch. Die anderen drei zählen pro Kalendermonat.
-- **Verbrauch laut Dashboard:** Trag in der Verwaltung jederzeit ein, was das Dashboard gerade als verbraucht zeigt. Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter.
-- **Automatisches Aufladen ausgeschaltet lassen.** Am sichersten setzt du zusätzlich im Brave-Dashboard bei jedem Plan ein „Monthly usage limit“ von 5 $, dann ist doppelt abgesichert.
-- Ein **Zwischenspeicher** sorgt dafür, dass Neuladen, Zurück-Knopf und Blättern nichts kosten (bei Brave bis 60 Minuten, mehr erlauben Braves Bedingungen nicht).
-- **Sofort-Antworten** (Rechner, Währungen, Wetter …), **Bangs**, **Werkzeuge** und alle Suchen, die zur **Ersatz-Suchmaschine** gehen, kosten gar nichts.
+- **Bremse:** Pro Plan ein Limit in Requests, voreingestellt knapp unter dem freien Guthaben. Ist es erreicht, hält die Suchmaschine an, **bevor** Kosten entstehen.
+- Unter *Verwaltung → Suchdienste* und *Verwaltung → Verbrauch* sieht jeder Plan aus wie im Brave-Dashboard: **Requests**, **Credits remaining**, **Credits used this month** (x $ / 5 $), **Burn rate** und **Runway**. Die Dollar rechnet die Suchmaschine aus den Requests aus (bei Answers mit dem echten Durchschnittspreis, den Brave bei jeder Antwort mitschickt).
+- **Requests laut Dashboard:** Trag jederzeit die Zahl aus dem Brave-Dashboard ein, der Zähler übernimmt genau diesen Stand und zählt von da an weiter (z. B. nach einem neuen Server mitten im Monat).
+- **Automatisches Aufladen ausgeschaltet lassen.** Doppelt sicher wird es mit einem „Monthly usage limit“ von 5 $ bei jedem Plan im Brave-Dashboard.
+- Ein **Zwischenspeicher** von 60 Minuten (mehr erlauben Braves Bedingungen nicht) sorgt dafür, dass Neuladen, Zurück-Knopf und Blättern nichts kosten.
+- **Sofort-Antworten** (Rechner, Währungen, Wetter …), **Bangs**, **Werkzeuge**, der **Lesemodus** und alle Suchen, die zur **Ersatz-Suchmaschine** gehen, kosten gar nichts.
 
 Zum Vergleich: Wer 10 Mal am Tag sucht, kommt auf rund 300 Suchen im Monat.
 
@@ -115,7 +115,7 @@ Drei freiwillige Zusätze, jeder mit eigenem Brave-Plan, eigenem Key, eigenem Mo
 
 - **Suchvorschläge** beim Tippen (Brave *Autosuggest*), unter den eigenen letzten Suchen. Jeder Vorschlag bleibt eine Stunde im Zwischenspeicher.
 - **„Meintest du …?“** (Brave *Spellcheck*). Brave korrigiert Tippfehler in der Suche meist schon selbst („Ergebnisse für …“), darum fragt die Suchmaschine nur, wenn nicht: bei „Wortgenau“ und wenn kaum etwas gefunden wurde.
-- **KI-Antwort** über den Treffern (Brave *Answers*): aus, auf Knopfdruck (Standard) oder automatisch. Die Trefferliste wartet nie darauf. Brave rechnet hier nach Anfrage **und Textmenge** ab, eine Antwort kostet meist 5 bis 7 Cent. Die Suchmaschine zählt den echten Preis mit, den Brave bei jeder Antwort mitschickt, und hält vor dem Limit an.
+- **KI-Antwort** über den Treffern (Brave *Answers*): aus, auf Knopfdruck (Standard) oder automatisch. Die Trefferliste wartet nie darauf. Eine Antwort kostet bei Brave etwa 6 Cent, darum liegt die Bremse bei 70 Requests im Monat.
 
 ## Bilder groß, auch bei anderen Suchmaschinen
 
@@ -135,9 +135,8 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
 
-## Neu in 2.0: das große Werkzeug-Upgrade
+## Werkzeuge
 
-> **Version 2.0 ist ein Mega-Upgrade.** Aus 15 kleinen Helfern werden **47 Werkzeuge**, viele davon richtige kleine Apps. Alle laufen auf deinem eigenen Server oder direkt im Browser, nichts fragt einen Suchdienst, nichts kostet Guthaben. Das Update spielt sich wie gewohnt per Knopfdruck ein, Daten und Kurzlinks bleiben erhalten.
 
 <p align="center"><img src="docs/de/werkzeuge.png" alt="Werkzeuge mit Suche, Favoriten und Gruppen" width="820"></p>
 
@@ -168,7 +167,7 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Kurzlinks 2.0** (Ideen aus [ShrinkURL](https://github.com/burnersen/ShrinkURL)): Wunschname, Ablaufdatum, Aufruf-Grenze („nur einmal“), Passwort, Zwischenseite gegen Messenger-Vorschauen, Vorschau mit `+` am Ende, Tracking-Parameter entfernen, Ziel nachträglich ändern, an/aus, **Statistik nur als Zähler pro Tag** (keine IP, kein Cookie), Titel des Ziels, Ziele auf tote Links prüfen, CSV, Lesezeichen-Knopf, Eintrag im Teilen-Menü am Handy.
 - **Text-Schnipsel:** im Browser verschlüsselt (AES-256-GCM), der Schlüssel steht nur im Link hinter dem `#`. Gültigkeit, „nach dem Lesen weg“, optional Passwort (ein falsches Passwort verbraucht keinen Abruf).
 
-**Rechnen:** Rechner, der beim Tippen rechnet (Verlauf, wissenschaftlich, Grad/Rad), Prozent und MwSt, Dreisatz, Einheiten live (jetzt auch Verbrauch, Druck, Energie, Leistung, Winkel, Kochen), Währungen mit mehreren Zielen und **Kursverlauf der EZB**, Zinseszins, Sparplan, Kredit mit Tilgungsplan, Spritkosten, Rechnung teilen, römische Zahlen, Morsecode mit Ton und Licht.
+**Rechnen:** Rechner, der beim Tippen rechnet (Verlauf, wissenschaftlich, Grad/Rad), Prozent und MwSt, Dreisatz, Einheiten live (auch Verbrauch, Druck, Energie, Leistung, Winkel, Kochen), Währungen mit mehreren Zielen und **Kursverlauf der EZB**, Zinseszins, Sparplan, Kredit mit Tilgungsplan, Spritkosten, Rechnung teilen, römische Zahlen, Morsecode mit Ton und Licht.
 
 **Zeit und Datum:** mehrere Timer gleichzeitig, Pomodoro, Intervall-Training, Wecker, Stoppuhr mit Runden (Timer überleben das Neuladen), Countdown mit Titel, Vollbild und Link, **Arbeitstage mit Feiertagen des Bundeslands**, Wochentag, **Brückentage-Planer**, Feiertage als **Kalenderdatei (.ics)**, Jahreskalender zum Drucken, Weltzeituhr mit Termin-Planer.
 
@@ -182,32 +181,20 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 
 **Datenschutz bleibt:** Passwörter, QR-Inhalte, Hashes, JWTs, Regex und Texte verlassen den Browser nicht. Abrufe nach draußen (Netz-Werkzeuge, Link-Röntgen) macht nur dein Server, nur zu öffentlichen Adressen, ohne etwas zu speichern. Die Scan-Engine (zxing-wasm, MIT) liegt auf deinem Server und wird nur geladen, wenn du scannst.
 
-## Neu in 1.5
+## Aussehen und Nachladen
 
-- **Werkzeuge neu sortiert:** eine Übersicht mit Kacheln nach Gruppen (Rechnen, Zeit und Datum, Zufall, Teilen und Sicherheit, Wetter und Netz), jedes Werkzeug öffnet sich auf einer **eigenen Seite** statt in einer langen Liste. Unten gibt es passende weitere Werkzeuge. Erreichbar überall über das **Kachel-Symbol oben rechts**, auch für Besucher, wenn Suchen ohne Anmeldung erlaubt ist.
-- **Einstellungen aufgeräumt:** Login-Token und „Als Standardsuche im Browser“ stehen jetzt zusammen unter **Einstellungen → Browser**. Das Aussehen für alle bearbeitet der Administrator unter **Verwaltung → Aussehen**.
-- **API-Keys holen, Schritt für Schritt** direkt in der Verwaltung bei jedem Suchdienst, ohne in die README schauen zu müssen.
-- **1.5.1:** Währungskurse einmal am Tag nach der EZB plus Knopf „Kurse jetzt abrufen“. „Meine IP-Adresse“ zeigt auf Wunsch auch die IPv4 bei IPv6-Verbindung (und umgekehrt), am besten über eine eigene IPv4-Subdomain (Verwaltung → Einstellungen), sonst auf Klick über ipify.org. Die Vorschau beim Aussehen bleibt beim Scrollen sichtbar.
-- **1.5.2:** Endlos-Scrollen lädt nur noch nach, wenn man unten angekommen ist und bewusst weiterzieht.
-- **1.5.3:** „Verbrauch laut Dashboard“ setzt den Zähler eines Suchdienstes genau auf den Stand aus dem Dashboard und zählt von da weiter (für alle Dienste, die ihren Verbrauch nicht selbst melden).
-- **1.5.4 und 1.5.5:** Unterschriebene Updates kurz ausprobiert und wieder abgeschaltet. Updates werden über die Prüfsummen kontrolliert, die Unterschrift bleibt freiwillig möglich (siehe [BUILD.md](BUILD.md)).
-- Kleinigkeiten: Der Name oben auf der Ergebnisseite wird nicht mehr abgeschnitten, die Währungskarte ist kompakter, Reiter auf dem Handy zeigen, dass man wischen kann. Ist noch kein Suchdienst eingerichtet, kommt der Administrator direkt zur Einrichtung, statt weitergeleitet zu werden.
-- **Für Entwickler:** Code nach Themen aufgeteilt, englische Texte in `app/lang/en.php`, automatische Tests, Prüfung bei jedem Push, wiederholbarer Bau, Updates auf Wunsch mit Unterschrift. Für Nutzer bleibt es **eine einzige Installationsdatei**. Wie das zusammengebaut wird: [BUILD.md](BUILD.md).
-
-## Neu in 1.4
-
-### Aussehen nach Wunsch
+### Aussehen
 
 Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die Suchmaschine aussieht. Den Standard für alle legt der Administrator unter **Verwaltung → Aussehen** fest (gilt auch für Besucher ohne Anmeldung).
 
 - **17 fertige Designs**, hell und dunkel. Neben klarem Weiß und Schwarz gibt es gedämpfte Töne für alle, denen Weiß zu grell und Schwarz zu dunkel ist: **Papier**, **Nebel**, **Salbei**, **Schiefer**, **Dämmerung**. Für hell und dunkel jeweils ein Lieblingsdesign, bei „Wie das Gerät“ wird automatisch gewechselt.
 - **Farbmischer** (aus „Kaufen“): Hintergrund, Flächen, Schrift, Akzent, dazu freiwillig Titel/Links und Nebentext. Mit Reglern für Farbton, Sättigung und Helligkeit, Farbcode, Live-Vorschau, Warnung bei zu wenig Kontrast und einem Knopf, der die Schriftfarben automatisch abstimmt. Funktioniert auch ohne JavaScript mit den Farbwählern des Browsers.
 - **Schriften fest eingebaut:** Atkinson Hyperlegible, Lexend, Source Sans 3, Inter und Literata (mit Serifen). Sie liegen auf deinem eigenen Server, es wird **nichts bei Google** geladen. Alle unter der SIL Open Font License (Lizenzdateien in `app/assets/fonts/`).
-- **Größen und Platz:** alles zusammen, Titel der Treffer und Beschreibungen getrennt, Zeilenabstand, Abstand zwischen den Treffern (kompakt bis luftig) und Breite der Trefferliste für große Bildschirme. Auf dem Handy ist die Quellen-Leiste jetzt eine wischbare Zeile.
+- **Größen und Platz:** alles zusammen, Titel der Treffer und Beschreibungen getrennt, Zeilenabstand, Abstand zwischen den Treffern (kompakt bis luftig) und Breite der Trefferliste für große Bildschirme.
 
 ### Nachladen und News
 
-- **Endlos scrollen oder seitenweise** gilt jetzt für alle Reiter: Alle, Bilder, News und Videos.
+- **Endlos scrollen oder seitenweise** gilt für alle Reiter: Alle, Bilder, News und Videos.
 - **Nachladen mit Widerstand:** Normales Runterscrollen lädt nichts nach. Erst wer ganz unten angekommen ist und dann bewusst weiterzieht (am Handy ein deutlicher Wisch, am Rechner mehrere Rasten am Mausrad), bekommt die nächsten Treffer. Ein Balken zeigt, wie weit es noch ist, loslassen setzt ihn zurück. Den letzten Eintrag in Ruhe lesen kostet also nichts. Der Knopf „Weitere Treffer“ lädt sofort.
 - **Bilder:** 200 auf einmal mit einer einzigen Suche, Blättern und Nachladen kosten danach nichts mehr.
 - **News:** Brave holt 50 Meldungen auf einmal, meist der ganze Tag in einer Anfrage. Am Ende geht es mit der letzten Woche weiter. Leere Abschnitte werden übersprungen.
@@ -244,24 +231,23 @@ Unter **Rezepte** (Konto-Menü und Startseite) gibt es ein Feld für Rezept-Link
 
 Die Rechte an den Inhalten bleiben bei den jeweiligen Seiten. Wer ein PDF weitergibt oder veröffentlicht, ist selbst dafür verantwortlich.
 
-## Neu in 1.3
+## Neueste zuerst und Links
 
 - **Neueste zuerst** ist Standard bei „Alle“ und bei News. Jedes Konto stellt das unter *Einstellungen → Suche* für sich um, der Administrator legt unter *Verwaltung → Einstellungen* den Standard für alle fest. In der Trefferliste lässt es sich jederzeit über „Sortierung“ umschalten.
 - **News aus den letzten 24 Stunden.** Am Ende der Liste geht es automatisch mit der letzten Woche weiter, dann mit dem letzten Monat und dem letzten Jahr. Gibt es gar keine aktuellen News, wird gleich erweitert. Zeitraum und Erweitern sind pro Konto einstellbar.
-- **Reset-Datum vom Dienst:** Brave meldet bei jeder Suche selbst, wann das Kontingent neu startet. Den bisherigen Verbrauch kannst du unter **„Verbrauch laut Dashboard“** abgleichen.
 - **Neuer Tab überall:** „Links in neuem Tab öffnen“ gilt für jeden Link nach draußen, auch im Wetter, in der Kurzinfo und in nachgeladenen Treffern.
 - **Bangs ohne Aufblitzen:** Die Zwischenseite ist leer und hat die Farbe der Seite. Nur wenn das Ziel hängt, erscheint nach 2 Sekunden ein Knopf „Weiter“.
 
-## Neu in 1.2
+## Weitere Funktionen
 
 ### Suchdienst, Störungen, Ersatz
 
 - Gesucht wird bei **Brave Search**. Liefert Brave einen Fehler oder ist nicht erreichbar, pausiert es kurz, damit keine Suche darauf wartet, und die Suchen gehen solange sofort zur Ersatz-Suchmaschine. In der Verwaltung siehst du letzten Erfolg, letzten Fehler im Klartext und die durchschnittliche Antwortzeit.
 
-### Verbrauch, Prognose, Kontingente
+### Verbrauch und Kontingente
 
-- Unter **Verwaltung → Verbrauch** pro Dienst: verbraucht / Limit, Zeitraum, **Reset-Datum mit verbleibenden Tagen**, Verbrauch heute, **Tagesdurchschnitt**, **Hochrechnung bis zum Reset** und ein klares Urteil, ob es reicht (sonst: „reicht nur bis etwa …“). Dazu der Verlauf nach Monaten und der Verbrauch pro Konto.
-- **Warnhinweis:** Ab 80 % (einstellbar) oder wenn die Prognose nicht bis zum Reset reicht, sieht der Administrator oben einen Hinweis.
+- Unter **Verwaltung → Verbrauch** alle vier Brave-Pläne wie im Dashboard (Requests, Credits, Burn rate, Runway, Reset), mit Feld für die Requests laut Dashboard, dazu der Verlauf nach Monaten und der Verbrauch pro Konto.
+- **Warnhinweis:** Ab 80 % der Bremse (einstellbar) sieht der Administrator oben einen Hinweis, ebenso wenn eine Bremse greift.
 - **Kontingente pro Konto:** Unter *Verwaltung → Konten → Kontingent* legst du fest, ob ein Konto Brave nutzen darf und wie viele Suchen es pro Zeitraum bekommt. Ist es aufgebraucht, gehen die Suchen des Kontos zu seiner Ersatz-Suchmaschine. „Gerecht aufteilen“ verteilt das Limit gleichmäßig auf alle Konten.
 
 ### Sofort-Antworten (kosten kein Guthaben)
@@ -292,7 +278,7 @@ Direkt im Suchfeld, beantwortet bevor ein Suchdienst gefragt wird. Unter jeder A
 | `lotto`, `eurojackpot`, `karte ziehen`, `ja oder nein` | Lottozahlen, Spielkarte, Entscheidungshilfe |
 | `!qr Hallo`, `!pw`, `!kurz https://…`, `!scan`, `!json`, `!dns example.org` | öffnet das passende Werkzeug |
 
-### Werkzeuge
+### Werkzeuge im Suchfeld
 
 Unter **Werkzeuge** (Kachel-Symbol oben rechts, Konto-Menü oder Startseite) stehen 47 Helfer an einem Ort, nach Gruppen sortiert, mit Suche, Favoriten und „Zuletzt benutzt“. Jedes Werkzeug hat eine eigene Seite. Nichts davon fragt einen Suchdienst, kostet also kein Guthaben. Was alles dabei ist, steht oben unter [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade).
 
@@ -482,4 +468,4 @@ Die Suchmaschine ist kostenlose Hobby-Software und wird **so, wie sie ist, ohne 
 
 GNU Affero General Public License v3.0, siehe [LICENSE](LICENSE).
 
-Eingebaut seit 2.0: Scan-Engine [zxing-wasm](https://github.com/Sec-ant/zxing-wasm) (MIT) mit zxing-cpp (Apache 2.0), Details in `app/assets/vendor/LIZENZEN.txt`. Wortlisten für Passphrasen: Deutsch aus [dys2p/wordlists-de](https://github.com/dys2p/wordlists-de) (CC0), Englisch aus den Wortlisten der [EFF](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) (CC BY 3.0 US). Symbole im Stil von Lucide (ISC). Bang-Liste aus [kagisearch/bangs](https://github.com/kagisearch/bangs) (MIT), Lizenz in `app/lists/LIESMICH.txt`.
+Eingebaut: Scan-Engine [zxing-wasm](https://github.com/Sec-ant/zxing-wasm) (MIT) mit zxing-cpp (Apache 2.0), Details in `app/assets/vendor/LIZENZEN.txt`. Wortlisten für Passphrasen: Deutsch aus [dys2p/wordlists-de](https://github.com/dys2p/wordlists-de) (CC0), Englisch aus den Wortlisten der [EFF](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) (CC BY 3.0 US). Symbole im Stil von Lucide (ISC). Bang-Liste aus [kagisearch/bangs](https://github.com/kagisearch/bangs) (MIT), Lizenz in `app/lists/LIESMICH.txt`.
