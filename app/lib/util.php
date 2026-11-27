@@ -150,6 +150,35 @@ function smRender(string $view, array $vars = [], bool $layout = true): void
     }
 }
 
+/**
+ * Wie smRender, aber die Seite geht in zwei Teilen raus: erst alles bis zur Trefferliste (Kopf, Suchfeld, Filter),
+ * dann sucht $run und liefert die Werte für die Trefferliste (_serp.php), danach kommt der Rest.
+ * So sieht man sofort, dass gesucht wird. Puffert der Server trotzdem, kommt die Seite eben am Stück, wie bisher.
+ */
+function smRenderStream(string $view, array $vars, callable $run): void
+{
+    smHeaders(true);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('X-Accel-Buffering: no');   // nginx: nicht zwischenspeichern
+    @ini_set('zlib.output_compression', '0');
+    // Jede Vorlage in einem eigenen Bereich, damit sich ihre Variablen nicht gegenseitig überschreiben
+    $tpl = function (string $file, array $v, string $content = ''): string {
+        extract($v, EXTR_SKIP);
+        ob_start();
+        require SM_APP . '/views/' . $file . '.php';
+        return (string)ob_get_clean();
+    };
+    $html = $tpl('layout', $vars, $tpl($view, $vars));
+    $cut = strpos($html, '<!--SM-STREAM-->');
+    if ($cut === false) { echo $html; return; }
+    while (ob_get_level() > 0) @ob_end_flush();
+    echo substr($html, 0, $cut);
+    flush();
+    echo $tpl('_serp', $run() + $vars);
+    echo substr($html, $cut + strlen('<!--SM-STREAM-->'));
+}
+
 function smClientIp(): string
 {
     return (string)($_SERVER['REMOTE_ADDR'] ?? '');

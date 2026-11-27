@@ -105,8 +105,8 @@ function smRun(): void
     }
 
     $public = smSetting('public') === '1';
-    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img', 'go', 'qr', 'tools', 'bangs'], true))) {
-        if ($a === 'img' || $a === 'qr' || $a === 'go') {
+    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img', 'go', 'qr', 'tools', 'bangs', 'suggest'], true))) {
+        if ($a === 'img' || $a === 'qr' || $a === 'go' || $a === 'suggest') {
             http_response_code(403);
             exit;
         }
@@ -126,6 +126,9 @@ function smRun(): void
             return;
         case 'go':
             smServeGo();
+            return;
+        case 'suggest':
+            smServeSuggest();
             return;
         case 'qr':
             smServeQr();

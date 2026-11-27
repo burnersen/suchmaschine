@@ -10,7 +10,9 @@ entirely within the free monthly quotas for normal private use.</p>
 
 <p align="center"><img src="docs/en/ergebnisse.png" alt="Results page with top stories and overview panel" width="820"></p>
 
-> 🚀 **New: version 2.2, Google results.** Real Google results for web, images, news and videos through Bright Data, 5,000 requests a month free. Plus live info (scores, stock prices, opening hours, AI overview) and Google’s filters. [Everything that is new](#new-in-22-google-results-through-bright-data)
+> ⚡ **New in 2.3:** the page appears right away, Google and Brave race each other, **newest first** everywhere with automatic time steps, images in **best quality first** and **search suggestions** while you type. [More](#new-in-23-faster-newest-first-best-images)
+>
+> 🚀 **Version 2.2, Google results.** Real Google results for web, images, news and videos through Bright Data, 5,000 requests a month free. Plus live info (scores, stock prices, opening hours, AI overview) and Google’s filters. [Everything that is new](#new-in-22-google-results-through-bright-data)
 
 Upload `suchmaschine-install.php`, open it in the browser, create your account, paste one or more API keys. That is the whole installation.
 
@@ -98,6 +100,17 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. **Over 10,800 bangs** from [Kagi’s open list](https://github.com/kagisearch/bangs) (MIT) are built in, plus German extras. Typing `!` (or the `!` button) suggests bangs and shows where they lead. Under *Settings → Bangs* you can search, edit and delete any bang and restore the defaults; admins can do this for everyone. The list updates itself weekly and targets are checked for reachability, without using searches. Works from the browser's address bar too.
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
+
+## New in 2.3: faster, newest first, best images
+
+- **Show the page right away:** after Enter the search box and filters appear at once, the results follow as soon as they arrive. Can be turned off under *Admin → Search services*.
+- **Race:** if Google hasn’t answered within 3 seconds (6 for images), Brave is asked as well and the faster answer wins. Adjustable (0 = off). Only then does it cost an extra Brave search.
+- **Redirects resolved on click:** Google’s redirect links are resolved by your server only when you click, saving half a second to a second per search.
+- **Newest first everywhere:** All, News and Videos start with the past 24 hours, sorted by date, then continue by themselves with the past week, month, year and everything older, while scrolling or paging. Empty periods are skipped, nothing shows up twice. Set the starting period under *Settings → Search*; “Relevance” is still available under “Sorting”.
+- **Images: best quality first.** With Google in steps: images from 4 megapixels, then from 2 megapixels, then large ones, then all, without duplicates. With Brave sorted by resolution. Switchable to “Relevance”.
+- **Search suggestions from Google** while typing, below your own recent searches. Free, uses no requests, goes through your server. Can be turned off.
+- **Filters without an OK button:** language, region and custom date range apply right after choosing.
+- **Fixed:** with a time filter, Google via Bright Data sometimes returned nothing for web searches. The web-only tab is used then.
 
 ## New in 2.2: Google results through Bright Data
 

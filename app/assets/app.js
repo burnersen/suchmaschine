@@ -63,6 +63,8 @@
         var list = $('.sbox__list', form);
         var useHist = form.getAttribute('data-history') === '1';
         var bangUrl = form.getAttribute('data-bangs');
+        var sugUrl = form.getAttribute('data-suggest');
+        var sugCache = {}, sugT = 0;
         var target = $('[data-bang-target]', form);
         var active = -1;
         var items = [];     // {kind: 'hist', text} oder {kind: 'bang', t, n, d, dead}
@@ -164,12 +166,31 @@
                 });
                 return;
             }
-            if (!useHist) { close(); return; }
             var q = input.value.trim();
             var lq = q.toLowerCase();
-            items = hist().filter(function (x) { return !lq || (x.toLowerCase().indexOf(lq) !== -1 && x.toLowerCase() !== lq); }).slice(0, 8)
-                .map(function (x) { return { kind: 'hist', text: x }; });
+            var mine = !useHist ? [] : hist().filter(function (x) { return !lq || (x.toLowerCase().indexOf(lq) !== -1 && x.toLowerCase() !== lq); })
+                .slice(0, lq ? 4 : 8).map(function (x) { return { kind: 'hist', text: x }; });
+            items = mine;
             draw(q);
+            // Vorschläge von Google (über den eigenen Server, kostenlos) unter den eigenen letzten Suchen
+            if (!sugUrl || q.length < 2 || q.charAt(0) === '!') return;
+            var my = ++seq;
+            function add(list) {
+                if (my !== seq || document.activeElement !== input || input.value.trim() !== q) return;
+                var have = {};
+                mine.forEach(function (it) { have[it.text.toLowerCase()] = true; });
+                items = mine.concat(list.filter(function (x) { return !have[x.toLowerCase()] && x.toLowerCase() !== lq; })
+                    .slice(0, 10 - mine.length).map(function (x) { return { kind: 'sug', text: x }; }));
+                draw(q);
+            }
+            if (sugCache[lq]) { add(sugCache[lq]); return; }
+            clearTimeout(sugT);
+            sugT = setTimeout(function () {
+                fetch(sugUrl + (sugUrl.indexOf('?') < 0 ? '?' : '&') + 'q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (j) { if (j && Array.isArray(j.list)) { sugCache[lq] = j.list; add(j.list); } })
+                    .catch(function () {});
+            }, 120);
         }
 
         function draw(q) {
@@ -196,6 +217,11 @@
                     if (it.dead) d.title = form.getAttribute('data-label-dead');
                     li.appendChild(d);
                     li.addEventListener('mousedown', function (ev) { ev.preventDefault(); pickBang(it.t); });
+                } else if (it.kind === 'sug') {
+                    li.className += ' sbox__opt--sug';
+                    li.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>';
+                    li.appendChild(mark(it.text, q));
+                    li.addEventListener('mousedown', function (ev) { ev.preventDefault(); pick(it.text); });
                 } else {
                     li.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
                     li.appendChild(mark(it.text, q));
@@ -243,7 +269,7 @@
             if (active < -1) active = items.length - 1;
             $$('.sbox__opt', list).forEach(function (li, i) { li.classList.toggle('is-active', i === active); });
             input.setAttribute('aria-activedescendant', active >= 0 ? 'sbox-opt-' + active : '');
-            if (mode === 'hist') { input.value = active >= 0 ? items[active].text : typed; sync(); }
+            if (mode !== 'bang') { input.value = active >= 0 ? items[active].text : typed; sync(); }
         }
 
         input.addEventListener('focus', function () { typed = input.value; render(); });
@@ -253,7 +279,7 @@
             if (ev.key === 'ArrowDown') { ev.preventDefault(); if (list.hidden) render(); else move(1); }
             else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
             else if (ev.key === 'Escape') { if (!list.hidden) { ev.preventDefault(); close(); } else { input.blur(); } }
-            else if (ev.key === 'Delete' && ev.shiftKey && active >= 0 && mode === 'hist') { ev.preventDefault(); histDel(items[active].text); render(); }
+            else if (ev.key === 'Delete' && ev.shiftKey && active >= 0 && items[active].kind === 'hist') { ev.preventDefault(); histDel(items[active].text); render(); }
             else if (mode === 'bang' && !list.hidden && (ev.key === 'Tab' || (ev.key === 'Enter' && active >= 0))) {
                 var it = items[active >= 0 ? active : 0];
                 // Enter ohne Auswahl, wenn das Kürzel schon stimmt: ganz normal abschicken
@@ -389,6 +415,17 @@
         var msg = b && b.getAttribute && b.getAttribute('data-confirm-btn') || (f.getAttribute && f.getAttribute('data-confirm'));
         if (msg && !window.confirm(msg)) { ev.preventDefault(); ev.stopImmediatePropagation(); loading(false); }
     }, true);
+    // Filter in der Trefferliste ohne OK-Knopf: Auswahl wirkt sofort, ein Zeitraum, sobald beide Tage stehen (oder einer, mit Enter)
+    $$('.tools__form select').forEach(function (s) {
+        s.addEventListener('change', function () { loading(true); s.form.submit(); });
+    });
+    $$('.tools__form--range').forEach(function (f) {
+        var d = $$('input[type="date"]', f);
+        d.forEach(function (i) {
+            i.addEventListener('change', function () { if (d.every(function (x) { return x.value; })) { loading(true); f.submit(); } });
+        });
+    });
+
     // Schalter, die sofort speichern
     $$('form[data-autosubmit] input[type="checkbox"]').forEach(function (c) {
         c.addEventListener('change', function () { loading(true); c.form.submit(); });

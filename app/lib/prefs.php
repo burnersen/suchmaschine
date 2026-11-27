@@ -15,6 +15,7 @@ function smPrefs(?array $me): array
         'scroll'      => in_array($p['scroll'] ?? '', ['pages', 'endless'], true) ? $p['scroll'] : (smSetting('scroll') === 'endless' ? 'endless' : 'pages'),
         'sort_web'    => in_array($p['sort_web'] ?? '', ['date', 'rel'], true) ? $p['sort_web'] : (smSetting('sort_web') === 'rel' ? 'rel' : 'date'),
         'sort_news'   => in_array($p['sort_news'] ?? '', ['date', 'rel'], true) ? $p['sort_news'] : (smSetting('sort_news') === 'rel' ? 'rel' : 'date'),
+        'sort_videos' => in_array($p['sort_videos'] ?? '', ['date', 'rel'], true) ? $p['sort_videos'] : (smSetting('sort_videos') === 'rel' ? 'rel' : 'date'),
         'news_fresh'  => smNewsFreshOk($p['news_fresh'] ?? '') ? $p['news_fresh'] : (smNewsFreshOk(smSetting('news_fresh')) ? smSetting('news_fresh') : 'pd'),
         'news_expand' => isset($p['news_expand']) ? !empty($p['news_expand']) : smSetting('news_expand') === '1',
     ];
@@ -26,10 +27,22 @@ function smNewsFreshOk($v): bool
     return is_string($v) && in_array($v, ['pd', 'pw', 'pm', 'py', 'all'], true);
 }
 
-/** Nächstgrößerer Zeitraum fürs automatische Erweitern der News ('' = keiner mehr) */
+/** Nächste Zeitstufe bei „Neueste zuerst“: 24 Stunden → Woche → Monat → Jahr → älter ('' = keine mehr) */
 function smNextFresh(string $f): string
 {
-    return ['ph' => 'pd', 'pd' => 'pw', 'pw' => 'pm', 'pm' => 'py'][$f] ?? '';
+    return ['ph' => 'pd', 'pd' => 'pw', 'pw' => 'pm', 'pm' => 'py', 'py' => 'all'][$f] ?? '';
+}
+
+/** Name einer Zeitstufe (all = alles, was älter ist als die Stufen davor) */
+function smTierLabel(string $f): string
+{
+    return $f === 'all' ? t('Älter als ein Jahr') : (smFreshness()[$f] ?? smFreshness()['']);
+}
+
+/** Wie viele Tage eine Zeitstufe zurückreicht (für „ohne die schon gezeigten“) */
+function smTierDays(string $f): int
+{
+    return ['ph' => 0, 'pd' => 1, 'pw' => 7, 'pm' => 31, 'py' => 365][$f] ?? 0;
 }
 
 /** Sortierung und News aus einem Formular (eigene Einstellungen oder Standard der Installation) */
@@ -38,6 +51,7 @@ function smSortPrefsFromPost(): array
     return [
         'sort_web'    => ($_POST['sort_web'] ?? '') === 'rel' ? 'rel' : 'date',
         'sort_news'   => ($_POST['sort_news'] ?? '') === 'rel' ? 'rel' : 'date',
+        'sort_videos' => ($_POST['sort_videos'] ?? '') === 'rel' ? 'rel' : 'date',
         'news_fresh'  => smNewsFreshOk($_POST['news_fresh'] ?? '') ? (string)$_POST['news_fresh'] : 'pd',
         'news_expand' => !empty($_POST['news_expand']),
     ];
@@ -53,7 +67,7 @@ function smCleanPrefs(array $p): array
     if (isset($p['search_lang']) && isset(smSearchLangs()[$p['search_lang']])) $out['search_lang'] = $p['search_lang'];
     if (in_array($p['safesearch'] ?? '', ['off', 'moderate', 'strict'], true)) $out['safesearch'] = $p['safesearch'];
     if (in_array($p['scroll'] ?? '', ['pages', 'endless'], true)) $out['scroll'] = $p['scroll'];
-    foreach (['sort_web', 'sort_news'] as $k) if (in_array($p[$k] ?? '', ['date', 'rel'], true)) $out[$k] = $p[$k];
+    foreach (['sort_web', 'sort_news', 'sort_videos'] as $k) if (in_array($p[$k] ?? '', ['date', 'rel'], true)) $out[$k] = $p[$k];
     if (smNewsFreshOk($p['news_fresh'] ?? '')) $out['news_fresh'] = $p['news_fresh'];
     if (isset($p['news_expand'])) $out['news_expand'] = !empty($p['news_expand']);
     foreach (['newtab', 'history'] as $k) if (isset($p[$k])) $out[$k] = !empty($p[$k]);

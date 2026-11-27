@@ -177,8 +177,9 @@ function smDefaults(): array
         'scroll'        => 'pages', // pages = Seitenweise, endless = endlos scrollen
         'sort_web'      => 'date',  // Sortierung bei „Alle“: date = neueste zuerst, rel = Relevanz
         'sort_news'     => 'date',  // Sortierung bei News
-        'news_fresh'    => 'pd',    // News-Zeitraum: pd, pw, pm, py oder all
-        'news_expand'   => '1',     // am Ende der News automatisch mit älteren weitermachen
+        'sort_videos'   => 'date',  // Sortierung bei Videos
+        'news_fresh'    => 'pd',    // erste Zeitstufe bei „Neueste zuerst“ (Alle, News, Videos): pd, pw, pm, py oder all
+        'news_expand'   => '1',     // am Ende einer Zeitstufe automatisch mit der nächsten weitermachen
         'logo_type'     => '',
         'logo_v'        => '0',
         'monthly_limit' => '950',
@@ -197,6 +198,9 @@ function smDefaults(): array
         'multi_set'     => 'brightdata,brave',
         'answers'       => '1',     // KI-Übersicht von Google mitnehmen (kostet nichts extra)
         'wiki'          => '1',     // Wikipedia-Kurzinfo, wenn der Suchdienst keine eigene liefert
+        'stream'        => '1',     // Seite sofort zeigen, Treffer kommen nach (seit 2.3)
+        'race'          => '3',     // Wettlauf: nach so vielen Sekunden ohne Antwort zusätzlich den nächsten Dienst fragen (0 = aus)
+        'suggest'       => '1',     // Suchvorschläge von Google im Suchfeld (kostenlos, über den eigenen Server)
         'fallback_auto' => '1',     // alles leer oder gestört: automatisch weiterleiten
         'fallback_url'  => 'https://www.startpage.com/do/search?q={q}',
         'warn_pct'      => '80',    // Warnhinweis für Administratoren ab diesem Verbrauch
