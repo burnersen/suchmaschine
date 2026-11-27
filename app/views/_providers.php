@@ -2,19 +2,16 @@
 /** Verwaltung → Suchdienste: Keys, Stichtag, Limits, Reihenfolge, Lastverteilung, Ausweichziel, Zustand */
 $aurl = function (string $t) { return smUrl(['a' => 'admin', 'tab' => $t]); };
 $info = [
-    'brave'     => t('Plan „Search“ mit monatlichem Guthaben für etwa 1.000 Suchen. Kann als einziger Dienst Bilder, Videos und Infoboxen.'),
-    'tavily'    => t('1.000 Credits pro Monat kostenlos, eine einfache Suche kostet 1 Credit. Liefert auf Wunsch eine Kurzantwort mit.'),
-    'exa'       => t('10 $ Guthaben pro Monat. Gezählt wird in Cent anhand der echten Kosten, die Exa bei jeder Antwort mitschickt.'),
-    'parallel'  => t('Bis zu 5.000 kostenlose Anfragen pro Monat (Guthaben mit hinterlegter Karte, Ausgabenlimit dort setzen).'),
-    'firecrawl' => t('1.000 Credits im kostenlosen Plan. Firecrawl meldet die verbrauchten Credits bei jeder Suche zurück.'),
+    'brightdata' => t('Echte Google-Ergebnisse über die SERP API von Bright Data: Web, Bilder, News und Videos, dazu Googles Filter, Infobox mit Öffnungszeiten, Spielstände, Kurse und die KI-Übersicht. 5.000 Anfragen pro Monat kostenlos, Reset am Monatsersten.'),
+    'brave'      => t('Plan „Search“ mit monatlichem Guthaben für etwa 1.000 Suchen. Web, Bilder, News und Videos, eigener Index.'),
 ];
 // So kommt man an den Key: kurze Schritte pro Dienst (ausführlicher in der README)
 $guide = [
+    'brightdata' => [t('Bei brightdata.com anmelden. Keine Karte hinterlegen, dann kann auch nichts abgebucht werden.'),
+                     t('Unter „Web Access“ → „Add API“ die „SERP API“ wählen, einen Namen vergeben (z. B. serp_api1), Datenformat „Full JSON“, die erweiterten Einstellungen aus lassen und auf „Add API“ tippen.'),
+                     t('Den Namen der API hier als Zone eintragen und den API-Key (sieht aus wie 1a2b3c4d-…) dazu.'),
+                     t('Für den Lesemodus kannst du später noch eine „Web Unlocker API“ anlegen und ihren Namen unten eintragen.')],
     'brave' => [t('Bei api-dashboard.search.brave.com anmelden und den Plan „Search“ wählen. Eine Karte ist nötig (gegen Missbrauch), abgerechnet wird über das Guthaben, kein Abo.'), t('Automatisches Aufladen ausgeschaltet lassen.'), t('Unter „API Keys“ einen Key anlegen (beginnt mit BSA) und hier einfügen.')],
-    'tavily' => [t('Bei app.tavily.com anmelden. Der kostenlose Plan „Researcher“ hat 1.000 Credits im Monat, ohne Karte.'), t('Pay-as-you-go ausgeschaltet lassen.'), t('Den Key aus dem Dashboard kopieren (beginnt mit tvly-) und hier einfügen.')],
-    'exa' => [t('Bei dashboard.exa.ai anmelden.'), t('Unter „API Keys“ einen Key anlegen und hier einfügen.'), t('Kein automatisches Aufladen einrichten. Das monatliche Guthaben von 10 $ reicht für normale Nutzung.')],
-    'parallel' => [t('Bei platform.parallel.ai anmelden. Für das monatliche Guthaben muss eine Karte hinterlegt sein.'), t('Unter „Billing“ das automatische Aufladen ausschalten und ein Ausgabenlimit setzen.'), t('Unter „API Keys“ einen Key anlegen und hier einfügen.')],
-    'firecrawl' => [t('Bei firecrawl.dev anmelden. Der kostenlose Plan hat 1.000 Credits.'), t('Den Key unter „API Keys“ kopieren (beginnt mit fc-) und hier einfügen.'), t('Reset-Datum und Restguthaben holt sich die Suchmaschine selbst von Firecrawl.')],
 ];
 $order = smProvOrder(false);
 $withKey = array_values(array_filter($order, function ($id) { return trim(smProvGet($id, 'key')) !== ''; }));
@@ -45,7 +42,7 @@ $without = array_values(array_diff($order, $withKey));
                 </li>
 <?php endforeach; ?>
             </ol>
-            <p class="muted small"><?= h(t('Bilder und Videos fragt die Suchmaschine automatisch nur bei Diensten, die das können (im Moment nur Brave), in dieser Reihenfolge. Kann ein anderer Dienst das auch, wird er genauso mitbenutzt.')) ?></p>
+            <p class="muted small"><?= h(t('Bildfarbe, Bildtyp und Lizenz kann nur Google. Sind diese Filter gesetzt, fragt die Suchmaschine nur Google.')) ?></p>
 <?php foreach (['web' => t('Websuche'), 'images' => t('Bildersuche')] as $kk => $kn):
     [$pl, $ps] = smProvPick($kk, (int)$me['id'], null, 1);
     $names = function (array $ids) { return array_map(function ($x) { return smProviders()[$x]['badge']; }, $ids); }; ?>
@@ -95,9 +92,6 @@ $without = array_values(array_diff($order, $withKey));
                 <label class="field field--short"><span><?= h(t('Verbrauch laut Dashboard')) ?></span>
                     <input type="text" inputmode="decimal" name="used[<?= h($id) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', smNumF($f['used']))) ?>" autocomplete="off">
                     <small class="muted"><?= h(t('Trag hier ein, was das Dashboard von %s gerade als verbraucht anzeigt (in %s). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $p['name'], $p['unit'])) ?>
-<?php if ($id === 'exa'): ?>
-                        <?= h(t('Exa zeigt Dollar an: 3,13 $ sind hier 313.')) ?>
-<?php endif; ?>
 <?php if ($setAt > 0 && $setAt >= strtotime($f['cycle']['from'])): ?>
                         <?= h(t('Zuletzt nach Dashboard gesetzt: %s.', smDate($setAt) . ' ' . date('H:i', $setAt))) ?>
 <?php endif; ?></small></label>
@@ -112,6 +106,16 @@ $without = array_values(array_diff($order, $withKey));
                     <input type="number" name="cache[<?= h($id) ?>]" min="0" max="<?= $id === 'brave' ? 60 : 168 ?>" value="<?= (int)smProvGet($id, 'cache') ?>">
                     <small class="muted"><?= h($id === 'brave' ? t('Brave erlaubt nur kurzes Speichern (höchstens 60).') : t('Gleiche Suche in dieser Zeit kostet nichts.')) ?></small></label>
             </div>
+<?php if ($id === 'brightdata'): ?>
+            <div class="form__row">
+                <label class="field"><span><?= h(t('Zone der SERP API')) ?></span>
+                    <input type="text" name="zone[brightdata]" value="<?= h(smProvGet('brightdata', 'zone')) ?>" placeholder="serp_api1" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64">
+                    <small class="muted"><?= h(t('Der Name, den du der API in Bright Data unter „Web Access“ gegeben hast.')) ?></small></label>
+                <label class="field"><span><?= h(t('Zone des Web Unlockers (optional)')) ?></span>
+                    <input type="text" name="unlocker[brightdata]" value="<?= h(smProvGet('brightdata', 'unlocker')) ?>" placeholder="web_unlocker1" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64">
+                    <small class="muted"><?= h(t('Für den Lesemodus: Seiten, die den Server aussperren, über Bright Data laden. Kostet 1 Anfrage pro Seite. Leer = aus.')) ?></small></label>
+            </div>
+<?php endif; ?>
             <label class="switch"><input type="checkbox" name="on[<?= h($id) ?>]" value="1"<?= $on ? ' checked' : '' ?>><span class="switch__ui"></span><span><?= h(t('Eingeschaltet')) ?></span></label>
             <label class="check"><input type="checkbox" name="keydel[<?= h($id) ?>]" value="1"> <?= h(t('Key entfernen')) ?></label>
             <p class="prov__state small">
@@ -142,6 +146,9 @@ $without = array_values(array_diff($order, $withKey));
 <?php endforeach; ?>
                 </ol>
                 <p><a class="btn btn--small" href="<?= h($p['site']) ?>" target="_blank" rel="noopener noreferrer"><?= h(t('Zum Dashboard')) ?> ↗</a></p>
+<?php if ($id === 'brightdata'): ?>
+                <label class="field"><span><?= h(t('Zone der SERP API')) ?></span><input type="text" name="zone[brightdata]" value="<?= h(smProvGet('brightdata', 'zone')) ?>" placeholder="serp_api1" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64"></label>
+<?php endif; ?>
                 <label class="field"><span><?= h(t('API-Key')) ?></span><input type="password" name="key[<?= h($id) ?>]" autocomplete="off" spellcheck="false" placeholder="<?= h($p['key_hint']) ?>" data-reveal></label>
             </details>
 <?php endforeach; ?>
@@ -154,9 +161,9 @@ $without = array_values(array_diff($order, $withKey));
             <label class="switch"><input type="checkbox" name="balance" value="1"<?= smSetting('balance') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Lastverteilung')) ?><br><small class="muted"><?= h(t('Verbraucht ein Dienst schneller, als sein Kontingent bis zum Reset reicht, gehen Suchen schon vorher an den nächsten Dienst. So reichen alle Kontingente gleichmäßig über den Monat.')) ?></small></span></label>
             <label class="switch"><input type="checkbox" name="answers" value="1"<?= smSetting('answers') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
-                <span><?= h(t('Kurzantwort von Tavily zeigen')) ?><br><small class="muted"><?= h(t('Wenn Tavily sucht, kommt eine kurze KI-Antwort mit, ohne Aufpreis.')) ?></small></span></label>
+                <span><?= h(t('KI-Übersicht von Google zeigen')) ?><br><small class="muted"><?= h(t('Hat Google zu einer Suche eine KI-Übersicht, steht sie über den Treffern. Kostet nichts extra.')) ?></small></span></label>
             <label class="switch"><input type="checkbox" name="wiki" value="1"<?= smSetting('wiki') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
-                <span><?= h(t('Wikipedia-Kurzinfo ergänzen')) ?><br><small class="muted"><?= h(t('Liefert der Suchdienst keine eigene Infobox (alle außer Brave), holt der Server eine kostenlose Kurzinfo von Wikipedia. Wikipedia sieht dann den Suchbegriff, aber nur den Server, nicht den Besucher.')) ?></small></span></label>
+                <span><?= h(t('Wikipedia-Kurzinfo ergänzen')) ?><br><small class="muted"><?= h(t('Liefert Google keine eigene Infobox, holt der Server eine kostenlose Kurzinfo von Wikipedia. Wikipedia sieht dann den Suchbegriff, aber nur den Server, nicht den Besucher.')) ?></small></span></label>
             <fieldset class="field"><legend><?= h(t('Für „Alle zusammen“ (!multi) fragen')) ?></legend>
                 <div class="checks">
 <?php $ms = explode(',', smSetting('multi_set')); foreach ($withKey as $id): ?>

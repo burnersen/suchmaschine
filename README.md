@@ -3,14 +3,14 @@
 <h1 align="center">Suchmaschine ohne Werbung</h1>
 
 <p align="center"><b>Deine eigene Suchmaschine. Ohne Werbung, ohne Tracking, auf deinem eigenen Webspace.</b><br>
-Ergebnisse von Brave Search, Tavily, Exa, parallel.ai und Firecrawl, mit Lastverteilung und Ausweichen bei Störungen,<br>
+Echte Google-Ergebnisse (über Bright Data) und Brave Search, mit Lastverteilung und Ausweichen bei Störungen,<br>
 bei normaler privater Nutzung komplett in den kostenlosen Monatskontingenten.</p>
 
 <p align="center"><a href="README.en.md">English version</a> · <a href="../../releases/latest">Neueste Version herunterladen</a></p>
 
 <p align="center"><img src="docs/de/ergebnisse.png" alt="Ergebnisseite mit Treffern, Top-Meldungen und Kurzinfo" width="820"></p>
 
-> 🚀 **Neu: Version 2.0, das große Werkzeug-Upgrade.** 47 Werkzeuge mit QR-Studio, Scanner (Barcode scannen und sofort suchen), Passwort-Generator, Kurzlinks mit Statistik, verschlüsselten Text-Schnipseln, Netz- und Entwickler-Werkzeugen. [Alles, was neu ist](#neu-in-20-das-große-werkzeug-upgrade)
+> 🚀 **Neu: Version 2.2, Google-Ergebnisse.** Über Bright Data kommen echte Google-Ergebnisse für Web, Bilder, News und Videos, 5.000 Anfragen im Monat kostenlos. Dazu Live-Infos (Spielstände, Kurse, Öffnungszeiten, KI-Übersicht) und Filter wie bei Google. [Alles, was neu ist](#neu-in-22-google-ergebnisse-über-bright-data)
 
 Einfach `suchmaschine-install.php` hochladen, im Browser aufrufen, Konto anlegen, einen oder mehrere API-Keys einfügen. Das ist die ganze Installation.
 
@@ -47,25 +47,22 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 2.2](#neu-in-22-google-ergebnisse-über-bright-data) · [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
-Bei normaler privater Nutzung nichts. Die Suchmaschine kann fünf Such-APIs nutzen, jede mit eigenem kostenlosen Monatskontingent. Schon eine reicht, mehrere zusammen ergeben einen dicken Puffer:
+Bei normaler privater Nutzung nichts. Die Suchmaschine kann zwei Such-APIs nutzen, jede mit eigenem kostenlosen Monatskontingent. Schon eine reicht, beide zusammen ergeben einen dicken Puffer:
 
 | Dienst | Kostenlos pro Monat | Gezählt wird in | Standardlimit | Kann |
 |---|---|---|---|---|
+| [Bright Data](https://brightdata.com) (Google) | **5.000 Anfragen**, Reset am Monatsersten | Anfragen | 4.950 | Web, Bilder, News, Videos, Infobox mit Öffnungszeiten, Spielstände, Kurse, KI-Übersicht, alle Google-Filter |
 | [Brave Search](https://brave.com/search/api/) | 5 $ Guthaben, etwa **1.000 Suchen** | Suchen | 950 | Web, Bilder, News, Videos, Infobox |
-| [Tavily](https://tavily.com) | **1.000 Credits** (einfache Suche = 1 Credit) | Credits | 950 | Web, News, Kurzantwort |
-| [Exa](https://exa.ai) | **10 $ Guthaben** | Cent (echte Kosten aus jeder Antwort) | 950 | Web, News |
-| [parallel.ai](https://parallel.ai) | bis zu **5.000 Anfragen** (mit hinterlegter Karte) | Anfragen | 4.950 | Web |
-| [Firecrawl](https://firecrawl.dev) | **1.000 Credits** im Free-Plan | Credits (gemeldet pro Suche) | 950 | Web, News |
 
 - Pro Dienst stellst du in der Verwaltung ein **eigenes Limit** ein. Voreingestellt ist immer das Freikontingent **minus 50 als Puffer**. Ist ein Limit erreicht, nimmt die Suchmaschine automatisch den nächsten Dienst.
-- **Reset-Datum:** Brave und Firecrawl melden selbst, wann ihr Kontingent neu startet, das übernimmt die Suchmaschine automatisch. Firecrawl und Tavily melden außerdem ihr Restguthaben, der Zähler gleicht sich daran an. Für Exa und parallel.ai trägst du einen **Stichtag** ein (der Tag im Monat, an dem das Kontingent neu startet, ohne Stichtag gilt der Monatserste).
-- **Verbrauch laut Dashboard:** Bei Diensten, die ihren Verbrauch nicht selbst melden, trägst du in der Verwaltung jederzeit ein, was das Dashboard gerade als verbraucht zeigt. Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter, praktisch auch, wenn du den Key mitten im Monat einträgst.
-- Schalte bei allen Anbietern **automatisches Aufladen aus** und setz dort, wo es geht, ein Ausgabenlimit von 0. Dann kann nichts abgebucht werden.
-- Ein **Zwischenspeicher** sorgt dafür, dass Neuladen, Zurück-Knopf und Blättern nichts kosten: bei Brave bis 60 Minuten (mehr erlauben Braves Bedingungen nicht), bei den anderen standardmäßig 8 Stunden.
+- **Reset-Datum:** Brave meldet selbst, wann sein Kontingent neu startet, das übernimmt die Suchmaschine automatisch. Bei Bright Data ist es der Monatserste (ohne Stichtag voreingestellt).
+- **Verbrauch laut Dashboard:** Trag in der Verwaltung jederzeit ein, was das Dashboard gerade als verbraucht zeigt. Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter, praktisch auch, wenn du den Key mitten im Monat einträgst.
+- **Keine Karte hinterlegen** bzw. automatisches Aufladen ausschalten. Bei Bright Data steht der Plan auf „Pay as you go“ (1,50 $ pro 1.000 Anfragen über dem Freikontingent): ohne Karte kann nichts abgebucht werden, und das Limit in der Suchmaschine hält vorher an.
+- Ein **Zwischenspeicher** sorgt dafür, dass Neuladen, Zurück-Knopf und Blättern nichts kosten: bei Brave bis 60 Minuten (mehr erlauben Braves Bedingungen nicht), bei Google standardmäßig 1 Stunde (Spielstände und Kurse höchstens 5 Minuten).
 - **Sofort-Antworten** (Rechner, Währungen, Wetter …), **Bangs** und **Werkzeuge** kosten gar nichts, weil sie keinen Suchdienst fragen.
 
 Zum Vergleich: Wer 10 Mal am Tag sucht, kommt auf rund 300 Suchen im Monat.
@@ -74,31 +71,18 @@ Zum Vergleich: Wer 10 Mal am Tag sucht, kommt auf rund 300 Suchen im Monat.
 
 Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** ein. Jeder Key wird vorher mit einer Testsuche geprüft. Dienste ohne Key tauchen nirgends auf. Keys gehören **nie** in den Code oder ins Git, sie liegen nur in deiner Datenbank im Ordner `data/`.
 
+**Bright Data (Google)**
+1. Auf [brightdata.com](https://brightdata.com) ein Konto anlegen. **Keine Karte hinterlegen**, dann kann nichts abgebucht werden.
+2. Unter **„Web Access“ → „Add API“** die **„SERP API“** wählen.
+3. Einen **Namen** vergeben (z. B. `serp_api1`, lässt sich später nicht ändern), bei **Data format „Full JSON“** wählen, „Google Ads“ auf Standard, die **erweiterten Einstellungen aus** lassen (keine eigenen Header, keine asynchronen Anfragen) und unten auf **„Add API“** tippen.
+4. Danach zeigt Bright Data den **API-Key** (sieht aus wie `1a2b3c4d-…`). In der Suchmaschine unter *Verwaltung → Suchdienste* den Namen aus Schritt 3 als **Zone** und den Key eintragen.
+5. Optional für den Lesemodus: noch eine **„Web Unlocker API“** anlegen und ihren Namen als **Zone des Web Unlockers** eintragen. Dann lassen sich Seiten, die den Server aussperren, über Bright Data laden (1 Anfrage pro Seite, aus demselben Kontingent).
+
 **Brave Search**
 1. Auf [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com) ein Konto anlegen.
 2. Den Plan **„Search“** wählen. Brave möchte eine **Kreditkarte** sehen (gegen Missbrauch), abgerechnet wird über Guthaben ohne Abo. **Automatische Aufladung ausgeschaltet lassen.**
 3. Unter **„API Keys“** einen Key erzeugen (beginnt mit `BSA`).
 4. Das Reset-Datum schickt Brave bei jeder Suche mit, ein Stichtag ist nicht nötig. Den bisherigen Verbrauch im laufenden Monat (Dashboard unter „Usage“) kannst du unter „Verbrauch laut Dashboard“ eintragen.
-
-**Tavily**
-1. Auf [app.tavily.com](https://app.tavily.com) anmelden (Google, GitHub oder E-Mail).
-2. Der kostenlose „Researcher“-Plan enthält 1.000 Credits pro Monat, ohne Karte.
-3. Im Dashboard den Key kopieren (beginnt mit `tvly-`). „Pay as you go“ ausgeschaltet lassen.
-
-**Exa**
-1. Auf [dashboard.exa.ai](https://dashboard.exa.ai) anmelden.
-2. Unter **„API Keys“** einen Key erzeugen. Das monatliche Gratisguthaben (10 $) gilt für alle Endpunkte.
-3. Unter „Billing“ keine automatische Aufladung einrichten. Die Suchmaschine zählt Exa **in Cent**, nach den echten Kosten, die Exa bei jeder Antwort mitschickt.
-
-**parallel.ai**
-1. Auf [platform.parallel.ai](https://platform.parallel.ai) anmelden.
-2. Das monatliche Freiguthaben gibt es mit hinterlegter Karte. Unter „Billing“ **Auto-Reload aus** und ein **Spend Limit** setzen.
-3. Unter **„API Keys“** einen Key erzeugen.
-
-**Firecrawl**
-1. Auf [firecrawl.dev](https://www.firecrawl.dev) anmelden, der Free-Plan enthält 1.000 Credits.
-2. Im Dashboard unter **„API Keys“** den Key kopieren (beginnt mit `fc-`).
-3. Reset-Datum und Restguthaben holt sich die Suchmaschine direkt bei Firecrawl, ein Stichtag ist nicht nötig.
 
 **Tipp:** In der Verwaltung legst du außerdem die **Reihenfolge** fest (wer zuerst gefragt wird), schaltest die **Lastverteilung** an oder aus, wählst die Dienste für **„Alle zusammen“** und das **Ausweichziel** für den Notfall.
 
@@ -107,7 +91,7 @@ Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** e
 - **Web, Bilder, News, Videos** in Reitern, wie man es kennt.
 - **Gemischte Ergebnisse** wie bei den großen Suchmaschinen: Top-Meldungen, Videos, „Ähnliche Fragen“ und Diskussionen aus Foren erscheinen zwischen den Treffern, dazu eine **Kurzinfo** am Rand (z. B. aus Wikipedia). Was Brave zu einer Suche liefert, wird angezeigt.
 - **Seitenweise oder endlos scrollen**, für jedes Konto einstellbar.
-- **Zeitraum-Filter** (24 Stunden, Woche, Monat, Jahr), **Rechtschreibkorrektur** mit „Stattdessen suchen nach …“, **„Auf gut Glück“**.
+- **Zeitraum-Filter** (letzte Stunde, 24 Stunden, Woche, Monat, Jahr oder **von/bis**), **Sprache und Region** pro Suche, **Wortgenau**, **Rechtschreibkorrektur** mit „Stattdessen suchen nach …“, **„Auf gut Glück“**.
 - **Bildvorschau** im Großformat mit Pfeiltasten und Wischen zum Blättern, dazu ein **echter Vollbild-Modus** (Knopf oder Taste `F`) für Fernseher und große Bildschirme: randlos auf Schwarz, Bedienelemente blenden sich aus. Das Bild kommt dabei in **voller Auflösung über den eigenen Server**, ohne die strengen Sicherheitsregeln aufzuweichen und ohne Suche bei Brave.
 - **Dateityp-Filter** (PDF, DOCX, XLSX, PPTX, TXT, EPUB, CSV, ODT und mehr, oder jede andere Endung zum Eintippen). Bleibt beim Blättern und Endlos-Scrollen erhalten.
 - **Hilfeseite** mit allen Suchoperatoren, die Brave kennt (`site:`, `filetype:`, `intitle:`, `"…"`, `OR`, `NOT`, `-` …), mit Beispielen zum Anklicken und der Übersicht über die eigenen Bangs, Linsen und Domain-Listen.
@@ -120,7 +104,7 @@ Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** e
 - **Verwaltung** für den Administrator: Suchdienste mit Keys, Stichtag, Limits und Status, Name der Suchmaschine, **eigenes Logo**, **Farbe**, Voreinstellungen für alle, Verbrauch mit Prognose, Kontingente pro Konto, auf Wunsch Suchen ohne Anmeldung (mit Grenze pro Stunde), Bilder in voller Auflösung an oder aus, Sicherung der Einstellungen.
 - **Updates per Knopfdruck:** Die Suchmaschine schaut beim neuesten Release auf GitHub nach, prüft die Datei per Prüfsumme, sichert die laufende Version und spielt die neue ein. Zurück zur vorigen Version geht mit einem Klick. Auf Wunsch einmal am Tag automatisch.
 - **Selbsttest:** Die Verwaltung prüft, ob die internen Ordner von außen wirklich gesperrt sind, und warnt sonst.
-- **Ohne Werbung, ohne Tracking, ohne fremde Skripte.** Strenge Sicherheitsregeln (Content Security Policy), Links öffnen ohne Referrer, Vorschaubilder kommen über Braves Bild-Proxy.
+- **Ohne Werbung, ohne Tracking, ohne fremde Skripte.** Strenge Sicherheitsregeln (Content Security Policy), Links öffnen ohne Referrer, Vorschaubilder kommen über Braves Bild-Proxy oder über den eigenen Server. Googles Weiterleitungs-Links löst der eigene Server auf, Google erfährt nicht, was du anklickst.
 
 ## Wie bei ..., nur kostenlos
 
@@ -130,6 +114,16 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden **über 10.800 Bangs** aus der offenen Liste von [Kagi](https://github.com/kagisearch/bangs) (MIT-Lizenz) plus deutsche Extras. Beim Tippen von `!` (oder über den `!`-Knopf) schlägt das Suchfeld passende Bangs vor und zeigt, wohin es geht. Unter *Einstellungen → Bangs* lässt sich jedes Bang suchen, bearbeiten, löschen und der Grundzustand wiederherstellen; Administratoren können das auch für alle. Die Liste aktualisiert sich wöchentlich selbst, und die Zielseiten werden nach und nach auf Erreichbarkeit geprüft, beides ohne Suchanfragen und abschaltbar. Funktioniert auch aus der Adressleiste des Browsers.
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
+
+## Neu in 2.2: Google-Ergebnisse über Bright Data
+
+- **Echte Google-Ergebnisse** für Web, Bilder, News und Videos über die SERP API von [Bright Data](https://brightdata.com). 5.000 Anfragen im Monat kostenlos, das reicht für über 160 Suchen am Tag. Google steht vorne, Brave springt ein, wenn Google leer oder gestört ist. Die Reihenfolge lässt sich in der Verwaltung umstellen. Gezielt: `!bd`, `!brave`, beide zusammen: `!multi`.
+- **Live-Infos über den Treffern:** Spielstände (z. B. „bayern gegen dortmund“), Aktien- und Indexkurse („dax“), **Öffnungszeiten**, Adresse, Telefon und Bewertung von Geschäften in der Infobox, und **Googles KI-Übersicht** mit Quellen (abschaltbar). Spielstände und Kurse kommen höchstens 5 Minuten aus dem Zwischenspeicher.
+- **Filter wie bei Google:** Zeitraum mit **letzter Stunde** und **von/bis**, **Sprache und Region** pro Suche, **Wortgenau**, Bilder nach **Farbe** (auch einzelne Farben), **Typ** (Foto, Clipart, Strichzeichnung, GIF, Gesicht) und **Lizenz** (Creative Commons), Größe und Format jetzt direkt bei Google, **Videos nach Länge**. Was Brave nicht selbst kann (letzte Stunde, Videolänge), filtert die Suchmaschine danach.
+- **Ähnliche Suchen** unter den Treffern.
+- **Privat wie bisher:** Google packt Links in eigene Weiterleitungen, die löst dein Server auf. Vorschaubilder von Google kommen über deinen Server. Google sieht nur deinen Server, nie deine Besucher.
+- **Lesemodus:** „Über Bright Data versuchen“ statt Firecrawl (optional, mit einer Web-Unlocker-Zone).
+- **Aufgeräumt:** Tavily, Exa, parallel.ai und Firecrawl sind raus. Beim Update verschwinden ihre Keys und Einstellungen, Google wird an die erste Stelle gesetzt, der Verlauf im Verbrauch bleibt.
 
 ## Neu in 2.0: das große Werkzeug-Upgrade
 
@@ -206,7 +200,7 @@ Unter **Einstellungen → Aussehen** stellt jedes Konto für sich ein, wie die S
 - **Endlos scrollen oder seitenweise** gilt jetzt für alle Reiter: Alle, Bilder, News und Videos.
 - **Nachladen mit Widerstand:** Normales Runterscrollen lädt nichts nach. Erst wer ganz unten angekommen ist und dann bewusst weiterzieht (am Handy ein deutlicher Wisch, am Rechner mehrere Rasten am Mausrad), bekommt die nächsten Treffer. Ein Balken zeigt, wie weit es noch ist, loslassen setzt ihn zurück. Den letzten Eintrag in Ruhe lesen kostet also nichts. Der Knopf „Weitere Treffer“ lädt sofort.
 - **Bilder:** 200 auf einmal mit einer einzigen Suche, Blättern und Nachladen kosten danach nichts mehr.
-- **News:** Brave holt 50 Meldungen auf einmal, meist der ganze Tag in einer Anfrage. Am Ende geht es mit der letzten Woche weiter. Ältere News hat Brave kaum im Index, die kommen von **Exa mit genauem Zeitraum** (sonst Firecrawl oder Tavily). Leere Abschnitte gibt es nicht mehr.
+- **News:** Brave holt 50 Meldungen auf einmal, meist der ganze Tag in einer Anfrage. Am Ende geht es mit der letzten Woche weiter. Ältere News hat Brave kaum im Index, die kommen von **Google mit genauem Zeitraum**. Leere Abschnitte gibt es nicht mehr.
 
 ## Lesemodus und PDF
 
@@ -214,7 +208,7 @@ Im Menü **⋮** an jedem Treffer steht **„Ohne Werbung lesen“** (nur mit Ko
 
 - Der eigene Server holt die Seite und schneidet den eigentlichen Inhalt heraus: Werbung, Menüs, Cookie-Banner, Kommentare und Skripte fliegen raus. Angezeigt wird alles in deiner Schrift und deinen Farben.
 - **Rezepte** werden über ihre strukturierten Daten erkannt (schema.org), die fast jede Rezeptseite für Suchmaschinen mitliefert: Zutaten, Zubereitung, Zeiten, Bild. Ein Klick schaltet auf den ganzen Artikel mit allen Bildern um.
-- Klappt das Herausschneiden nicht (Seiten, die nur mit JavaScript laufen oder Abrufe sperren), gibt es den Knopf **„Mit Firecrawl versuchen“**. Das kostet 1 Firecrawl-Credit.
+- Klappt das Herausschneiden nicht (Seiten, die nur mit JavaScript laufen oder Abrufe sperren), gibt es den Knopf **„Über Bright Data versuchen“**, wenn eine Web-Unlocker-Zone eingetragen ist. Das kostet 1 Anfrage bei Bright Data.
 - **Als PDF speichern:** mit Live-Vorschau, Schrift (klar oder klassisch), Größe, Zeilenabstand, 1 oder 2 Spalten und Rändern. **Bilder nach Wahl:** Antippen lässt ein Bild weg, so kommt nur ins PDF, was du willst. Das PDF entsteht im Browser, ohne fremde Dienste. Es kann Umlaute, ß und €, aber keine Zeichen außerhalb Westeuropas. Dafür gibt es **Drucken** mit einem sauberen Drucklayout (der Browser kann dort auch „Als PDF sichern“).
 
 **Bitte fair nutzen.** Der Lesemodus ist zum privaten Lesen und Ablegen gedacht (Privatkopie), nicht zum Weiterverbreiten. Darum:
@@ -237,6 +231,8 @@ Die Rechte an den Inhalten bleiben bei den jeweiligen Seiten. Wer ein PDF weiter
 ## Neu in 1.2
 
 ### Mehrere Suchdienste, Lastverteilung, Ausweichen
+
+*Seit 2.2 gibt es nur noch Google (über Bright Data) und Brave. Tavily, Exa, parallel.ai und Firecrawl sind raus, alles andere hier gilt weiter.*
 
 - **Automatisch:** Die Suchmaschine fragt den ersten Dienst in deiner Reihenfolge, der noch Guthaben hat und funktioniert. Über jeder Trefferliste steht, wer geliefert hat und warum ein anderer übersprungen wurde.
 - **Lastverteilung:** Verbraucht ein Dienst schneller, als sein Kontingent bis zum Reset reicht, gehen Suchen schon vorher an den nächsten. So läuft Brave nicht am 20. leer, sondern alle Kontingente reichen gleichmäßig.
@@ -341,7 +337,7 @@ Auf der Ergebnisseite, sobald kein Eingabefeld aktiv ist:
 ## Voraussetzungen
 
 - Webspace mit **PHP 8.0 oder neuer**, dazu die Erweiterungen `pdo_sqlite` und `curl`. Das hat praktisch jeder Hoster.
-- Der Server muss Verbindungen nach außen aufbauen dürfen: zu den Such-APIs (`api.search.brave.com`, `api.tavily.com`, `api.exa.ai`, `api.parallel.ai`, `api.firecrawl.dev`), für Sofort-Antworten zu `api.frankfurter.dev`, `geocoding-api.open-meteo.com`, `api.brightsky.dev`, `api.open-meteo.com`, `wttr.in`, `*.wikipedia.org` und für Updates zu `github.com`.
+- Der Server muss Verbindungen nach außen aufbauen dürfen: zu den Such-APIs (`api.brightdata.com`, `api.search.brave.com`), zu `www.google.com` (Weiterleitungs-Links auflösen) und `*.gstatic.com` (Googles Vorschaubilder), für Sofort-Antworten zu `api.frankfurter.dev`, `geocoding-api.open-meteo.com`, `api.brightsky.dev`, `api.open-meteo.com`, `wttr.in`, `*.wikipedia.org` und für Updates zu `github.com`.
 - Für die verschlüsselte Sicherung und das verschlüsselte Speichern der Login-Tokens die Erweiterung `openssl` (fast immer vorhanden).
 - **HTTPS.** Ohne geht das Passwort im Klartext durchs Netz. Bei den meisten Hostern ist ein kostenloses Let's-Encrypt-Zertifikat mit einem Klick eingerichtet.
 - **Apache** (oder LiteSpeed) sperrt die internen Ordner von selbst über `.htaccess`. Unter **nginx** sind zwei Zeilen in der Konfiguration nötig, siehe [Daten schützen](#daten-schützen).
@@ -352,7 +348,7 @@ Auf der Ergebnisseite, sobald kein Eingabefeld aktiv ist:
 1. **API-Keys holen**, siehe [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen). Einer reicht für den Anfang.
 2. Aus dem [neuesten Release](../../releases/latest) die Datei **`suchmaschine-install.php`** herunterladen und per FTP oder Dateimanager in ein Verzeichnis auf dem Webspace kopieren, z. B. `httpdocs/suche/`. Soll die Suchmaschine direkt unter der Domain laufen, kommt die Datei direkt nach `httpdocs/`.
 3. Die Datei **sofort** im Browser aufrufen, z. B. `https://deine-domain.de/suche/suchmaschine-install.php`, und auf **„Jetzt installieren“** klicken. Sie packt das Programm aus, löscht sich selbst und leitet weiter. Meldet sie, dass sie sich nicht löschen konnte, die Datei bitte von Hand löschen.
-4. Gleich danach **Konto anlegen** und optional den **Brave-Key einfügen**. Der Key wird mit einer Testsuche geprüft. Dieses Konto ist der Administrator. Nicht aufschieben: Wer zuerst kommt, wird Administrator. Weitere Dienste (Tavily, Exa, parallel.ai, Firecrawl) trägst du danach unter *Verwaltung → Suchdienste* ein.
+4. Gleich danach **Konto anlegen** und optional den **Brave-Key einfügen**. Der Key wird mit einer Testsuche geprüft. Dieses Konto ist der Administrator. Nicht aufschieben: Wer zuerst kommt, wird Administrator. Google über Bright Data (5.000 Anfragen im Monat kostenlos) trägst du danach unter *Verwaltung → Suchdienste* ein.
 5. **Test:** In der Verwaltung unter *Update → Schutz der Daten* auf „Jetzt prüfen“ klicken. Dort muss „Alles dicht“ stehen. Von Hand geht es so: `https://deine-domain.de/suche/app/lib/db.php` aufrufen, da muss **403** oder **404** kommen.
 
 <p align="center"><img src="docs/de/einrichten.png" width="560" alt="Einrichten: Konto und API-Key"></p>
@@ -465,7 +461,7 @@ Die Suchmaschine wurde für 1.2 aus Angreifersicht geprüft und gehärtet:
 
 ## Haftungsausschluss
 
-Die Suchmaschine ist kostenlose Hobby-Software und wird **so, wie sie ist, ohne jede Gewähr** bereitgestellt. Sie ist mit Sorgfalt gebaut und getestet, die Nutzung erfolgt aber **auf eigene Gefahr**. Wer sie betreibt, ist für den Server, seine Updates und Sicherungen selbst verantwortlich, ebenso dafür, die Bedingungen der genutzten Anbieter einzuhalten. Dieses Projekt steht in keiner Verbindung zu Brave Software, Tavily, Exa, Parallel Web Systems oder Firecrawl.
+Die Suchmaschine ist kostenlose Hobby-Software und wird **so, wie sie ist, ohne jede Gewähr** bereitgestellt. Sie ist mit Sorgfalt gebaut und getestet, die Nutzung erfolgt aber **auf eigene Gefahr**. Wer sie betreibt, ist für den Server, seine Updates und Sicherungen selbst verantwortlich, ebenso dafür, die Bedingungen der genutzten Anbieter einzuhalten. Dieses Projekt steht in keiner Verbindung zu Brave Software, Bright Data oder Google.
 
 ## Lizenz
 

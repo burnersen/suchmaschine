@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 4);
+define('SM_SCHEMA', 5);
 
 function smFatal(string $msg): void
 {
@@ -97,7 +97,7 @@ function smMigrate(PDO $pdo, int $from): void
         // Zwischenspeicher mit eigener Haltbarkeit pro Eintrag (Brave kurz, andere Dienste länger, Wechselkurse einen Tag)
         $pdo->exec("DROP TABLE IF EXISTS cache");
         $pdo->exec("CREATE TABLE cache (k TEXT PRIMARY KEY, exp INTEGER NOT NULL, v TEXT NOT NULL)");
-        // Verbrauch pro Tag, Suchdienst, Art und Konto (0 = ohne Anmeldung). Credits als Kommazahl (Exa rechnet in Cent).
+        // Verbrauch pro Tag, Suchdienst, Art und Konto (0 = ohne Anmeldung). Credits als Kommazahl.
         $pdo->exec("CREATE TABLE IF NOT EXISTS usage_log (day TEXT NOT NULL, provider TEXT NOT NULL, kind TEXT NOT NULL, user_id INTEGER NOT NULL DEFAULT 0,
             credits REAL NOT NULL DEFAULT 0, req INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, provider, kind, user_id))");
         $pdo->exec("CREATE INDEX IF NOT EXISTS usage_prov ON usage_log (provider, day, user_id)");
@@ -139,6 +139,21 @@ function smMigrate(PDO $pdo, int $from): void
         $pdo->exec("CREATE TABLE IF NOT EXISTS bang_check (d TEXT PRIMARY KEY, checked INTEGER NOT NULL DEFAULT 0, fails INTEGER NOT NULL DEFAULT 0,
             status INTEGER NOT NULL DEFAULT 0, err TEXT NOT NULL DEFAULT '', ok_at INTEGER NOT NULL DEFAULT 0)");
     }
+    if ($from >= 1 && $from < 5) {
+        // 2.2: Tavily, Exa, parallel.ai und Firecrawl sind raus, Google über Bright Data kommt dazu und steht vorne
+        $get = $pdo->prepare('SELECT v FROM settings WHERE k = ?');
+        $set = $pdo->prepare('INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v');
+        foreach (['prov_order' => 'brightdata,brave', 'multi_set' => 'brightdata,brave'] as $k => $def) {
+            $get->execute([$k]);
+            $old = $get->fetchColumn();
+            if ($old === false) continue;
+            $keep = array_values(array_intersect(explode(',', (string)$old), ['brave']));
+            $set->execute([$k, implode(',', array_merge(['brightdata'], $keep))]);
+        }
+        $pdo->exec("DELETE FROM settings WHERE k LIKE 'p\_tavily\_%' ESCAPE '\' OR k LIKE 'p\_exa\_%' ESCAPE '\'
+            OR k LIKE 'p\_parallel\_%' ESCAPE '\' OR k LIKE 'p\_firecrawl\_%' ESCAPE '\'");
+        $pdo->exec("DELETE FROM pstat WHERE provider IN ('tavily', 'exa', 'parallel', 'firecrawl')");
+    }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();
 }
@@ -177,10 +192,10 @@ function smDefaults(): array
         'auto_update'   => '0',
         'img_proxy'     => '1',     // große Bilder über den eigenen Server laden
         // Suchdienste (seit 1.2.0): Reihenfolge, Lastverteilung, Multi-Quellen, Ausweichziel
-        'prov_order'    => 'brave,tavily,exa,parallel,firecrawl',
+        'prov_order'    => 'brightdata,brave',
         'balance'       => '1',     // Credits gleichmäßig über den Abrechnungszeitraum verteilen
-        'multi_set'     => 'brave,tavily,exa',
-        'answers'       => '1',     // Kurzantwort von Tavily mitnehmen (kostet nichts extra)
+        'multi_set'     => 'brightdata,brave',
+        'answers'       => '1',     // KI-Übersicht von Google mitnehmen (kostet nichts extra)
         'wiki'          => '1',     // Wikipedia-Kurzinfo, wenn der Suchdienst keine eigene liefert
         'fallback_auto' => '1',     // alles leer oder gestört: automatisch weiterleiten
         'fallback_url'  => 'https://www.startpage.com/do/search?q={q}',
@@ -249,7 +264,7 @@ function smUsageAdd(string $provider, string $kind, int $userId, float $credits,
         [date('Y-m-d'), $provider, $kind, $userId, $credits, $req]);
 }
 
-/** Verlauf nach Kalendermonaten: ['2026-11' => ['brave' => 12.0, 'tavily' => 3.0], …] */
+/** Verlauf nach Kalendermonaten: ['2026-11' => ['brave' => 12.0, 'brightdata' => 3.0], …] */
 function smUsageHistory(int $months = 6): array
 {
     $out = [];

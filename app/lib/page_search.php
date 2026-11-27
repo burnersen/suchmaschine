@@ -16,15 +16,23 @@ function smSearchFilters(string $tab, ?array $prefs = null): array
 {
     $g = function (string $k): string { return isset($_GET[$k]) && is_string($_GET[$k]) ? $_GET[$k] : ''; };
     $prefs = $prefs ?? smPrefs(null);
-    $fq = $g('f') !== '' && (isset(smFreshness()[$g('f')]) || ($tab === 'news' && $g('f') === 'all')) ? $g('f') : '';
+    // Eigener Zeitraum von/bis (Y-m-d). Ist er gesetzt, gilt kein anderer Zeitraum.
+    $day = function (string $v): string {
+        return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]) && (int)$m[1] >= 1990 ? $v : '';
+    };
+    $fd = $day($g('fd'));
+    $td = $day($g('td'));
+    if ($fd !== '' && $td !== '' && $fd > $td) [$fd, $td] = [$td, $fd];
+    $range = $fd !== '' || $td !== '';
+    $fq = !$range && $g('f') !== '' && (isset(smFreshness()[$g('f')]) || ($tab === 'news' && $g('f') === 'all')) ? $g('f') : '';
     $fresh = $fq === 'all' ? '' : $fq;
     $auto = false;
-    if ($tab === 'news' && $fq === '') {
+    if ($tab === 'news' && $fq === '' && !$range) {
         $fresh = $prefs['news_fresh'] === 'all' ? '' : $prefs['news_fresh'];
         $auto = $prefs['news_expand'] && $fresh !== '';
     }
     // xf: Fortsetzung beim Erweitern, Treffer aus diesem (schon gezeigten) Zeitraum weglassen
-    $xf = $tab === 'news' && $fq !== '' && $fq !== 'all' && in_array($g('xf'), ['pd', 'pw', 'pm'], true) ? $g('xf') : '';
+    $xf = $tab === 'news' && $fq !== '' && $fq !== 'all' && in_array($g('xf'), ['ph', 'pd', 'pw', 'pm'], true) ? $g('xf') : '';
     if ($xf !== '' && $prefs['news_expand']) $auto = true;
     $sq = in_array($tab, ['web', 'news'], true) && in_array($g('sort'), ['date', 'rel'], true) ? $g('sort') : '';
     $sort = in_array($tab, ['web', 'news'], true) ? ($sq !== '' ? $sq : $prefs['sort_' . $tab]) : 'rel';
@@ -41,6 +49,16 @@ function smSearchFilters(string $tab, ?array $prefs = null): array
         'io'    => $tab === 'images' && isset(smImageOrientations()[$g('io')]) ? $g('io') : '',
         'is'    => $tab === 'images' && isset(smImageSizes()[$g('is')]) ? $g('is') : '',
         'isort' => $tab === 'images' && $g('isort') === 'res' ? 'res' : '',
+        // Filter, die Google direkt in der Suche anwendet (Brave: soweit möglich danach)
+        'fd'    => $fd,
+        'td'    => $td,
+        'vb'    => in_array($tab, ['web', 'news'], true) && $g('vb') === '1' ? '1' : '',
+        'sl'    => isset(smSearchLangs()[$g('sl')]) ? $g('sl') : '',
+        'cr'    => isset(smCountries()[$g('cr')]) ? $g('cr') : '',
+        'ic'    => $tab === 'images' && $g('ic') !== '' && isset(smImageColors()[$g('ic')]) ? $g('ic') : '',
+        'it'    => $tab === 'images' && $g('it') !== '' && isset(smImageTypes()[$g('it')]) ? $g('it') : '',
+        'il'    => $tab === 'images' && $g('il') !== '' && isset(smImageLicenses()[$g('il')]) ? $g('il') : '',
+        'vd'    => $tab === 'videos' && in_array($g('vd'), ['s', 'm', 'l'], true) ? $g('vd') : '',
     ];
     return $f;
 }
@@ -97,9 +115,11 @@ function smPageSearch(?array $me): void
         if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
         if (!$me && $flt['src'] === 'multi') throw new SmSearchError(t('„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.'));
         $apiQ = smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null);
-        $xdays = ['pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']] ?? 0;
-        $opt = $prefs + ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src'],
-                         'older' => $xdays >= 7 ? $xdays : 0];
+        $xdays = ['ph' => 0, 'pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']] ?? 0;
+        $opt = ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src'],
+                'older' => $xdays >= 7 ? $xdays : 0, 'from' => $flt['fd'], 'to' => $flt['td'], 'verb' => $flt['vb'] === '1', 'lr' => $flt['sl'],
+                'io' => $flt['io'], 'is' => $flt['is'], 'ic' => $flt['ic'], 'it' => $flt['it'], 'il' => $flt['il'], 'vdur' => $flt['vd']]
+            + ($flt['cr'] !== '' ? ['country' => $flt['cr']] : []) + $prefs;
         $res = smSearch($tab, $apiQ, $opt, $me ? $me['id'] : 0);
         // News: gar nichts im eingestellten Zeitraum? Dann gleich den nächstgrößeren nehmen (kostet nur in diesem Fall eine Suche mehr)
         $from = $fresh;
@@ -114,16 +134,16 @@ function smPageSearch(?array $me): void
             $vars['widened'] = $from;
         }
         // Fortsetzung beim Erweitern: was schon im kleineren Zeitraum gezeigt wurde, weglassen
-        if ($flt['xf'] !== '') $res = smDropNewer($res, ['pd' => 86400, 'pw' => 7 * 86400, 'pm' => 31 * 86400][$flt['xf']]);
+        if ($flt['xf'] !== '') $res = smDropNewer($res, ['ph' => 3600, 'pd' => 86400, 'pw' => 7 * 86400, 'pm' => 31 * 86400][$flt['xf']]);
         // Nachladen bei News: Bleibt nach dem Aussortieren nichts übrig (oder ist die letzte Seite leer), gleich mit dem nächsten Zeitraum weiter.
         // So gibt es keine leeren Abschnitte. Höchstens zwei Schritte, damit eine leere Suche nicht alle Dienste abklappert.
         for ($hop = 0; $hop < 2 && $tab === 'news' && ($part || $flt['xf'] !== '') && $flt['auto'] && !$res['results'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== ''; $hop++) {
             $flt['xf'] = $fresh;
             $fresh = $nx;
             $page = 1;
-            $xdays = ['pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']];
+            $xdays = ['ph' => 0, 'pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']] ?? 0;
             $res = smSearch($tab, $apiQ, ['freshness' => $fresh, 'page' => 1, 'older' => $xdays >= 7 ? $xdays : 0] + $opt, $me ? $me['id'] : 0);
-            $res = smDropNewer($res, $xdays * 86400);
+            $res = smDropNewer($res, $xdays > 0 ? $xdays * 86400 : 3600);
             $flt['fresh'] = $fresh;
             $flt['f_q'] = $fresh;
             $vars['fresh'] = $fresh;
@@ -133,6 +153,9 @@ function smPageSearch(?array $me): void
         $res = smApplyDomainLists($res, smDomainLists($me));
         if ($flt['sort'] === 'date') $res = smSortByDate($res);
         if ($tab === 'web' && $flt['dl'] !== '0') $res = smDomainLimit($res, 3);
+        // Was Brave nicht selbst filtern kann: letzte Stunde, Videolänge
+        if ($fresh === 'ph') $res = smKeepRecent($res, 3600);
+        if ($tab === 'videos' && $flt['vd'] !== '') $res = smVideoDurFilter($res, $flt['vd']);
         if ($tab === 'images') {
             // Alle (bis 200) filtern, dann die gewünschte Seite herausschneiden: 50 pro Seite oder Nachladen, kostet keine weitere Suche
             $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === 'res');
@@ -142,7 +165,7 @@ function smPageSearch(?array $me): void
             $res['img_first'] = ($page - 1) * 50;
         }
         // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
-        if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && ($res['source'] ?? '') !== 'brave' && smSetting('wiki') === '1') {
+        if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && !in_array($res['source'] ?? '', ['brave', 'multi'], true) && smSetting('wiki') === '1') {
             $res['infobox'] = smWikiCard($q);
         }
     } catch (SmSearchExhausted $e) {

@@ -4,7 +4,7 @@
             <a class="res__head" href="<?= h($r['url']) ?>"<?= $rel . $target ?> tabindex="-1">
                 <?php $fav = $r['favicon']; $host = $r['host']; require __DIR__ . '/_fav.php'; ?>
                 <span class="res__site"><span class="res__name"><?= h($r['site'] ?: $r['host']) ?><?php if ($rank > 0): ?> <span class="res__badge" title="<?= h(t('Hochgestuft, steht in deiner Favoriten-Liste')) ?>"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 2.4 5 5.6.6-4.2 3.8 1.2 5.6-5-2.9-5 2.9 1.2-5.6L4 9.6 9.6 9z"/></svg><span class="sr"><?= h(t('Hochgestuft')) ?></span></span><?php endif; ?><?php require __DIR__ . '/_srcbadge.php'; ?></span>
-                    <span class="res__url"><?= h(parse_url($r['url'], PHP_URL_SCHEME) . '://' . parse_url($r['url'], PHP_URL_HOST)) ?><?= $r['path'] !== '' ? ' ' . h($r['path']) : '' ?></span></span>
+                    <span class="res__url"><?= h(parse_url($r['url'], PHP_URL_HOST) ? parse_url($r['url'], PHP_URL_SCHEME) . '://' . parse_url($r['url'], PHP_URL_HOST) : $r['host']) ?><?= $r['path'] !== '' ? ' ' . h($r['path']) : '' ?></span></span>
             </a>
 <?php if ($r['host'] !== ''): require __DIR__ . '/_resmenu.php'; endif; ?>
             </div>

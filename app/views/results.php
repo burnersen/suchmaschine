@@ -36,6 +36,10 @@ require __DIR__ . '/_vars.php';
 <?php endforeach; ?>
             </div>
         </details>
+        <?= $smDrop('ic', smImageColors(), t('Farbe')) ?>
+        <?= $smDrop('it', smImageTypes(), t('Typ')) ?>
+        <?= $smDrop('il', smImageLicenses(), t('Lizenz')) ?>
+<?php if (($res['source'] ?? '') !== 'brightdata'): ?>
         <details class="tools">
             <summary class="tabs__tab<?= $flt['isort'] ? ' is-set' : '' ?>"><?= h($flt['isort'] ? t('Höchste Auflösung') : t('Sortierung')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <div class="tools__panel">
@@ -44,19 +48,50 @@ require __DIR__ . '/_vars.php';
             </div>
         </details>
 <?php endif; ?>
-<?php if ($tab !== 'images'): ?>
+<?php endif; ?>
+<?php if ($tab === 'videos'): ?>
+        <?= $smDrop('vd', array_map(function ($d) { return $d[0]; }, smVideoDurations()), t('Länge')) ?>
+<?php endif; ?>
+<?php $range = $flt['fd'] !== '' || $flt['td'] !== '';
+      $rangeText = $range ? ($flt['fd'] !== '' ? smDate((int)strtotime($flt['fd'])) : '…') . ' – ' . ($flt['td'] !== '' ? smDate((int)strtotime($flt['td'])) : '…') : ''; ?>
         <details class="tools">
-            <summary class="tabs__tab<?= $flt['f_q'] !== '' ? ' is-set' : '' ?>"><?= h($fresh ? smFreshness()[$fresh] : ($tab === 'news' ? smFreshness()[''] : t('Zeitraum'))) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <summary class="tabs__tab<?= $flt['f_q'] !== '' || $range ? ' is-set' : '' ?>"><?= h($range ? $rangeText : ($fresh ? smFreshness()[$fresh] : ($tab === 'news' ? smFreshness()[''] : t('Zeitraum')))) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <div class="tools__panel">
 <?php foreach (smFreshness() as $k => $label):
     // News haben einen eigenen Standard-Zeitraum: „beliebig“ heißt dort ausdrücklich f=all, der Standard steht nicht in der Adresse
     $fv = $tab === 'news' ? ($k === '' ? 'all' : $k) : $k;
     $fv = $tab === 'news' && $fv === $prefs['news_fresh'] ? '' : $fv; ?>
-                <a href="<?= h(smUrl(['f' => $fv ?: null, 'xf' => null] + $base)) ?>"<?= $k === $fresh ? ' class="is-active"' : '' ?> data-load><?= h($label) ?></a>
+                <a href="<?= h(smUrl(['f' => $fv ?: null, 'xf' => null, 'fd' => null, 'td' => null] + $base)) ?>"<?= $k === $fresh && !$range ? ' class="is-active"' : '' ?> data-load><?= h($label) ?></a>
 <?php endforeach; ?>
+                <form class="tools__form tools__form--range" method="get" action="<?= h(smBase()) ?>" data-busy>
+                    <?= $smHidden(['f', 'xf', 'fd', 'td', 'p']) ?>
+                    <label><span><?= h(t('Von')) ?></span><input type="date" name="fd" value="<?= h($flt['fd']) ?>" max="<?= date('Y-m-d') ?>"></label>
+                    <label><span><?= h(t('Bis')) ?></span><input type="date" name="td" value="<?= h($flt['td']) ?>" max="<?= date('Y-m-d') ?>"></label>
+                    <button type="submit" class="btn btn--small"><?= h(t('OK')) ?></button>
+                </form>
             </div>
         </details>
-<?php endif; ?>
+<?php $langs = smSearchLangs(); $ctry = smCountries();
+      $lrText = implode(' · ', array_filter([$flt['sl'] !== '' ? $langs[$flt['sl']] : '', $flt['cr'] !== '' ? $ctry[$flt['cr']] : ''])); ?>
+        <details class="tools">
+            <summary class="tabs__tab<?= $lrText !== '' ? ' is-set' : '' ?>"><?= h($lrText !== '' ? $lrText : t('Sprache & Region')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="tools__panel">
+                <form class="tools__form tools__form--lr" method="get" action="<?= h(smBase()) ?>" data-busy>
+                    <?= $smHidden(['sl', 'cr', 'p']) ?>
+                    <label><span><?= h(t('Sprache der Seiten')) ?></span><select name="sl">
+                        <option value=""><?= h(t('Alle Sprachen')) ?></option>
+<?php foreach ($langs as $k => $l): ?>                        <option value="<?= h($k) ?>"<?= $k === $flt['sl'] ? ' selected' : '' ?>><?= h($l) ?></option>
+<?php endforeach; ?>
+                    </select></label>
+                    <label><span><?= h(t('Ergebnisse wie aus')) ?></span><select name="cr">
+                        <option value=""><?= h(t('Eigene Einstellung (%s)', $ctry[$prefs['country']] ?? $prefs['country'])) ?></option>
+<?php foreach ($ctry as $k => $l): ?>                        <option value="<?= h($k) ?>"<?= $k === $flt['cr'] ? ' selected' : '' ?>><?= h($l) ?></option>
+<?php endforeach; ?>
+                    </select></label>
+                    <button type="submit" class="btn btn--small"><?= h(t('Übernehmen')) ?></button>
+                </form>
+            </div>
+        </details>
 <?php if ($tab === 'web'): $fts = smFileTypes(); ?>
         <details class="tools">
             <summary class="tabs__tab<?= $ft ? ' is-set' : '' ?>"><?= h($ft ? ($fts[$ft] ?? strtoupper($ft)) : t('Dateityp')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
@@ -90,10 +125,13 @@ require __DIR__ . '/_vars.php';
             </div>
         </details>
 <?php endif; ?>
+<?php if (in_array($tab, ['web', 'news'], true)): ?>
+        <a class="tabs__tab tabs__toggle<?= $flt['vb'] === '1' ? ' is-on is-set' : '' ?>" href="<?= h(smUrl(['vb' => $flt['vb'] === '1' ? null : '1'] + $base)) ?>" role="switch" aria-checked="<?= $flt['vb'] === '1' ? 'true' : 'false' ?>" title="<?= h(t('Genau diese Wörter, ohne Korrektur und ohne ähnliche Begriffe')) ?>" data-load><span class="tabs__check" aria-hidden="true"></span><?= h(t('Wortgenau')) ?></a>
+<?php endif; ?>
 <?php if ($tab === 'web'): ?>
         <a class="tabs__tab tabs__toggle<?= $flt['dl'] === '' ? ' is-on' : ' is-set' ?>" href="<?= h(smUrl(['dl' => $flt['dl'] === '' ? '0' : null] + $base)) ?>" role="switch" aria-checked="<?= $flt['dl'] === '' ? 'true' : 'false' ?>" title="<?= h(t('Damit eine einzelne Seite nicht die ganze Trefferliste füllt')) ?>" data-load><span class="tabs__check" aria-hidden="true"></span><?= h(t('Max. 3 pro Domain')) ?></a>
 <?php endif; ?>
-<?php if ($ft || $lens || array_filter(array_intersect_key($flt, array_flip(['f_q', 'xf', 'sort_q', 'dl', 'src', 'io', 'is', 'isort'])), function ($v) { return $v !== ''; }) || $exact): ?>
+<?php if ($ft || $lens || array_filter(array_intersect_key($flt, array_flip(['f_q', 'xf', 'sort_q', 'dl', 'src', 'io', 'is', 'isort', 'fd', 'td', 'vb', 'sl', 'cr', 'ic', 'it', 'il', 'vd'])), function ($v) { return $v !== ''; }) || $exact): ?>
         <a class="tabs__tab tabs__reset" href="<?= h(smUrl(['q' => $q, 't' => $tab !== 'web' ? $tab : null])) ?>" data-load><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><?= h(t('Alle Filter zurücksetzen')) ?></a>
 <?php endif; ?>
         <a class="tabs__tab tabs__help" href="<?= h(smUrl(['a' => 'help'])) ?>" title="<?= h(t('Hilfe zu Suchoperatoren, Bangs und Linsen')) ?>"><?= h(t('Hilfe')) ?></a>
@@ -114,7 +152,7 @@ require __DIR__ . '/_vars.php';
 <?php elseif ($res): ?>
 <?php require __DIR__ . '/_srcbar.php'; ?>
 <?php if (!empty($res['notice']) && empty($res['cached'])): ?>
-    <p class="serp__notice"><strong><?= h($res['source'] === 'multi' ? t('Ergebnisse von %s', implode(' + ', array_map(function ($i) { return smProviders()[$i]['name']; }, $res['sources']))) : t('Ergebnisse von %s', smProviders()[$res['source']]['name'])) ?>.</strong>
+    <p class="serp__notice"><strong><?= h($res['source'] === 'multi' ? t('Ergebnisse von %s', implode(' + ', array_map(function ($i) { return smProviders()[$i]['name']; }, $res['sources']))) : t('Ergebnisse von %s', smProviders()[$res['source']]['name'] ?? $res['source'])) ?>.</strong>
         <?= h(implode(' · ', $res['notice'])) ?></p>
 <?php endif; ?>
 <?php if (!empty($widened)): ?>
@@ -143,14 +181,49 @@ require __DIR__ . '/_vars.php';
 <?php if ($fresh): ?><li><a href="<?= h(smUrl(['f' => $tab === 'news' ? 'all' : null, 'xf' => null] + $base)) ?>"><?= h(t('Ohne Zeitraum suchen')) ?></a></li><?php endif; ?>
 <?php if ($ft): ?><li><a href="<?= h(smUrl(['ft' => null] + $base)) ?>"><?= h(t('Ohne Dateityp suchen')) ?></a></li><?php endif; ?>
 <?php if ($lens): ?><li><a href="<?= h(smUrl(['l' => null] + $base)) ?>"><?= h(t('Ohne Linse suchen')) ?></a></li><?php endif; ?>
-<?php if ($flt['io'] || $flt['is']): ?><li><a href="<?= h(smUrl(['io' => null, 'is' => null] + $base)) ?>"><?= h(t('Ohne Bildfilter suchen')) ?></a></li><?php endif; ?>
+<?php if ($flt['io'] || $flt['is'] || $flt['ic'] || $flt['it'] || $flt['il']): ?><li><a href="<?= h(smUrl(['io' => null, 'is' => null, 'ic' => null, 'it' => null, 'il' => null] + $base)) ?>"><?= h(t('Ohne Bildfilter suchen')) ?></a></li><?php endif; ?>
+<?php if ($flt['fd'] || $flt['td']): ?><li><a href="<?= h(smUrl(['fd' => null, 'td' => null] + $base)) ?>"><?= h(t('Ohne eigenen Zeitraum suchen')) ?></a></li><?php endif; ?>
+<?php if ($flt['sl'] || $flt['cr'] || $flt['vb'] || $flt['vd']): ?><li><a href="<?= h(smUrl(['sl' => null, 'cr' => null, 'vb' => null, 'vd' => null] + $base)) ?>"><?= h(t('Ohne Sprache, Region, Wortgenau und Länge suchen')) ?></a></li><?php endif; ?>
 <?php if ($flt['src'] !== ''): ?><li><a href="<?= h(smUrl(['src' => null] + $base)) ?>"><?= h(t('Mit einem anderen Suchdienst suchen')) ?></a></li><?php endif; ?></ul>
     </div>
 <?php elseif ($tab === 'web'): ?>
+<?php if ($page === 1 && !empty($res['sports'])): $sp = $res['sports']; ?>
+    <section class="lcard lcard--sports" aria-label="<?= h(t('Spiele')) ?>">
+        <h2 class="lcard__title"><?= h($sp['title'] !== '' ? $sp['title'] : t('Spiele')) ?> <span class="lcard__src"><?= h(t('laut Google')) ?></span></h2>
+        <ul class="matches">
+<?php foreach ($sp['events'] as $ev): $live = $ev['status'] !== '' && !preg_match('/endstand|beendet|final|ende|^ft$/i', $ev['status']) && $ev['teams'][0]['score'] !== ''; ?>
+            <li class="match<?= $live ? ' match--live' : '' ?>">
+                <span class="match__meta"><?= $live ? '<b class="live">' . h(t('Live')) . '</b> ' : '' ?><?= h(implode(' · ', array_filter([$ev['league'], $ev['date'], $ev['status']]))) ?></span>
+                <span class="match__row">
+                    <span class="match__name"><?= h($ev['teams'][0]['name']) ?></span>
+                    <b class="match__score"><?= h($ev['teams'][0]['score'] !== '' ? $ev['teams'][0]['score'] . ' : ' . $ev['teams'][1]['score'] : '– : –') ?></b>
+                    <span class="match__name match__name--r"><?= h($ev['teams'][1]['name']) ?></span>
+                </span>
+            </li>
+<?php endforeach; ?>
+        </ul>
+    </section>
+<?php endif; ?>
+<?php if ($page === 1 && !empty($res['stock'])): $st = $res['stock']; ?>
+    <section class="lcard lcard--stock" aria-label="<?= h(t('Kurs')) ?>">
+        <h2 class="lcard__title"><?= h($st['title']) ?> <span class="lcard__src"><?= h(implode(': ', array_filter([$st['exchange'], $st['symbol']]))) ?></span></h2>
+        <p class="stock__price"><b><?= h($st['price']) ?></b> <?= h($st['currency']) ?>
+<?php if ($st['abs'] !== '' || $st['pct'] !== ''): ?>
+            <span class="stock__chg stock__chg--<?= $st['up'] ? 'up' : 'down' ?>"><?= h(trim($st['abs'] . ($st['pct'] !== '' ? ' (' . $st['pct'] . ')' : ''))) ?> <?= h($st['period']) ?></span>
+<?php endif; ?></p>
+<?php if ($st['rows']): ?>
+        <dl class="stock__rows"><?php foreach ($st['rows'] as $row): ?><div><dt><?= h($row[0]) ?></dt><dd><?= h($row[1]) ?></dd></div><?php endforeach; ?></dl>
+<?php endif; ?>
+        <p class="lcard__note"><?= h(t('Kurse können verzögert sein. Keine Anlageberatung.')) ?></p>
+    </section>
+<?php endif; ?>
 <?php if ($page === 1 && !empty($res['answer'])): ?>
-    <section class="answer" aria-label="<?= h(t('Kurzantwort')) ?>">
-        <h2 class="answer__title"><?= h(t('Kurzantwort')) ?> <span class="answer__src"><?= h(t('KI-generiert von Tavily, bitte nachprüfen')) ?></span></h2>
+    <section class="answer" aria-label="<?= h(t('KI-Übersicht')) ?>">
+        <h2 class="answer__title"><?= h(t('KI-Übersicht')) ?> <span class="answer__src"><?= h(t('von Google erstellt, bitte nachprüfen')) ?></span></h2>
         <p class="answer__text" data-clamp><?= h($res['answer']) ?></p>
+<?php if (!empty($res['answer_links'])): ?>
+        <p class="answer__links"><?php foreach ($res['answer_links'] as $al): ?><a class="chip" href="<?= h($al['url']) ?>"<?= $rel . $target ?>><?= h($al['title'] !== '' ? $al['title'] : smHost((string)parse_url($al['url'], PHP_URL_HOST))) ?></a> <?php endforeach; ?></p>
+<?php endif; ?>
     </section>
 <?php endif; ?>
 <?php if ($page === 1 && !empty($res['infobox'])): $ib = $res['infobox']; ?>
@@ -232,6 +305,12 @@ require __DIR__ . '/_vars.php';
             </ul>
         </section>
 <?php endif; endforeach; ?>
+<?php if ($page === 1 && !empty($res['related'])): ?>
+        <section class="block related">
+            <h2 class="block__title"><?= h(t('Ähnliche Suchen')) ?></h2>
+            <p class="related__list"><?php foreach ($res['related'] as $rq): ?><a class="chip" href="<?= h(smUrl(['q' => $rq])) ?>" data-load><?= h($rq) ?></a> <?php endforeach; ?></p>
+        </section>
+<?php endif; ?>
 <?php require __DIR__ . ($prefs['scroll'] === 'endless' ? '/_more.php' : '/_pager.php'); ?>
     </div>
 <?php elseif ($tab === 'images'):
@@ -283,6 +362,6 @@ require __DIR__ . '/_vars.php';
     </div>
 <?php endif; ?>
 <?php if ($res['cached']): ?><p class="serp__cached"><?= h(t('Aus dem Zwischenspeicher, kostet keine Suche.')) ?></p><?php endif; ?>
-<?php if (!empty($res['source']) && $res['source'] !== 'multi' && !$res['cached']): ?><p class="serp__cached"><?= h(t('Geliefert von %s.', smProviders()[$res['source']]['name'])) ?></p><?php endif; ?>
+<?php if (!empty($res['source']) && $res['source'] !== 'multi' && !$res['cached']): ?><p class="serp__cached"><?= h(t('Geliefert von %s.', smProviders()[$res['source']]['name'] ?? $res['source'])) ?></p><?php endif; ?>
 <?php endif; ?>
 </main>

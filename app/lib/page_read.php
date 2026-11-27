@@ -21,33 +21,28 @@ function smPageRead(array $me, bool $post): void
     } else {
         smQ('INSERT INTO throttle (k, fails, last) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET fails = fails + 1, last = excluded.last', [$k, time()]);
         $html = null;
-        $fcUsed = false;
-        // Auf Wunsch über Firecrawl (für Seiten, die nur mit JavaScript laufen oder Abrufe vom Server sperren). Kostet 1 Credit.
-        if ($post && ($_POST['do'] ?? '') === 'firecrawl') {
-            $why = smProvBlock('firecrawl', 'web', $me['id']);
+        $unlocked = false;
+        // Auf Wunsch über den Web Unlocker von Bright Data (für Seiten, die nur mit JavaScript laufen oder Abrufe vom Server sperren).
+        // Kostet 1 Anfrage aus demselben Kontingent wie die Google-Suche.
+        if ($post && ($_POST['do'] ?? '') === 'unlock') {
+            $why = smProvBlock('brightdata', 'web', $me['id']);
             if ($why !== '') {
-                $err = 'Firecrawl: ' . smBlockText('firecrawl', $why);
-            } elseif (!smProvReserve('firecrawl', 'read', $me['id'], 1)) {
-                $err = 'Firecrawl: ' . smBlockText('firecrawl', 'limit');
+                $err = 'Bright Data: ' . smBlockText('brightdata', $why);
+            } elseif (!smProvReserve('brightdata', 'read', $me['id'], 1)) {
+                $err = 'Bright Data: ' . smBlockText('brightdata', 'limit');
             } else {
-                $res = smHttpMulti(['x' => ['url' => smProvBase('firecrawl', 'https://api.firecrawl.dev/') . 'v2/scrape', 'method' => 'POST',
-                    'headers' => ['Accept: application/json', 'Content-Type: application/json', 'Authorization: Bearer ' . trim(smProvGet('firecrawl', 'key'))],
-                    'body' => json_encode(['url' => $u, 'formats' => ['rawHtml'], 'onlyMainContent' => false, 'blockAds' => true, 'timeout' => 30000])]], 40)['x'];
-                $d = json_decode($res['body'], true);
-                if ($res['status'] === 200 && is_string($d['data']['rawHtml'] ?? null)) {
-                    $html = $d['data']['rawHtml'];
-                    $fcUsed = true;
-                    $real = $d['data']['metadata']['creditsUsed'] ?? null;
-                    if (is_numeric($real) && (float)$real !== 1.0) smUsageAdd('firecrawl', 'read', $me['id'], (float)$real - 1, 0);
+                [$html, $uerr] = smBdUnlock($u);
+                if ($html !== null) {
+                    $unlocked = true;
                 } else {
-                    smUsageAdd('firecrawl', 'read', $me['id'], -1, -1);
-                    $err = smProvErrorText('firecrawl', $res, is_array($d) ? $d : null)[0];
+                    smUsageAdd('brightdata', 'read', $me['id'], -1, -1);
+                    $err = $uerr;
                 }
             }
         }
         if ($err === '') {
             $r = smReadPage($u, $html);
-            $r['firecrawl'] = $fcUsed;
+            $r['unlocked'] = $unlocked;
         }
     }
     if ($r && $r['ok'] && $view === 'all' && !empty($r['alt'])) {

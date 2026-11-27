@@ -243,7 +243,7 @@ function smConfigKeys(): array
     ] + smProvConfigKeys($int, $key);
 }
 
-/** Prüfregeln für die Einstellungen der Suchdienste (p_tavily_key …) */
+/** Prüfregeln für die Einstellungen der Suchdienste (p_brightdata_key …) */
 function smProvConfigKeys(callable $int, callable $key): array
 {
     $out = [];
@@ -253,6 +253,7 @@ function smProvConfigKeys(callable $int, callable $key): array
         elseif ($f === 'start') $out[$k] = function ($v) { return is_string($v) && ($v === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $v)) ? $v : null; };
         elseif ($f === 'cost') $out[$k] = function ($v) { return is_numeric($v) ? (string)max(0.01, min(1000, (float)$v)) : null; };
         elseif ($f === 'on') $out[$k] = function ($v) { return in_array((string)$v, ['0', '1'], true) ? (string)$v : null; };
+        elseif ($f === 'zone' || $f === 'unlocker') $out[$k] = function ($v) { return is_string($v) && preg_match('/^[A-Za-z0-9_-]{0,64}$/', trim($v)) ? trim($v) : null; };
         else $out[$k] = $int(0, 10000000);
     }
     return $out;

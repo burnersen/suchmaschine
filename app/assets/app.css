@@ -752,8 +752,7 @@ input[type="file"] { font-size: 14px; max-width: 100%; }
 .srcb { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: 1px; }
 .srcb__b { font-size: 10.5px; line-height: 1; padding: 3px 6px; border-radius: 6px; font-weight: 600; letter-spacing: .02em;
     background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line-2); }
-.srcb__b--brave { color: #c2410c; } .srcb__b--tavily { color: #0f766e; } .srcb__b--exa { color: #4338ca; }
-.srcb__b--parallel { color: #7c3aed; } .srcb__b--firecrawl { color: #b91c1c; }
+.srcb__b--brave { color: #c2410c; } .srcb__b--brightdata { color: #1a73e8; }
 :root[data-theme="dark"] .srcb__b { filter: brightness(1.6); }
 @media (prefers-color-scheme: dark) { :root[data-theme="auto"] .srcb__b { filter: brightness(1.6); } }
 
@@ -1223,3 +1222,33 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .provsort__btns .btn:disabled { opacity: .3; cursor: default; }
 .form__row--3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .provnow { margin: 6px 0; line-height: 1.5; }
+
+/* ---------- Google über Bright Data: Filter, Spielstände, Kurse, ähnliche Suchen ---------- */
+.tools__form--range, .tools__form--lr { flex-direction: column; align-items: stretch; min-width: 250px; gap: 8px; }
+.tools__form--range { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+.tools__form--range label { flex: 1 1 110px; }
+.tools__form label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--text-2); }
+.tools__form input[type="date"], .tools__form select { height: 36px; font-size: 16px; padding: 0 8px; border-radius: 10px; min-width: 0; }
+.lcard { max-width: var(--main, 652px); margin: 0 0 22px; padding: 16px 18px; border-radius: 18px; border: 1px solid var(--line); }
+.serp--web > .lcard { grid-column: 1; }
+.lcard__title { margin: 0 0 10px; font-size: 17px; font-weight: 600; }
+.lcard__src { font-weight: 400; font-size: 12px; color: var(--text-3); margin-left: 6px; }
+.lcard__note { margin: 10px 0 0; font-size: 12px; color: var(--text-3); }
+.matches { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.match { display: grid; gap: 4px; padding: 8px 12px; border-radius: 12px; background: var(--bg-2); }
+.match__row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; font-size: 16px; }
+.match__name--r { text-align: right; }
+.match--live { box-shadow: inset 3px 0 0 var(--error); }
+.match__meta { font-size: 12px; color: var(--text-3); text-align: center; }
+.match__score { font-variant-numeric: tabular-nums; font-size: 18px; white-space: nowrap; }
+.stock__price { margin: 0; font-size: 15px; }
+.stock__price b { font-size: 28px; font-weight: 500; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.stock__chg { margin-left: 8px; font-weight: 600; }
+.stock__chg--up { color: var(--ok); }
+.stock__chg--down { color: var(--error); }
+.stock__rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 16px; margin: 12px 0 0; font-size: 13px; }
+.stock__rows div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line-2); padding: 3px 0; }
+.stock__rows dt { color: var(--text-3); }
+.stock__rows dd { margin: 0; font-variant-numeric: tabular-nums; }
+.answer__links { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.related__list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }

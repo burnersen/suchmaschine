@@ -29,7 +29,7 @@ function smNewsFreshOk($v): bool
 /** Nächstgrößerer Zeitraum fürs automatische Erweitern der News ('' = keiner mehr) */
 function smNextFresh(string $f): string
 {
-    return ['pd' => 'pw', 'pw' => 'pm', 'pm' => 'py'][$f] ?? '';
+    return ['ph' => 'pd', 'pd' => 'pw', 'pw' => 'pm', 'pm' => 'py'][$f] ?? '';
 }
 
 /** Sortierung und News aus einem Formular (eigene Einstellungen oder Standard der Installation) */
