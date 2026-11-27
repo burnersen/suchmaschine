@@ -34,6 +34,8 @@ function smPageSettings(array $me, bool $post): void
                 $p['history'] = !empty($_POST['history']);
                 $p['scroll'] = ($_POST['scroll'] ?? '') === 'endless' ? 'endless' : 'pages';
                 $p = smSortPrefsFromPost() + $p;
+                $rv = smRacePrefFromPost();
+                if ($rv === '') unset($p['race']); else $p['race'] = $rv;
                 $p['city'] = trim(mb_substr(smPlain((string)($_POST['city'] ?? '')), 0, 60));
                 $ws = (string)($_POST['weather_src'] ?? '');
                 $p['weather_src'] = isset(smWeatherSources()[$ws]) ? $ws : '';

@@ -206,8 +206,14 @@ function smPageSearch(?array $me): void
                 $res['img_first'] = ($pg - 1) * 50;
                 if (isset($res['iq'])) { $flt['iq'] = $res['iq']; }
             }
-            // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
-            if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && !in_array($res['source'] ?? '', ['brave', 'multi'], true) && smSetting('wiki') === '1') {
+            // Karten (Spiele, Kurse, KI-Übersicht, Infobox): Kam die Liste mit Zeitfilter oder von Brave, holt der Browser sie gleich danach
+            // über ?a=cards von Google nach (eine Anfrage mehr, aber die Liste muss nicht darauf warten)
+            if ($tab === 'web' && $page === 1 && !$part && empty($res['cards']) && in_array($flt['src'], ['', 'brightdata', 'multi'], true)
+                && smProvActive('brightdata') && smProvBlock('brightdata', 'web', $uid) === '') {
+                $res['cards_url'] = smUrl(['a' => 'cards', 'q' => $q, 'l' => $lens ?: null, 'ft' => $ft ?: null, 'exact' => $exact ? '1' : null,
+                                           'sl' => $flt['sl'] ?: null, 'cr' => $flt['cr'] ?: null]);
+            } elseif ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && !in_array($res['source'] ?? '', ['brave', 'multi'], true) && smSetting('wiki') === '1') {
+                // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
                 $res['infobox'] = smWikiCard($q);
             }
         } catch (SmSearchExhausted $e) {
@@ -278,6 +284,46 @@ function smImageTierRun(array $res, string $apiQ, array $opt, int $uid, array $f
         $res = smSearch('images', $apiQ, ['iq' => $tiers[$tier], 'page' => 1] + $opt, $uid);
     }
     return $res;
+}
+
+/**
+ * ?a=cards: die Karten über den Treffern (Spiele, Kurs, KI-Übersicht, Infobox) als HTML-Stück.
+ * Eine Google-Suche ohne Zeitfilter, über den Zwischenspeicher (Spielstände und Kurse höchstens 5 Minuten).
+ */
+function smServeCards(?array $me): void
+{
+    $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 400));
+    $prefs = smPrefs($me);
+    $lenses = smLenses($me);
+    $lens = (string)($_GET['l'] ?? '');
+    if (!isset($lenses[$lens])) $lens = '';
+    $ft = smCleanFileType($_GET['ft'] ?? '');
+    $sl = isset($_GET['sl']) && is_string($_GET['sl']) && isset(smSearchLangs()[$_GET['sl']]) ? $_GET['sl'] : '';
+    $cr = isset($_GET['cr']) && is_string($_GET['cr']) && isset(smCountries()[$_GET['cr']]) ? $_GET['cr'] : '';
+    $res = null;
+    $retry = false;
+    if ($q !== '') {
+        try {
+            $opt = ['page' => 1, 'freshness' => '', 'exact' => ($_GET['exact'] ?? '') === '1', 'src' => 'brightdata', 'lr' => $sl]
+                 + ($cr !== '' ? ['country' => $cr] : []) + $prefs;
+            $res = smSearch('web', smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null), $opt, $me ? (int)$me['id'] : 0);
+            if (empty($res['infobox']) && smSetting('wiki') === '1') $res['infobox'] = smWikiCard($q);
+        } catch (SmSearchError $e) {
+            $res = null;
+            $retry = true;   // Aussetzer bei Google: der Browser versucht es gleich noch einmal
+        } catch (Throwable $e) {
+            $res = null;
+        }
+    }
+    smHeaders();
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: private, max-age=300');
+    header('X-Robots-Tag: noindex');
+    if (!$res) { http_response_code($retry ? 503 : 204); exit; }
+    $target = $prefs['newtab'] ? ' target="_blank"' : '';
+    $rel = ' rel="noopener noreferrer"';
+    require SM_APP . '/views/_cards.php';
+    exit;
 }
 
 /** „Auf gut Glück“: direkt zum ersten Treffer */

@@ -1576,4 +1576,12 @@ return [
     'Am Ende der Liste geht es von selbst mit älteren Treffern weiter: erst die letzte Woche, dann der letzte Monat, das letzte Jahr und alles davor. Ist ein Zeitraum leer, wird er übersprungen. Gilt für Alle, News und Videos.' => 'At the end of the list it continues with older results by itself: first the past week, then the past month, the past year and everything before. Empty periods are skipped. Applies to All, News and Videos.',
     'Beste Qualität zuerst' => 'Best quality first',
     'Suche läuft …' => 'Searching …',
+    // 2.4: Karten, Wettlauf
+    'heute %s' => 'today %s',
+    'morgen %s' => 'tomorrow %s',
+    'gestern %s' => 'yesterday %s',
+    '%s hat diesmal nichts Brauchbares geliefert.' => '%s returned nothing usable this time.',
+    'Brave springt ein nach (Sekunden)' => 'Brave steps in after (seconds)',
+    'Standard: %s' => 'Default: %s',
+    'Liefert Google so lange nichts, fragt die Suchmaschine Brave dazu, und die schnellere Antwort gewinnt. Bei Bildern doppelt so lange. 0 = Brave nur, wenn Google gar nicht kann. Leer = Standard der Installation.' => 'If Google hasn’t delivered after this long, the search engine asks Brave as well and the faster answer wins. Twice as long for images. 0 = Brave only when Google can’t answer at all. Empty = installation default.',
 ];

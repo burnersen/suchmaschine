@@ -18,6 +18,8 @@ function smPrefs(?array $me): array
         'sort_videos' => in_array($p['sort_videos'] ?? '', ['date', 'rel'], true) ? $p['sort_videos'] : (smSetting('sort_videos') === 'rel' ? 'rel' : 'date'),
         'news_fresh'  => smNewsFreshOk($p['news_fresh'] ?? '') ? $p['news_fresh'] : (smNewsFreshOk(smSetting('news_fresh')) ? smSetting('news_fresh') : 'pd'),
         'news_expand' => isset($p['news_expand']) ? !empty($p['news_expand']) : smSetting('news_expand') === '1',
+        // Wettlauf: nach so vielen Sekunden zusätzlich den nächsten Dienst fragen ('' = Standard der Installation)
+        'race'        => isset($p['race']) && is_numeric($p['race']) ? (string)max(0, min(20, (int)$p['race'])) : '',
     ];
 }
 
@@ -57,6 +59,13 @@ function smSortPrefsFromPost(): array
     ];
 }
 
+/** Eigene Wartezeit für den Wettlauf aus dem Formular ('' = Standard der Installation) */
+function smRacePrefFromPost(): string
+{
+    $v = trim((string)($_POST['race'] ?? ''));
+    return $v !== '' && is_numeric($v) ? (string)max(0, min(20, (int)$v)) : '';
+}
+
 /* ---------- Persönliche Einstellungen sichern und wiederherstellen ---------- */
 
 /** Alle persönlichen Einstellungen geprüft und bereinigt (für Import und zum Speichern) */
@@ -70,6 +79,7 @@ function smCleanPrefs(array $p): array
     foreach (['sort_web', 'sort_news', 'sort_videos'] as $k) if (in_array($p[$k] ?? '', ['date', 'rel'], true)) $out[$k] = $p[$k];
     if (smNewsFreshOk($p['news_fresh'] ?? '')) $out['news_fresh'] = $p['news_fresh'];
     if (isset($p['news_expand'])) $out['news_expand'] = !empty($p['news_expand']);
+    if (isset($p['race']) && is_numeric($p['race'])) $out['race'] = (string)max(0, min(20, (int)$p['race']));
     foreach (['newtab', 'history'] as $k) if (isset($p[$k])) $out[$k] = !empty($p[$k]);
     if (isset($p['city']) && is_string($p['city'])) $out['city'] = trim(mb_substr(smPlain($p['city']), 0, 60));
     if (isset($p['weather_src']) && isset(smWeatherSources()[$p['weather_src']])) $out['weather_src'] = $p['weather_src'];

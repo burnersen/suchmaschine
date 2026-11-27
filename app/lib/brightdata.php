@@ -111,7 +111,8 @@ function smBdGoogleUrl(array $p): string
     if ($p['safe'] === 'strict') $g['safe'] = 'active';
     elseif ($p['safe'] === 'off') $g['safe'] = 'off';
     if (!empty($p['exact']) || !empty($p['verb'])) $g['nfpr'] = '1';
-    $g['brd_json'] = '1';
+    // Mit dem Seitenquelltext (für die Sport-Karte, die Bright Data nicht selbst zerlegt)
+    $g['brd_json'] = !empty($p['html']) ? 'html' : '1';
     return 'https://www.google.com/search?' . http_build_query($g);
 }
 
@@ -134,7 +135,14 @@ function smBdRequest(array $p, string $key): array
 {
     return ['url' => smProvBase('brightdata', SM_BD_API) . 'request', 'method' => 'POST',
             'headers' => ['Accept: application/json', 'Content-Type: application/json', 'Authorization: Bearer ' . $key],
-            'body' => json_encode(['zone' => smBdZone(), 'url' => smBdGoogleUrl($p), 'format' => 'raw'])];
+            'body' => json_encode(['zone' => smBdZone(), 'url' => smBdGoogleUrl($p), 'format' => 'raw'] + smBdCountry($p))];
+}
+
+/** Aus welchem Land Bright Data Google abruft: das Land aus den Sucheinstellungen (Region), sonst irgendwo */
+function smBdCountry(array $p): array
+{
+    $c = strtolower((string)($p['country'] ?? ''));
+    return preg_match('/^[a-z]{2}$/', $c) ? ['country' => $c] : [];
 }
 
 /** Holt eine fremde Seite über den Web Unlocker (Lesemodus). Liefert [HTML oder null, Fehlertext]. */
@@ -373,12 +381,16 @@ function smBdWeb(array $p, array $d): array
         'infobox' => smBdInfobox((array)($d['knowledge'] ?? [])),
         'more' => smBdMore($d), 'altered' => smBdAltered($d),
         'answer' => '', 'answer_links' => [], 'sports' => null, 'stock' => null, 'related' => [],
+        'cards' => !empty($p['html']),   // diese Antwort bringt die Karten schon mit
     ];
     if (!empty($p['answer']) && is_array($d['ai_overview'] ?? null)) {
         [$out['answer'], $out['answer_links']] = smBdAnswer($d['ai_overview']);
     }
+    // Sport-Karte am liebsten aus Googles Seite selbst (mit dem Spiel von heute, Wappen und richtiger Uhrzeit)
+    if (is_string($d['html'] ?? null)) $out['sports'] = smBdSportsHtml($d['html']);
     foreach ((array)($d['featured_snippets'] ?? []) as $fs) {
         if (!is_array($fs)) continue;
+        if ($out['sports'] !== null && $out['sports']['title'] === '' && !empty($fs['events'])) $out['sports']['title'] = smPlain((string)($fs['title'] ?? ''));
         if ($out['sports'] === null && !empty($fs['events'])) $out['sports'] = smBdSports($fs);
         if ($out['stock'] === null && isset($fs['price'])) $out['stock'] = smBdStock($fs, (string)$p['q']);
     }
@@ -545,7 +557,7 @@ function smBdAnswer(array $ai): array
     return [$text, array_slice(array_values($links), 0, 4)];
 }
 
-/** Spielstände (Fußball und andere Sportarten) */
+/** Spielstände aus dem, was Bright Data selbst zerlegt (ohne das Spiel von heute, Zeiten in der Zeitzone des Abrufs) */
 function smBdSports(array $fs): ?array
 {
     $ev = [];
@@ -553,14 +565,123 @@ function smBdSports(array $fs): ?array
         if (!is_array($e) || count((array)($e['teams'] ?? [])) < 2) continue;
         $teams = [];
         foreach ((array)$e['teams'] as $tm) {
-            if (is_array($tm) && is_string($tm['name'] ?? null)) $teams[] = ['name' => smPlain($tm['name']), 'score' => is_scalar($tm['score'] ?? null) ? smPlain((string)$tm['score']) : ''];
+            if (is_array($tm) && is_string($tm['name'] ?? null)) $teams[] = ['name' => smPlain($tm['name']), 'score' => is_scalar($tm['score'] ?? null) ? smPlain((string)$tm['score']) : '', 'logo' => '', 'win' => false];
         }
         if (count($teams) < 2) continue;
-        $ev[] = ['teams' => array_slice($teams, 0, 2), 'status' => smPlain((string)($e['status'] ?? '')), 'date' => smPlain((string)($e['date'] ?? '')),
+        $ev[] = ['teams' => array_slice($teams, 0, 2), 'status' => smPlain((string)($e['status'] ?? '')), 'when' => smPlain((string)($e['date'] ?? '')),
                  'league' => smPlain((string)($e['results'] ?? $e['league'] ?? ''))];
-        if (count($ev) >= 5) break;
+        if (count($ev) >= 6) break;
     }
-    return $ev ? ['title' => smPlain((string)($fs['title'] ?? '')), 'events' => $ev] : null;
+    return $ev ? ['title' => smPlain((string)($fs['title'] ?? '')), 'sub' => '', 'main' => null, 'events' => $ev] : null;
+}
+
+/** Anstoß lesbar: „heute 19:00“, „morgen 14:00“, „Sa., 5.12. 14:00“ (in der Zeitzone des Servers) */
+function smBdMatchTime(int $ts): string
+{
+    if ($ts <= 0) return '';
+    $day = (int)floor(($ts - strtotime('today')) / 86400);
+    $hm = date('H:i', $ts);
+    if ($day === 0) return t('heute %s', $hm);
+    if ($day === 1) return t('morgen %s', $hm);
+    if ($day === -1) return t('gestern %s', $hm);
+    $wd = smLang() === 'de' ? ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'][(int)date('w', $ts)] : date('D', $ts);
+    return $wd . ', ' . date(smLang() === 'de' ? 'j.n.' : 'n/j', $ts) . ($ts > time() ? ' ' . $hm : '');
+}
+
+/**
+ * Die Sport-Karte aus Googles Seite: das große Spiel oben (Liga, „heute 19:00“, Wappen, Spielstand) und die Liste der Spiele.
+ * Google benutzt dafür seit Jahren dieselben Klassennamen (imso_mh__ …, imspo_mt__ …). Ändert sich das, kommt hier null
+ * zurück, und es gilt die einfachere Liste von Bright Data.
+ */
+function smBdSportsHtml(string $html): ?array
+{
+    if (strpos($html, 'imso_mh__') === false && strpos($html, 'imspo_mt__') === false) return null;
+    if (!class_exists('DOMDocument')) return null;
+    // Die Wappen stecken in Skripten: var s='data:…';var ii=['dimg_…'];
+    $imgs = [];
+    if (preg_match_all("~var s='(data:image/[a-z]+;base64,[^']+)';var ii=\[([^\]]*)\]~", $html, $m, PREG_SET_ORDER)) {
+        foreach ($m as $x) {
+            $data = smBdImg(str_replace(['\x3d', '\/'], ['=', '/'], $x[1]));
+            if ($data === '' || strlen($data) > 20000) continue;
+            foreach (explode(',', $x[2]) as $id) $imgs[trim($id, " '\"")] = $data;
+        }
+    }
+    $doc = new DOMDocument();
+    $old = libxml_use_internal_errors(true);
+    $ok = @$doc->loadHTML('<?xml encoding="utf-8"?>' . $html, LIBXML_NONET | LIBXML_COMPACT);
+    libxml_clear_errors();
+    libxml_use_internal_errors($old);
+    if (!$ok) return null;
+    $xp = new DOMXPath($doc);
+    $cls = function (string $c): string { return "contains(concat(' ', normalize-space(@class), ' '), ' $c ')"; };
+    $txt = function (?DOMNode $n): string { return $n ? smPlain(trim((string)preg_replace('/\s+/u', ' ', $n->textContent))) : ''; };
+    $one = function (string $q, DOMNode $ctx) use ($xp, $txt): string { return $txt($xp->query($q, $ctx)->item(0)); };
+    $name = function (DOMNode $n) use ($xp, $txt): string {
+        $s = $xp->query(".//span[@aria-hidden='true']", $n)->item(0);
+        return mb_substr($txt($s ?: $n), 0, 40);
+    };
+    $logo = function (DOMNode $n) use ($xp, $imgs): string {
+        $im = $xp->query('.//img[@id]', $n)->item(0);
+        return $im instanceof DOMElement ? ($imgs[$im->getAttribute('id')] ?? '') : '';
+    };
+    $out = ['title' => '', 'sub' => '', 'main' => null, 'events' => []];
+    // Kopf der Karte („Hansa Rostock“, „12. Platz 3. Liga“), wenn er sich finden lässt
+    $head = $xp->query('//*[' . $cls('ZtSsId') . ']')->item(0);
+    if ($head) $out['title'] = mb_substr($txt($head), 0, 60);
+    $sub = $xp->query('//span[' . $cls('mKwiob') . ']')->item(0);
+    if ($sub) $out['sub'] = mb_substr($txt($sub), 0, 60);
+    // Das große Spiel oben
+    $first = $xp->query('//*[' . $cls('imso_mh__first-tn-ed') . ']')->item(0);
+    $second = $xp->query('//*[' . $cls('imso_mh__second-tn-ed') . ']')->item(0);
+    if ($first && $second) {
+        $box = $first;
+        for ($i = 0; $i < 12 && $box->parentNode; $i++) {
+            $box = $box->parentNode;
+            if ($xp->query('.//*[' . $cls('imso_mh__lr-dt-ds') . ' or ' . $cls('imso-ln') . ']', $box)->length) break;
+        }
+        $nm = $xp->query('.//*[' . $cls('imso_mh__tm-nm') . ']', $box);
+        $league = $one('.//*[' . $cls('imso-ln') . ']', $box);
+        $when = $one('.//*[' . $cls('imso_mh__lr-dt-ds') . ']', $box);
+        $status = $one('.//*[' . $cls('imso_mh__ft-mtch') . ' or ' . $cls('imso_mh__stts-l') . ']', $box);
+        if ($status === '' || mb_strpos($status, $when) !== false && $when !== '') $status = '';
+        $ls = $one('.//*[' . $cls('imso_mh__l-tm-sc') . ']', $box);
+        $rs = $one('.//*[' . $cls('imso_mh__r-tm-sc') . ']', $box);
+        $live = $xp->query('.//*[' . $cls('imso_mh__lv-m-stts-cont') . ' or ' . $cls('imso_mh__live') . ']', $box)->length > 0;
+        $out['main'] = [
+            'league' => $league, 'when' => $when, 'status' => $status, 'live' => $live,
+            'teams' => [
+                ['name' => $nm->length > 0 ? $name($nm->item(0)) : $name($first), 'score' => $ls, 'logo' => $logo($first), 'win' => false],
+                ['name' => $nm->length > 1 ? $name($nm->item(1)) : $name($second), 'score' => $rs, 'logo' => $logo($second), 'win' => false],
+            ],
+        ];
+        if ($out['main']['teams'][0]['name'] === '' || $out['main']['teams'][1]['name'] === '') $out['main'] = null;
+    }
+    // Weitere Spiele: jedes hat eine Startzeit (UTC), daraus die Uhrzeit in der eigenen Zeitzone
+    $seen = [];
+    foreach ($xp->query('//*[@data-start-time]') as $mt) {
+        if (!$mt instanceof DOMElement) continue;
+        $mid = $mt->getAttribute('data-mid') ?: $mt->getAttribute('data-start-time') . count($seen);
+        if (isset($seen[$mid])) continue;
+        $teams = [];
+        foreach ($xp->query('.//td[' . $cls('imspo_mt__tt-w') . ']', $mt) as $td) {
+            $row = $td->parentNode;
+            $teams[] = ['name' => $name($td), 'score' => $one('.//*[' . $cls('imspo_mt__t-sc') . ']', $row), 'logo' => $logo($row),
+                        'win' => $xp->query('.//*[' . $cls('imspo_mt__triangle') . ']', $row)->length > 0];
+        }
+        if (count($teams) < 2 || $teams[0]['name'] === '' || $teams[1]['name'] === '') continue;
+        $seen[$mid] = true;
+        $ts = smParseTime($mt->getAttribute('data-start-time')) ?: (int)strtotime($mt->getAttribute('data-start-time'));
+        $out['events'][] = ['teams' => array_slice($teams, 0, 2), 'when' => smBdMatchTime((int)$ts), 'ts' => (int)$ts,
+                            'status' => $one('.//*[' . $cls('imspo_mt__match-status') . ']', $mt), 'league' => ''];
+        if (count($out['events']) >= 8) break;
+    }
+    // Kommende Spiele zuerst (nach Anstoß), dann die letzten Ergebnisse (neueste zuerst)
+    $up = array_values(array_filter($out['events'], function ($e) { return $e['ts'] > time() - 3 * 3600 && $e['status'] === ''; }));
+    $past = array_values(array_filter($out['events'], function ($e) { return !($e['ts'] > time() - 3 * 3600 && $e['status'] === ''); }));
+    usort($up, function ($a, $b) { return $a['ts'] <=> $b['ts']; });
+    usort($past, function ($a, $b) { return $b['ts'] <=> $a['ts']; });
+    $out['events'] = array_merge(array_slice($up, 0, 3), array_slice($past, 0, 3));
+    return $out['main'] || $out['events'] ? $out : null;
 }
 
 /** Kurs einer Aktie oder eines Index. Nur wenn er zur Suche passt (die Zerlegung erwischt manchmal einen Nachbarn). */

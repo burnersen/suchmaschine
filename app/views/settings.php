@@ -41,6 +41,11 @@ $lists = smDomainLists($me);
             </fieldset>
             <div id="sort"></div>
 <?php $sp = $prefs; require __DIR__ . '/_sortprefs.php'; ?>
+            <div class="form__row">
+                <label class="field field--short"><span><?= h(t('Brave springt ein nach (Sekunden)')) ?></span>
+                    <input type="number" name="race" min="0" max="20" value="<?= h($prefs['race']) ?>" placeholder="<?= h(t('Standard: %s', smSetting('race'))) ?>">
+                    <small class="muted"><?= h(t('Liefert Google so lange nichts, fragt die Suchmaschine Brave dazu, und die schnellere Antwort gewinnt. Bei Bildern doppelt so lange. 0 = Brave nur, wenn Google gar nicht kann. Leer = Standard der Installation.')) ?></small></label>
+            </div>
             <h3 class="form__sub"><?= h(t('Wetter')) ?></h3>
             <div class="form__row">
                 <label class="field"><span><?= h(t('Dein Ort fürs Wetter')) ?></span><input type="text" name="city" maxlength="60" value="<?= h($me['prefs']['city'] ?? '') ?>" placeholder="<?= h(t('z. B. Berlin')) ?>">

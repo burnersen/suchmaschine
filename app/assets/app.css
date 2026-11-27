@@ -1256,3 +1256,23 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .serp-wait { display: flex; align-items: center; gap: 10px; padding: 28px 16px; color: var(--text-3); font-size: 15px; }
 @media (min-width: 1000px) { .serp-wait { padding-left: var(--gutter); } }
 .serp-wait:not(:last-child) { display: none; }
+
+/* Karten über den Treffern: Platzhalter nimmt am Raster teil, als stünden die Karten direkt da */
+.cards-slot { display: contents; }
+.cards-slot.is-in > * { animation: cardsIn .25s ease-out; }
+@keyframes cardsIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.serp--web > .cards-slot > .lcard, .serp--web > .cards-slot > .answer { grid-column: 1; }
+/* Sport-Karte wie bei Google: großes Spiel oben, darunter die Liste */
+.gmatch { padding: 4px 0 14px; border-bottom: 1px solid var(--line-2); margin-bottom: 12px; text-align: center; }
+.gmatch__meta { margin: 0 0 12px; font-size: 13px; color: var(--text-3); }
+.gmatch__row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.gmatch .gteam { flex-direction: column; gap: 6px; font-size: 16px; }
+.gmatch .gteam__logo { width: 48px; height: 48px; font-size: 22px; }
+.gmatch__score { font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gmatch--live .gmatch__score { color: var(--error); }
+.gteam { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gteam--r { flex-direction: row-reverse; text-align: right; }
+.gteam__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gteam.is-win .gteam__name { font-weight: 700; }
+.gteam__logo { width: 24px; height: 24px; object-fit: contain; flex: none; }
+.gteam__logo--txt { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-2, var(--bg-2)); color: var(--text-2); font-size: 12px; font-weight: 600; }
