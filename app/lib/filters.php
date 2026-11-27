@@ -77,7 +77,7 @@ function smDomainLimit(array $res, int $max = 3): array
     return $res['dl_hidden'] ? smSetWeb($res, $keep) : $res;
 }
 
-/** Bildfilter wie bei Google: Ausrichtung, Größe, Sortierung nach Auflösung (Breite × Höhe) */
+/** Bildfilter: Ausrichtung, Größe, Sortierung nach Auflösung (Breite × Höhe) */
 function smImageOrientations(): array
 {
     return ['' => t('Alle Formate'), 'land' => t('Querformat'), 'port' => t('Hochformat'), 'square' => t('Quadratisch')];
@@ -96,8 +96,7 @@ function smImageFilter(array $res, string $or, string $size, bool $byRes): array
     $list = array_values(array_filter($res['results'] ?? [], function ($im) use ($or, $size) {
         $w = (int)$im['w'];
         $h = (int)$im['h'];
-        // Google filtert schon bei der Suche und meldet keine Maße
-        if ($w <= 0 && $h <= 0 && in_array('brightdata', (array)($im['via'] ?? []), true)) return true;
+        // Ohne Maße lässt sich nicht filtern
         if (($or !== '' || $size !== '') && ($w <= 0 || $h <= 0)) return false;
         if ($or === 'land' && !($w > $h * 1.1)) return false;
         if ($or === 'port' && !($h > $w * 1.1)) return false;
@@ -140,14 +139,20 @@ function smDurSecs(array $v): int
     return $s;
 }
 
-/** Videos nach Länge (bei Google schon in der Suche, bei Brave hier) */
+/** Videolänge: Wert => [Bezeichnung, von Sekunden, bis Sekunden] */
+function smVideoDurations(): array
+{
+    return ['' => [t('Beliebige Länge'), 0, 0], 's' => [t('Kurz (unter 4 Minuten)'), 0, 240], 'm' => [t('Mittel (4 bis 20 Minuten)'), 240, 1200], 'l' => [t('Lang (über 20 Minuten)'), 1200, 0]];
+}
+
+/** Videos nach Länge (Brave kann das nicht selbst, darum nach dem Abruf) */
 function smVideoDurFilter(array $res, string $d): array
 {
     $def = smVideoDurations()[$d] ?? null;
     if (!$def) return $res;
     $res['results'] = array_values(array_filter($res['results'] ?? [], function ($v) use ($def) {
         $s = smDurSecs($v);
-        if ($s <= 0) return in_array('brightdata', (array)($v['via'] ?? []), true);
+        if ($s <= 0) return false;
         return $s >= $def[1] && ($def[2] === 0 || $s < $def[2]);
     }));
     return $res;

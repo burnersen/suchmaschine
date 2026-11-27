@@ -3,20 +3,14 @@
 <h1 align="center">Search engine without ads</h1>
 
 <p align="center"><b>Your own search engine. No ads, no tracking, on your own web space.</b><br>
-Real Google results (through Bright Data) and Brave Search, with load balancing and failover,<br>
-entirely within the free monthly quotas for normal private use.</p>
+Fast results from Brave Search, and when Brave can’t, straight away the search engine of your choice.<br>
+Entirely within the free monthly quotas for normal private use, with a built-in brake before the limit.</p>
 
 <p align="center"><a href="README.md">Deutsche Version</a> · <a href="../../releases/latest">Download the latest version</a></p>
 
 <p align="center"><img src="docs/en/ergebnisse.png" alt="Results page with top stories and overview panel" width="820"></p>
 
-> ⚽ **New in 2.4:** live cards like Google for every search, also with “newest first”: today’s match with crests and kick-off, stock prices, opening hours, celebrity ages. [More](#new-in-24-live-cards-like-google)
->
-> ⚡ **New in 2.3:** the page appears right away, Google and Brave race each other, **newest first** everywhere with automatic time steps, images in **best quality first** and **search suggestions** while you type. [More](#new-in-23-faster-newest-first-best-images)
->
-> 🚀 **Version 2.2, Google results.** Real Google results for web, images, news and videos through Bright Data, 5,000 requests a month free. Plus live info (scores, stock prices, opening hours, AI overview) and Google’s filters. [Everything that is new](#new-in-22-google-results-through-bright-data)
-
-Upload `suchmaschine-install.php`, open it in the browser, create your account, paste one or more API keys. That is the whole installation.
+Upload `suchmaschine-install.php`, open it in the browser, create your account, optionally paste the Brave key. That is the whole installation.
 
 The server runs PHP and SQLite, the browser plain JavaScript and CSS. No frameworks, no dependencies, no build step, no MySQL. Runs on ordinary shared hosting.
 
@@ -47,52 +41,81 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
   <img src="docs/en/handy-bilder.png" width="200" alt="Phone: images">
 </p>
 
-[Cost](#what-does-it-cost) · [Setting up search services](#setting-up-search-services-getting-api-keys) · [Features](#features) · [New in 1.5](#new-in-15) · [New in 1.4](#new-in-14) · [Reader mode and PDF](#reader-mode-and-pdf) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Building it yourself](#building-it-yourself) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
+[Cost](#what-does-it-cost) · [Setting up Brave](#setting-up-brave-getting-api-keys) · [Features](#features) · [Guests and fallback](#guests-and-fallback-search-engine) · [Helpers from Brave](#helpers-from-brave) · [Big images](#big-images-also-with-other-search-engines) · [New in 1.5](#new-in-15) · [New in 1.4](#new-in-14) · [Reader mode and PDF](#reader-mode-and-pdf) · [New in 1.3](#new-in-13) · [New in 1.2](#new-in-12) · [Accounts and token login](#accounts-and-token-login) · [Keyboard shortcuts](#keyboard-shortcuts) · [Requirements](#requirements) · [Installation](#installation) · [Updating and backup](#updating-and-backup) · [Building it yourself](#building-it-yourself) · [Good to know](#good-to-know) · [Disclaimer](#disclaimer) · [License](#license)
 
 ## What does it cost?
 
-Nothing for normal private use. The search engine can use two search APIs, each with its own free monthly quota. One is enough, both together give a big buffer:
+Nothing for normal private use. Brave adds **$5 of credit per month** to every plan, which covers:
 
-| Service | Free per month | Counted in | Default limit | Can do |
-|---|---|---|---|---|
-| [Bright Data](https://brightdata.com) (Google) | **5,000 requests**, reset on the 1st | requests | 4,950 | web, images, news, videos, info box with opening hours, scores, stock prices, AI overview, all Google filters |
-| [Brave Search](https://brave.com/search/api/) | $5 credit, about **1,000 searches** | searches | 950 | web, images, news, videos, info box |
+| Brave plan | For | Free per month (about) | Default limit here |
+|---|---|---|---|
+| [Search](https://brave.com/search/api/) | the search itself (web, images, news, videos) | 1,000 searches | 950 |
+| Autosuggest | suggestions while typing | 10,000 requests | 9,950 |
+| Spellcheck | “Did you mean …?” | 10,000 requests | 9,950 |
+| Answers | AI answer above the results | 70 to 90 answers (depends on text length) | $4.50 |
 
-- Each service gets its **own limit** in the admin page. The default is always the free quota **minus 50 as a buffer**. When a limit is reached, the next service takes over automatically.
-- **Reset date:** Brave reports when its quota restarts, the search engine takes it over automatically. For Bright Data it is the first of the month (the default).
-- **Usage according to dashboard:** enter in the admin page what the dashboard currently shows as used, any time. The counter is set to exactly that value and keeps counting from there.
-- **Don’t add a card** or switch off automatic top-up. Bright Data’s plan is “pay as you go” ($1.50 per 1,000 requests beyond the free quota): without a card nothing can be charged, and the limit in the search engine stops earlier anyway.
-- A **cache** makes reloading, the back button and paging free: up to 60 minutes for Brave (more is not allowed by Brave's terms), 1 hour by default for Google (scores and stock prices at most 5 minutes).
-- **Instant answers** (calculator, currencies, weather …), **bangs** and **tools** cost nothing at all, because they do not ask a search service.
+- Only **Search** is needed, the other three are optional. It even works without any key: every search then goes straight to the fallback search engine.
+- Every service gets **its own limit** in the admin page, set just below the free quota by default. When a limit is reached, the search engine stops **before** any costs arise.
+- **Reset date:** Brave reports when the Search quota restarts, the search engine takes it over automatically. The other three count per calendar month.
+- **Usage according to the dashboard:** enter what Brave’s dashboard shows as used at any time. The counter is set to exactly that and keeps counting from there.
+- **Keep automatic top-up switched off.** To be doubly safe, also set a “Monthly usage limit” of $5 for every plan in the Brave dashboard.
+- A **cache** makes reloading, the back button and paging free (up to 60 minutes, more is not allowed by Brave’s terms).
+- **Instant answers**, **bangs**, **tools** and every search that goes to the **fallback search engine** cost nothing.
 
-## Setting up search services (getting API keys)
+## Setting up Brave (getting API keys)
 
-Enter the keys after installation under **Admin → Search services**. Every key is checked with a test search first. Services without a key do not show up anywhere. Keys **never** belong in code or Git, they only live in your database in `data/`.
+Enter the keys after installing under **Admin → Search services**. Every key (except Answers, where even the test would cost money) is checked with a test request first. Keys never belong in the code or in Git, they only live in your database in the `data/` folder.
 
-**Bright Data (Google):** sign up at [brightdata.com](https://brightdata.com) (**don’t add a card**). Under **"Web Access" → "Add API"** choose **"SERP API"**, give it a **name** (e.g. `serp_api1`, cannot be changed later), set **data format "Full JSON"**, leave the **advanced settings off** and tap **"Add API"**. Then enter that name as the **zone** together with the **API key** (looks like `1a2b3c4d-…`) under *Admin → Search services*. Optional for reader mode: add a **"Web Unlocker API"** and enter its name as the **Web Unlocker zone**.
-
-**Brave Search:** sign up at [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com), choose the **"Search"** plan (a card is required against abuse, billing works with credit, no subscription), **keep automatic top-up off**, create a key under **"API Keys"** (starts with `BSA`).
-
-In the admin page you also set the **order** (who is asked first), switch **load balancing** on or off, pick the services for **"All together"** and the **fallback target** for emergencies.
+1. Sign up at [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com).
+2. Choose the **“Search”** plan. Brave wants to see a **credit card** (against abuse), billing works with credit, no subscription. **Keep automatic top-up switched off.**
+3. Create a key under **“API Keys”** (starts with `BSA`) and enter it in the search engine.
+4. Optionally choose the **“Autosuggest”**, **“Spellcheck”** and **“Answers”** plans the same way. Every plan has **its own key**, which goes into the matching section.
+5. Brave sends the reset date with every search, no reference date needed.
 
 ## Features
 
 - **Web, images, news, videos** in tabs.
-- **Mixed results** like the big search engines: top stories, videos, "People also ask" and forum discussions between the results, plus an **overview panel** (e.g. from Wikipedia).
+- **Mixed results** like the big search engines: top stories, videos, "People also ask" and forum discussions between the results, plus an **overview panel**.
+- **Fallback search engine of your choice**, straight away and without a stop in between when Brave can’t, and always for guests.
 - **Page by page or endless scrolling**, per account.
-- **Time filter**, **spelling correction** with "Search instead for …", **"Feeling lucky"**.
-- **Large image preview** with arrow keys and swiping, plus a **real full-screen mode** (button or key `F`) for TVs and big screens: borderless on black, controls fade out. The image is loaded in **full resolution through your own server**, without loosening the strict security rules and without using a Brave search.
+- **Time filter**, **language and region**, **verbatim**, **spelling correction** with "Search instead for …" and “Did you mean …?”, **"Feeling lucky"**.
+- **Large image preview** with arrow keys and swiping, plus a **real full-screen mode** (button or key `F`) for TVs and big screens: borderless on black, controls fade out. The image is loaded in **full resolution through your own server**, without loosening the strict security rules and without using a Brave search. For other search engines’ image search there is the **“Big images”** bookmark.
 - **File type filter** (PDF, DOCX, XLSX, PPTX, TXT, EPUB, CSV, ODT and more, or type any other extension). Kept while paging and endless scrolling.
 - **Help page** with every search operator Brave supports (`site:`, `filetype:`, `intitle:`, `"…"`, `OR`, `NOT`, `-` …), clickable examples and an overview of your own bangs, lenses and domain lists.
-- **Suggestions from your own recent searches**, stored only in the browser.
+- **Suggestions while typing:** from your own recent searches (stored only in the browser) and, if set up, from Brave.
 - **Light and dark**, automatic or by button. **German and English.**
 - **Phone and desktop**, can be added to the home screen as an app.
 - **Default search in your browser** via OpenSearch.
-- **Accounts:** whoever signs up first becomes the administrator and can add more accounts, e.g. for the family. Every account has its own settings.
-- **Admin page:** search services with keys, reference date, limits and status, name, **own logo**, **color**, defaults for everyone, usage with forecast, per-account quotas, optional searching without an account (with an hourly limit).
+- **Accounts:** whoever signs up first becomes the administrator and can add more accounts, e.g. for the family. Every account has its own settings, including its fallback search engine and the Brave helpers.
+- **Admin page:** Brave with keys, reference date, limits and status, fallback search engine, name, **own logo**, **color**, defaults for everyone, usage with forecast, per-account quotas, site open to guests or sign-in only.
 - **One-click updates** from GitHub releases, verified by checksum, with one-click rollback. Optionally automatic once a day.
 - **Self-test** that the internal folders are really blocked from outside.
 - **No ads, no tracking, no third-party scripts.** Strict Content Security Policy, links open without referrer.
+
+## Guests and fallback search engine
+
+- **Brave only searches for signed-in accounts.** Guests can still use the site: home page, bangs, instant answers, tools and help. Their searches **never use your Brave key**, they go straight to the fallback search engine. Whether guests may come in at all is set under *Admin → Settings → Guests*: **“Everyone (open)”** or **“Sign-in only”**.
+- **Fallback search engine:** if Brave has no key, the limit is reached, the account’s quota is used up or Brave is down, the search goes on **straight away, without a stop in between**. Choose Startpage, DuckDuckGo, Brave Search (website), Ecosia, Qwant, Mojeek, Google, Bing or your own address with `{q}`. Images, news and videos land in the matching section there.
+  - The administrator sets the **default** (*Admin → Search services*).
+  - **Every account** picks its own under *Settings → Search*.
+  - **Guests** pick theirs right on the home page, remembered only in their own browser.
+
+## Helpers from Brave
+
+Three optional extras, each with its own Brave plan, key, monthly limit and brake. Only for signed-in accounts, every account can switch them off under *Settings → Search*.
+
+- **Search suggestions** while typing (Brave *Autosuggest*), below your own recent searches. Every suggestion is cached for an hour.
+- **“Did you mean …?”** (Brave *Spellcheck*). Brave usually fixes typos in the search itself (“Results for …”), so the search engine only asks when it doesn’t: with “Verbatim” and when hardly anything was found.
+- **AI answer** above the results (Brave *Answers*): off, on request (default) or automatic. The result list never waits for it. Brave charges per request **and per amount of text** here, an answer usually costs 5 to 7 cents. The search engine counts the real price Brave reports with every answer and stops before the limit.
+
+## Big images, also with other search engines
+
+With Brave the image preview shows every image in full resolution and full screen. For other search engines’ image search there is the **“Big images”** bookmark (Help → Big images):
+
+- Tap it on the other image page: it collects the images in the largest version the page reveals and shows them **edge to edge on black**. Swipe or use the arrow keys to browse, `F` toggles full screen, `Esc` or swiping down closes.
+- On a computer drag the button to the bookmarks bar. On iPad and iPhone bookmark any page, edit the bookmark and replace the address with the copied code.
+- It works best with **Bing’s image search**, where the originals are right in the page. With other search engines you get the largest previews, depending on the page.
+- The bookmark only runs in your browser and sends nothing to the server or anywhere else.
 
 ## Like ..., but free
 
@@ -102,41 +125,6 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. **Over 10,800 bangs** from [Kagi’s open list](https://github.com/kagisearch/bangs) (MIT) are built in, plus German extras. Typing `!` (or the `!` button) suggests bangs and shows where they lead. Under *Settings → Bangs* you can search, edit and delete any bang and restore the defaults; admins can do this for everyone. The list updates itself weekly and targets are checked for reachability, without using searches. Works from the browser's address bar too.
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
-
-## New in 2.5: visible faster, menu for news and videos
-
-- **Instant waiting page:** after Enter the page with search box, filters and “Searching …” appears at once, even on hosts that send responses in one piece (e.g. Plesk with nginx in front of Apache). The search runs in the background, then the page loads the results from the cache.
-- **Longer cache:** Google results are kept for 6 hours by default (news and the past 24 hours 1 hour, scores and prices 5 minutes).
-- **⋮ menu for news and videos too:** raise, lower, block, search this domain only, read without ads, QR code, copy address.
-
-## New in 2.4: live cards like Google
-
-- **Cards for every search:** matches, stock and index prices, opening hours, info box (e.g. age and birthday of celebrities) and Google’s AI overview above the results, also with “newest first”. The result list doesn’t wait for them, the cards follow a moment later. That costs one more Google request on the first page.
-- **Sports card like Google:** today’s match with league, kick-off, crests and score on top, then upcoming matches and recent results with the winner. Kick-off times are always in your time zone.
-- **Google from your country:** Bright Data now fetches Google from the country set as region in your search settings instead of anywhere in the world.
-- **Smarter race:** if Google returns an empty answer, Google is asked again right away together with Brave. Each account sets its own waiting time before Brave steps in under *Settings → Search*.
-- The AI overview drops Google’s closing question, and a mixed-up info box (e.g. “Dell” for “apple stock”) is corrected.
-
-## New in 2.3: faster, newest first, best images
-
-- **Show the page right away:** after Enter the search box and filters appear at once, the results follow as soon as they arrive. Can be turned off under *Admin → Search services*.
-- **Race:** if Google hasn’t answered within 3 seconds (6 for images), Brave is asked as well and the faster answer wins. Adjustable (0 = off). Only then does it cost an extra Brave search.
-- **Redirects resolved on click:** Google’s redirect links are resolved by your server only when you click, saving half a second to a second per search.
-- **Newest first everywhere:** All, News and Videos start with the past 24 hours, sorted by date, then continue by themselves with the past week, month, year and everything older, while scrolling or paging. Empty periods are skipped, nothing shows up twice. Set the starting period under *Settings → Search*; “Relevance” is still available under “Sorting”.
-- **Images: best quality first.** With Google in steps: images from 4 megapixels, then from 2 megapixels, then large ones, then all, without duplicates. With Brave sorted by resolution. Switchable to “Relevance”.
-- **Search suggestions from Google** while typing, below your own recent searches. Free, uses no requests, goes through your server. Can be turned off.
-- **Filters without an OK button:** language, region and custom date range apply right after choosing.
-- **Fixed:** with a time filter, Google via Bright Data sometimes returned nothing for web searches. The web-only tab is used then.
-
-## New in 2.2: Google results through Bright Data
-
-- **Real Google results** for web, images, news and videos through [Bright Data](https://brightdata.com)’s SERP API. 5,000 requests a month free, more than 160 searches a day. Google comes first, Brave steps in when Google is used up or down. The order can be changed in the admin page. Pick one with `!bd` or `!brave`, both with `!multi`.
-- **Live info above the results:** scores (e.g. “bayern vs dortmund”), stock and index prices (“dax”), **opening hours**, address, phone and rating of businesses in the info box, and **Google’s AI overview** with sources (can be turned off). Scores and prices are cached for at most 5 minutes.
-- **Filters like Google:** time with **past hour** and **from/to**, **language and region** per search, **verbatim**, images by **colour** (including single colours), **type** (photo, clip art, line drawing, GIF, face) and **licence** (Creative Commons), size and format now applied by Google, **videos by length**. What Brave can’t do itself (past hour, video length) is filtered afterwards.
-- **Related searches** below the results.
-- **Private as before:** Google wraps links in its own redirects, your server resolves them. Google’s thumbnails are loaded through your server. Google only ever sees your server, never your visitors.
-- **Reader mode:** “Try via Bright Data” instead of Firecrawl (optional, with a Web Unlocker zone).
-- **Cleaned up:** Tavily, Exa, parallel.ai and Firecrawl are gone. On update their keys and settings are removed, Google is moved to first place, usage history stays.
 
 ## New in 2.0: the big tools upgrade
 
@@ -201,11 +189,11 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 - **Appearance** (Settings → Appearance, per account, with an installation default): 17 light and dark designs, including muted ones (Paper, Mist, Sage, Slate, Dusk), the colour mixer from “Kaufen” with sliders, colour code, live preview, contrast warning and automatic matching, five built-in fonts served from your own server (Atkinson Hyperlegible, Lexend, Source Sans 3, Inter, Literata, all SIL OFL, nothing from Google), sizes, line spacing, spacing and list width.
 - **Endless or paged for all tabs.** **Loading with resistance:** plain scrolling loads nothing; only after reaching the bottom and deliberately pulling on (a clear swipe on phones, several wheel notches) do more results load. **Images:** 200 per request, paging is free afterwards.
-- **News:** Brave fetches 50 at once, older news comes from Google with an exact date range. No empty sections.
+- **News:** Brave fetches 50 at once. Empty sections are skipped.
 
 ## Reader mode and PDF
 
-“Read without ads” in the **⋮** menu of every result (accounts only): your server fetches the page and keeps only the content. Recipes are detected from their structured data (ingredients, steps, image), switchable to the whole article. Optional fallback through Bright Data’s Web Unlocker (1 request). **Save as PDF** in the browser with live preview, font, size, line spacing, 1 or 2 columns, margins and selectable images, or **Print**.
+“Read without ads” in the **⋮** menu of every result (accounts only): your server fetches the page and keeps only the content. Recipes are detected from their structured data (ingredients, steps, image), switchable to the whole article. **Save as PDF** in the browser with live preview, font, size, line spacing, 1 or 2 columns, margins and selectable images, or **Print**.
 
 **Please use it fairly:** for private reading and archiving only. Accounts only, at most 60 pages per hour, nothing is stored on the server, paywalls are not bypassed, and source, date and “for private use only” appear in the view and on every PDF page. Rights remain with the original sites.
 
@@ -213,22 +201,14 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 - **Newest first** is the default for "All" and news. Every account can change it under *Settings → Search*, the administrator sets the default for everyone. Switch any time with "Sorting" above the results.
 - **News from the last 24 hours.** At the end of the list it continues with the last week, then the last month and the last year. If there is no recent news at all, the range widens right away. Range and widening are per account.
-- **Reset date from the service:** Brave (with every search) and Firecrawl (own endpoint, at most every 6 hours, free) report when their quota restarts. Firecrawl and Tavily also report their remaining credits. A field covers services that cannot (since 1.5.3 **“Usage according to dashboard”**).
+- **Reset date from the service:** Brave reports with every search when its quota restarts. The used amount can be synced under **“Usage according to dashboard”**.
 - **New tab everywhere:** "Open links in a new tab" applies to every outgoing link, including weather, overview panel and loaded results.
 - **Bangs without flashing:** the redirect page is empty and uses the page colours; a "Continue" button only appears after 2 seconds if the target hangs.
 
 ## New in 1.2
 
-*Since 2.2 only Google (through Bright Data) and Brave are left. Tavily, Exa, parallel.ai and Firecrawl are gone, everything else here still applies.*
-
-**Several search services, load balancing, failover**
-- **Automatic:** the first service in your order that still has credit and works. Above every result list you see who delivered and why another one was skipped.
-- **Load balancing:** if a service is used faster than its quota lasts until the reset, searches go to the next one earlier, so all quotas last evenly through the month.
-- **Failures:** if a service returns an error or cannot be reached, the next one steps in right away. The failing service pauses for 10 minutes (one hour for a wrong key). The admin page shows last success, last error and average response time.
-- **When nothing works anymore** (all used up or failing), the search redirects to a fallback target such as Startpage, DuckDuckGo, Mojeek or your own address with `{q}`. So the search always works.
-- **Pick a service:** `!brave`, `!tv` (Tavily), `!exa`, `!pa` (parallel.ai), `!fc` (Firecrawl), or click one in the **source bar** above the results, with the remaining credits next to it.
-- **All together:** `!multi` asks several services at once, merges duplicate addresses and marks every result with badges like `[Brave]` `[Exa]` `[Tavily]`.
-- **Quick answer** from Tavily (no extra cost) and a **Wikipedia summary** when a service has no info box of its own.
+**Search service, failures, fallback**
+- Searches go to **Brave Search**. If Brave returns an error or cannot be reached, it pauses briefly so no search has to wait for it, and searches go straight to the fallback search engine meanwhile. The admin page shows last success, last error and average response time.
 
 **Usage, forecast, quotas:** per service used/limit, period, **reset date with days left**, today, **daily average**, **projection until the reset** and a clear verdict whether it lasts. A banner warns administrators from 80 % (configurable). **Per-account quotas** decide which services an account may use and how many credits it gets; "Split fairly" divides the limits evenly.
 
@@ -238,7 +218,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 **Filters and results:** strict sort by date (newest first, undated last), **max. 3 results per domain** (on by default), **"Reset all filters"**, a large **×** in the search box, and in the **⋮ menu**: search only this domain, archive at web.archive.org and archive.today, show as QR code, copy address.
 
-**Images:** filters like Google for orientation (landscape, portrait, square) and size (very large from 1 MP, large from 0.3 MP, medium, small below 0.15 MP), **sort by resolution**, and a full screen that always shows the whole image centred on black, never cropped.
+**Images:** filters for orientation (landscape, portrait, square) and size (very large from 1 MP, large from 0.3 MP, medium, small below 0.15 MP), **sort by resolution**, and a full screen that always shows the whole image centred on black, never cropped.
 
 **Complete backup:** under *Admin → Backup* one file with everything (settings, all API keys, accounts with password hashes, login tokens, personal settings, quotas, short links, usage, logo), **optionally encrypted with a password** (AES-256-GCM, key derived with PBKDF2).
 
@@ -257,18 +237,18 @@ Some paid search engine are known for a few ideas that are available here for ev
 ## Requirements
 
 - Web space with **PHP 8.0 or newer** and the extensions `pdo_sqlite` and `curl`.
-- Outgoing connections allowed: to the search APIs (`api.brightdata.com`, `api.search.brave.com`), to `www.google.com` (resolving redirect links) and `*.gstatic.com` (Google’s thumbnails), for instant answers to `api.frankfurter.dev`, `geocoding-api.open-meteo.com`, `api.brightsky.dev`, `api.open-meteo.com`, `wttr.in`, `*.wikipedia.org`, and for updates to `github.com`.
+- Outgoing connections allowed: to `api.search.brave.com`, for instant answers to `api.frankfurter.dev`, `geocoding-api.open-meteo.com`, `api.brightsky.dev`, `api.open-meteo.com`, `wttr.in`, `*.wikipedia.org`, and for updates to `github.com`.
 - The `openssl` extension for the encrypted backup and the encrypted login tokens (almost always available).
 - **HTTPS.**
 - **Apache** (or LiteSpeed) blocks the internal folders by itself via `.htaccess`. **nginx** needs two lines in the configuration, see below.
-- At least one search service **API key** (free, see above).
+- Optionally a **Brave key** (free, see above). Without a key every search goes to the fallback search engine.
 
 ## Installation
 
-1. **Get API keys**, see [Setting up search services](#setting-up-search-services-getting-api-keys). One is enough to start.
+1. Optionally **get a Brave key**, see [Setting up Brave](#setting-up-brave-getting-api-keys). Without a key every search goes to the fallback search engine.
 2. Download **`suchmaschine-install.php`** from the [latest release](../../releases/latest) and copy it to a folder on your web space.
 3. Open it in the browser **right away** and click **"Install now"**. It unpacks the program, deletes itself and redirects.
-4. **Create your account** right afterwards and optionally **paste the Brave key**. The key is checked with a test search. This account is the administrator. Add Google through Bright Data (5,000 requests a month free) under *Admin → Search services*.
+4. **Create your account** right afterwards and optionally **paste the Brave key**. The key is checked with a test search. This account is the administrator. The optional Brave helpers (suggestions, spellcheck, AI answer) are added later under *Admin → Search services*.
 5. **Test:** in Admin → *Update → Data protection* click "Check now". It must say "All tight".
 
 On **Plesk** hosts (e.g. Netcup), nginx in front of Apache may serve files directly and skip `.htaccess`. Open the domain's **"Apache & nginx Settings"** and turn off **"Serve static files directly by nginx"** / **"Smart static files processing"**.
@@ -292,7 +272,7 @@ The source is split into many files, users still get **one file**. Anyone can bu
 
 ## Good to know
 
-- **Privacy:** the search services see the search terms but not who searches, the request comes from your server. Only the number of requests per account is counted, never their content. The search engine itself stores no search terms except briefly in the cache. Recent searches for suggestions stay in each device's browser.
+- **Privacy:** Brave sees the search terms but not who searches, the request comes from your server. The fallback search engine, however, is visited by the browser directly and sees the visit like any other. Only the number of requests per account is counted, never their content. The search engine itself stores no search terms except briefly in the cache. Recent searches for suggestions stay in each device's browser.
 - **Full-resolution images:** for the large preview the server fetches the original image and passes it on. The other site only sees the server, the browser still only loads from your own address. Every image address is signed, internal networks are blocked, nothing is stored. It costs no search, only some traffic, and can be switched off in the admin page.
 - **Search operators** are passed to the search service unchanged. Brave understands most of them, the other services mainly quotes and `site:`.
 - **Endless scrolling:** every reload is a real Brave search, so 20 results are fetched at a time. Brave delivers at most 10 pages per query.

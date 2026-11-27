@@ -22,6 +22,6 @@ if ($moreUrl !== ''): ?>
             <span class="spinner"></span>
         </div>
     </div>
-<?php elseif ($page > 1 || count($res['results']) > 5 || $flt['xf'] !== '' || !empty($base['iq'])): ?>
+<?php elseif ($page > 1 || count($res['results']) > 5 || $flt['xf'] !== ''): ?>
     <p class="more__end"><?= h(t('Das waren alle Treffer.')) ?></p>
 <?php endif;

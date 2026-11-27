@@ -239,10 +239,10 @@ function smThrottleClear(string $name): void
     smQ('DELETE FROM throttle WHERE k = ?', [smThrottleKeys($name)[1]]);
 }
 
-/** Suchen ohne Anmeldung: höchstens n pro Stunde und Adresse. true = erlaubt (und gezählt). */
+/** Wetter für Gäste: höchstens 30 Abfragen pro Stunde und Adresse. true = erlaubt (und gezählt). */
 function smPublicQuota(): bool
 {
-    $max = max(1, (int)smSetting('public_hour'));
+    $max = 30;   // Wetter-Abfragen pro Stunde und Adresse für Gäste (schützt den Server vor Missbrauch)
     $k = hash('sha256', 'q|' . smClientIp() . '|' . date('YmdH'));
     $row = smQ('SELECT fails FROM throttle WHERE k = ?', [$k])->fetch();
     if ($row && (int)$row['fails'] >= $max) return false;

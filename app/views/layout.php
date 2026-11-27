@@ -105,7 +105,7 @@ $flash = smFlash();
 <?= $content ?>
 <footer class="foot">
     <span><?= h(t('Ohne Werbung, ohne Tracking')) ?></span>
-<?php $provs = smHasUsersSafe() ? smProvOrder() : []; ?>
+<?php $provs = smHasUsersSafe() && $me ? smProvOrder() : []; ?>
 <?php if ($provs): ?>
     <span class="foot__sep">·</span>
     <span><?= h(t('Ergebnisse von %s', implode(', ', array_map(function ($i) { return smProviders()[$i]['name']; }, $provs)))) ?></span>

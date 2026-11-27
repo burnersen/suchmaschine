@@ -224,30 +224,20 @@ function smConfigKeys(): array
         'search_lang'   => $in(array_keys(smSearchLangs())),
         'safesearch'    => $in(['off', 'moderate', 'strict']),
         'public'        => $in(['0', '1']),
-        'public_hour'   => $int(1, 1000),
         'auto_update'   => $in(['0', '1']),
         'img_proxy'     => $in(['0', '1']),
         'shortener'     => $in(['0', '1']),
         'ipv4_host'     => function ($v) { return is_string($v) ? smCleanHostname($v) : null; },
-        'balance'       => $in(['0', '1']),
-        'answers'       => $in(['0', '1']),
-        'wiki'          => $in(['0', '1']),
-        'stream'        => $in(['0', '1']),
-        'race'          => $int(0, 20),
-        'suggest'       => $in(['0', '1']),
         'sort_videos'   => $in(['date', 'rel']),
-        'fallback_auto' => $in(['0', '1']),
-        'fallback_url'  => function ($v) { return is_string($v) && ($v === '' || (smCleanBangUrl($v) !== '' && strpos($v, '{q}') !== false)) ? $v : null; },
-        'prov_order'    => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
-        'multi_set'     => function ($v) { return is_string($v) && preg_match('/^[a-z,]{0,100}$/', $v) ? $v : null; },
+        'fallback_url'  => function ($v) { return is_string($v) && smFallbackValid($v) ? $v : null; },
         'warn_pct'      => $int(10, 100),
         'weather_src'   => $in(array_keys(smWeatherSources())),
         'look'          => function ($v) { $a = is_string($v) ? json_decode($v, true) : null; return is_array($a) ? json_encode(smLookClean($a)) : null; },
         'api_key'       => $key,
-    ] + smProvConfigKeys($int, $key);
+    ] + smProvConfigKeys($int, $key) + smExConfigKeys($key);
 }
 
-/** Prüfregeln für die Einstellungen der Suchdienste (p_brightdata_key …) */
+/** Prüfregeln für die Einstellungen des Suchdienstes (p_brave_start …) */
 function smProvConfigKeys(callable $int, callable $key): array
 {
     $out = [];
@@ -257,8 +247,20 @@ function smProvConfigKeys(callable $int, callable $key): array
         elseif ($f === 'start') $out[$k] = function ($v) { return is_string($v) && ($v === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $v)) ? $v : null; };
         elseif ($f === 'cost') $out[$k] = function ($v) { return is_numeric($v) ? (string)max(0.01, min(1000, (float)$v)) : null; };
         elseif ($f === 'on') $out[$k] = function ($v) { return in_array((string)$v, ['0', '1'], true) ? (string)$v : null; };
-        elseif ($f === 'zone' || $f === 'unlocker') $out[$k] = function ($v) { return is_string($v) && preg_match('/^[A-Za-z0-9_-]{0,64}$/', trim($v)) ? trim($v) : null; };
         else $out[$k] = $int(0, 10000000);
+    }
+    return $out;
+}
+
+/** Prüfregeln für die Zusatzdienste (x_suggest_key …) */
+function smExConfigKeys(callable $key): array
+{
+    $out = [];
+    foreach (smExSettingKeys() as $k) {
+        $f = substr($k, strrpos($k, '_') + 1);
+        if ($f === 'key') $out[$k] = $key;
+        elseif ($f === 'on') $out[$k] = function ($v) { return in_array((string)$v, ['0', '1'], true) ? (string)$v : null; };
+        else $out[$k] = function ($v) { return is_numeric($v) ? (string)max(0, min(10000000, (float)$v)) : null; };
     }
     return $out;
 }

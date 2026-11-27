@@ -556,7 +556,7 @@ function smCardWeather(string $place, ?array $me): array
     $card = ['type' => 'weather', 'src' => $src, 'place' => $place, 'error' => '', 'now' => null, 'days' => []];
     if ($place === '') { $card['error'] = 'noplace'; return $card; }
     // Ohne Anmeldung zählt jede Wetterabfrage wie eine Suche (Bremse gegen Missbrauch des Servers)
-    if (!$me && !smPublicQuota()) { $card['error'] = t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'); return $card; }
+    if (!$me && !smPublicQuota()) { $card['error'] = t('Für diese Stunde sind genug Wetter-Abfragen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'); return $card; }
     $geo = smGeocode($place);
     if (!$geo) { $card['error'] = t('Den Ort „%s“ habe ich nicht gefunden.', $place); return $card; }
     $card['geo'] = $geo;

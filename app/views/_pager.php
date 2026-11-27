@@ -19,7 +19,7 @@ if ($page > 1 || $hasNext): ?>
 <?php endif; ?>
     </nav>
 <?php endif;
-// Am Ende einer Stufe: weiter mit der nächsten (ältere Treffer, kleinere Bilder)
+// Am Ende einer Zeitstufe: weiter mit der nächsten (ältere Treffer)
 if (!$hasNext && ($nt = smNextTier($tab, $flt, (string)$fresh, $res))): ?>
     <nav class="pager" aria-label="<?= h(t('Seiten')) ?>">
         <a class="pager__step" href="<?= h(smUrl($nt[0] + $base)) ?>" rel="next" data-load><?= h($nt[1]) ?> ›</a>

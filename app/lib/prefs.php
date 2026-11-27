@@ -18,8 +18,12 @@ function smPrefs(?array $me): array
         'sort_videos' => in_array($p['sort_videos'] ?? '', ['date', 'rel'], true) ? $p['sort_videos'] : (smSetting('sort_videos') === 'rel' ? 'rel' : 'date'),
         'news_fresh'  => smNewsFreshOk($p['news_fresh'] ?? '') ? $p['news_fresh'] : (smNewsFreshOk(smSetting('news_fresh')) ? smSetting('news_fresh') : 'pd'),
         'news_expand' => isset($p['news_expand']) ? !empty($p['news_expand']) : smSetting('news_expand') === '1',
-        // Wettlauf: nach so vielen Sekunden zusätzlich den nächsten Dienst fragen ('' = Standard der Installation)
-        'race'        => isset($p['race']) && is_numeric($p['race']) ? (string)max(0, min(20, (int)$p['race'])) : '',
+        // Zusatzdienste von Brave: an/aus, die KI-Antwort aus, auf Knopfdruck oder automatisch
+        'x_suggest'   => ($p['x_suggest'] ?? 'on') === 'off' ? 'off' : 'on',
+        'x_spell'     => ($p['x_spell'] ?? 'on') === 'off' ? 'off' : 'on',
+        'x_answer'    => in_array($p['x_answer'] ?? '', ['off', 'button', 'auto'], true) ? $p['x_answer'] : 'button',
+        // Eigene Ausweich-Suchmaschine (Adresse mit {q}, '' = Standard der Installation)
+        'fallback'    => isset($p['fallback']) && is_string($p['fallback']) && smFallbackValid($p['fallback']) ? $p['fallback'] : '',
     ];
 }
 
@@ -59,11 +63,16 @@ function smSortPrefsFromPost(): array
     ];
 }
 
-/** Eigene Wartezeit für den Wettlauf aus dem Formular ('' = Standard der Installation) */
-function smRacePrefFromPost(): string
+/**
+ * Ausweich-Suchmaschine aus dem Formular: [Adresse oder '' (= Standard), Fehlertext].
+ * fallback_preset: eine Adresse aus der Liste, 'own' (dann fallback_own) oder '' für den Standard.
+ */
+function smFallbackFromPost(): array
 {
-    $v = trim((string)($_POST['race'] ?? ''));
-    return $v !== '' && is_numeric($v) ? (string)max(0, min(20, (int)$v)) : '';
+    $u = (string)($_POST['fallback_preset'] ?? '');
+    if ($u === 'own') $u = trim((string)($_POST['fallback_own'] ?? ''));
+    if ($u === '' || smFallbackValid($u)) return [$u, ''];
+    return ['', t('Die eigene Suchmaschine muss mit https:// beginnen und {q} für den Suchbegriff enthalten, z. B. https://example.org/search?q={q}')];
 }
 
 /* ---------- Persönliche Einstellungen sichern und wiederherstellen ---------- */
@@ -79,7 +88,9 @@ function smCleanPrefs(array $p): array
     foreach (['sort_web', 'sort_news', 'sort_videos'] as $k) if (in_array($p[$k] ?? '', ['date', 'rel'], true)) $out[$k] = $p[$k];
     if (smNewsFreshOk($p['news_fresh'] ?? '')) $out['news_fresh'] = $p['news_fresh'];
     if (isset($p['news_expand'])) $out['news_expand'] = !empty($p['news_expand']);
-    if (isset($p['race']) && is_numeric($p['race'])) $out['race'] = (string)max(0, min(20, (int)$p['race']));
+    if (isset($p['fallback']) && is_string($p['fallback']) && smFallbackValid($p['fallback'])) $out['fallback'] = $p['fallback'];
+    foreach (['x_suggest', 'x_spell'] as $k) if (in_array($p[$k] ?? '', ['on', 'off'], true)) $out[$k] = $p[$k];
+    if (in_array($p['x_answer'] ?? '', ['off', 'button', 'auto'], true)) $out['x_answer'] = $p['x_answer'];
     foreach (['newtab', 'history'] as $k) if (isset($p[$k])) $out[$k] = !empty($p[$k]);
     if (isset($p['city']) && is_string($p['city'])) $out['city'] = trim(mb_substr(smPlain($p['city']), 0, 60));
     if (isset($p['weather_src']) && isset(smWeatherSources()[$p['weather_src']])) $out['weather_src'] = $p['weather_src'];

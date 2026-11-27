@@ -70,10 +70,10 @@ function smTabBangs(): array
     return ['i' => 'images', 'n' => 'news', 'v' => 'videos'];
 }
 
-/** Kürzel, die die Suchmaschine selbst braucht (Reiter und Suchdienste) */
+/** Kürzel, die die Suchmaschine selbst braucht (Reiter) */
 function smBangReserved(string $t): bool
 {
-    return isset(smTabBangs()[$t]) || isset(smProviderBangs()[$t]);
+    return isset(smTabBangs()[$t]);
 }
 
 /** Kürzel der Werkzeuge (!qr, !pw, !dns …): gehen der großen Liste vor, nur eigene Bangs gehen ihnen vor */
@@ -401,11 +401,6 @@ function smBangTarget(string $q, ?array $me): ?array
         $rest = trim(implode(' ', $rest));
         if (isset(smTabBangs()[$t])) {
             return ['to' => smUrl(['q' => $rest !== '' ? $rest : null, 't' => smTabBangs()[$t]]), 'internal' => true];
-        }
-        // Gezielt einen Suchdienst ansteuern: !brave, !tv, !exa, !pa, !fc, !multi
-        if (isset(smProviderBangs()[$t])) {
-            $tab = isset($_GET['t']) && in_array($_GET['t'], ['news', 'images', 'videos'], true) ? $_GET['t'] : null;
-            return ['to' => smUrl(['q' => $rest !== '' ? $rest : null, 't' => $tab, 'src' => smProviderBangs()[$t]]), 'internal' => true];
         }
         $b = smBangFind($t, $me);
         // Werkzeuge: „!qr Hallo“, „!pw“, „!kurz https://…“, „!json {…}“, „!dns example.org“ (eigene Bangs gleichen Namens gehen vor)
@@ -782,9 +777,6 @@ function smServeBangSuggest(?array $me): void
     if ($t !== '') {
         if (isset(smTabBangs()[$t])) {
             $exact = ['t' => $t, 'n' => ['images' => t('Bilder'), 'news' => t('News'), 'videos' => t('Videos')][smTabBangs()[$t]], 'd' => t('Reiter hier'), 'dead' => false];
-        } elseif (isset(smProviderBangs()[$t])) {
-            $pid = smProviderBangs()[$t];
-            $exact = ['t' => $t, 'n' => $pid === 'multi' ? t('Mehrere Suchdienste') : (smProviders()[$pid]['name'] ?? $pid), 'd' => t('Suchdienst hier'), 'dead' => false];
         } else {
             $b = smBangFind($t, $me);
             if ((!$b || $b['layer'] === 'sys') && ($tb = smToolBang($t)) !== null) {

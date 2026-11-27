@@ -20,7 +20,7 @@
             <p class="muted small"><?= t('Kostenlos auf <a href="https://api-dashboard.search.brave.com" target="_blank" rel="noopener noreferrer">api-dashboard.search.brave.com</a>: anmelden, den Plan „Search“ wählen (enthält jeden Monat Guthaben für etwa 1.000 Suchen), unter „API Keys“ einen Key erzeugen und hier einfügen. Automatisches Aufladen dort ausgeschaltet lassen.') ?></p>
             <label class="field"><span><?= h(t('API-Key')) ?></span>
                 <input type="password" name="key" autocomplete="off" spellcheck="false" placeholder="BSA…" data-reveal></label>
-            <p class="muted small"><?= h(t('Der Key wird gleich mit einer Testsuche geprüft und bleibt nur auf deinem Server. Du kannst das Feld auch leer lassen und danach unter Verwaltung → Suchdienste Google (über Bright Data, 5.000 Anfragen im Monat kostenlos) oder Brave eintragen.')) ?></p>
+            <p class="muted small"><?= h(t('Der Key wird gleich mit einer Testsuche geprüft und bleibt nur auf deinem Server. Du kannst das Feld auch leer lassen: Dann gehen alle Suchen zur Ersatz-Suchmaschine, bis du unter Verwaltung → Suchdienste einen Key einträgst.')) ?></p>
             <button type="submit" class="btn btn--primary btn--wide"><?= h(t('Einrichten')) ?></button>
         </form>
     </div>

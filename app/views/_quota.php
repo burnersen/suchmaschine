@@ -1,5 +1,5 @@
 <?php defined('SM_VERSION') || exit;
-/** Kontingent eines Kontos bearbeiten ($quser: Konto-ID, 0 = Besucher ohne Anmeldung) */
+/** Kontingent eines Kontos bearbeiten ($quser: Konto-ID) */
 $qq = smQuotaOf($quser);
 $qset = $qq['allow'] !== null || $qq['lim'];
 ?>
@@ -7,7 +7,7 @@ $qset = $qq['allow'] !== null || $qq['lim'];
                         <summary class="btn btn--small<?= $qset ? ' is-set' : '' ?>"><?= h(t('Kontingent')) ?></summary>
                         <form method="post" action="<?= h(smUrl(['a' => 'admin', 'tab' => 'users'])) ?>" class="pop__panel quota">
                             <?= smCsrfField($me) ?><input type="hidden" name="do" value="quota"><input type="hidden" name="id" value="<?= (int)$quser ?>">
-                            <label class="check"><input type="checkbox" name="allow_all" value="1"<?= $qq['allow'] === null ? ' checked' : '' ?>> <?= h(t('Alle Suchdienste erlaubt')) ?></label>
+                            <label class="check"><input type="checkbox" name="allow_all" value="1"<?= $qq['allow'] === null ? ' checked' : '' ?>> <?= h(t('Brave erlaubt (ohne Einschränkung)')) ?></label>
                             <table class="table table--quota">
                                 <thead><tr><th><?= h(t('Dienst')) ?></th><th><?= h(t('erlaubt')) ?></th><th><?= h(t('Höchstens')) ?></th><th><?= h(t('verbraucht')) ?></th></tr></thead>
                                 <tbody>
@@ -19,7 +19,7 @@ $qset = $qq['allow'] !== null || $qq['lim'];
 <?php endforeach; ?>
                                 </tbody>
                             </table>
-                            <small class="muted"><?= h(t('Leer = ohne Grenze. Gezählt wird im Abrechnungszeitraum des jeweiligen Dienstes. Ohne Haken bei „Alle“ gelten nur die angehakten Dienste.')) ?></small>
+                            <small class="muted"><?= h(t('Leer = ohne Grenze. Gezählt wird im Abrechnungszeitraum von Brave. Ohne Haken oben gilt der Haken in der Tabelle.')) ?></small>
                             <button type="submit" class="btn btn--primary btn--small"><?= h(t('Speichern')) ?></button>
                         </form>
                     </details>

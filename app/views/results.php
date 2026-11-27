@@ -4,7 +4,7 @@ require __DIR__ . '/_vars.php';
 <nav class="tabs" aria-label="<?= h(t('Art der Suche')) ?>">
     <div class="tabs__inner">
 <?php foreach (smTabs() as $k => $label): ?>
-        <a class="tabs__tab<?= $k === $tab ? ' is-active' : '' ?>" href="<?= h(smUrl(['q' => $q, 't' => $k !== 'web' ? $k : null, 'l' => $lens ?: null, 'src' => $flt['src'] !== '' && in_array($k, ['web', 'news'], true) ? $flt['src'] : null])) ?>"<?= $k === $tab ? ' aria-current="page"' : '' ?> data-load><?= h($label) ?></a>
+        <a class="tabs__tab<?= $k === $tab ? ' is-active' : '' ?>" href="<?= h(smUrl(['q' => $q, 't' => $k !== 'web' ? $k : null, 'l' => $lens ?: null])) ?>"<?= $k === $tab ? ' aria-current="page"' : '' ?> data-load><?= h($label) ?></a>
 <?php endforeach; ?>
 <?php if (in_array($tab, ['web', 'news', 'videos'], true)): ?>
         <details class="tools">
@@ -36,14 +36,11 @@ require __DIR__ . '/_vars.php';
 <?php endforeach; ?>
             </div>
         </details>
-        <?= $smDrop('ic', smImageColors(), t('Farbe')) ?>
-        <?= $smDrop('it', smImageTypes(), t('Typ')) ?>
-        <?= $smDrop('il', smImageLicenses(), t('Lizenz')) ?>
         <details class="tools">
             <summary class="tabs__tab<?= $flt['isort'] ? ' is-set' : '' ?>"><?= h($flt['isort'] ? t('Relevanz') : t('Beste Qualität zuerst')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <div class="tools__panel">
-                <a href="<?= h(smUrl(['isort' => null, 'iq' => null] + $base)) ?>"<?= $flt['isort'] === '' ? ' class="is-active"' : '' ?> data-load><?= h(t('Beste Qualität zuerst')) ?></a>
-                <a href="<?= h(smUrl(['isort' => 'rel', 'iq' => null] + $base)) ?>"<?= $flt['isort'] === 'rel' ? ' class="is-active"' : '' ?> data-load><?= h(t('Relevanz')) ?></a>
+                <a href="<?= h(smUrl(['isort' => null] + $base)) ?>"<?= $flt['isort'] === '' ? ' class="is-active"' : '' ?> data-load><?= h(t('Beste Qualität zuerst')) ?></a>
+                <a href="<?= h(smUrl(['isort' => 'rel'] + $base)) ?>"<?= $flt['isort'] === 'rel' ? ' class="is-active"' : '' ?> data-load><?= h(t('Relevanz')) ?></a>
             </div>
         </details>
 <?php endif; ?>
@@ -129,14 +126,11 @@ require __DIR__ . '/_vars.php';
 <?php if ($tab === 'web'): ?>
         <a class="tabs__tab tabs__toggle<?= $flt['dl'] === '' ? ' is-on' : ' is-set' ?>" href="<?= h(smUrl(['dl' => $flt['dl'] === '' ? '0' : null] + $base)) ?>" role="switch" aria-checked="<?= $flt['dl'] === '' ? 'true' : 'false' ?>" title="<?= h(t('Damit eine einzelne Seite nicht die ganze Trefferliste füllt')) ?>" data-load><span class="tabs__check" aria-hidden="true"></span><?= h(t('Max. 3 pro Domain')) ?></a>
 <?php endif; ?>
-<?php if ($ft || $lens || array_filter(array_intersect_key($flt, array_flip(['f_q', 'xf', 'sort_q', 'dl', 'src', 'io', 'is', 'isort', 'fd', 'td', 'vb', 'sl', 'cr', 'ic', 'it', 'il', 'vd'])), function ($v) { return $v !== ''; }) || $exact): ?>
+<?php if ($ft || $lens || array_filter(array_intersect_key($flt, array_flip(['f_q', 'xf', 'sort_q', 'dl', 'io', 'is', 'isort', 'fd', 'td', 'vb', 'sl', 'cr', 'vd'])), function ($v) { return $v !== ''; }) || $exact): ?>
         <a class="tabs__tab tabs__reset" href="<?= h(smUrl(['q' => $q, 't' => $tab !== 'web' ? $tab : null])) ?>" data-load><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><?= h(t('Alle Filter zurücksetzen')) ?></a>
 <?php endif; ?>
         <a class="tabs__tab tabs__help" href="<?= h(smUrl(['a' => 'help'])) ?>" title="<?= h(t('Hilfe zu Suchoperatoren, Bangs und Linsen')) ?>"><?= h(t('Hilfe')) ?></a>
     </div>
 </nav>
 
-<?php if (!empty($stream)): ?>
-<div class="serp-wait<?= !empty($warm) ? ' serp-wait--warm' : '' ?>" role="status"<?= !empty($warm) ? ' data-warm="' . h($warm) . '"' : '' ?>><span class="spinner"></span> <?= h(t('Suche läuft …')) ?></div>
-<!--SM-STREAM-->
-<?php else: require __DIR__ . '/_serp.php'; endif; ?>
+<?php require __DIR__ . '/_serp.php'; ?>

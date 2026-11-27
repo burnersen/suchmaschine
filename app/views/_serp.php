@@ -1,28 +1,16 @@
 <?php defined('SM_VERSION') || exit;
-/** Die Trefferliste. Kommt bei „Seite sofort zeigen“ erst, wenn die Suche fertig ist (der Rest der Seite steht dann schon). */
+/** Die Trefferliste */
 require __DIR__ . '/_vars.php';
-if (!empty($fallback_go)): ?>
-<div class="alert alert--error serp__error"><meta http-equiv="refresh" content="3;url=<?= h($fallback_go) ?>">
-    <?= h($error . ' ' . t('Du wirst zu %s weitergeleitet …', smFallbackName())) ?>
-    <p><a class="btn btn--small btn--primary" href="<?= h($fallback_go) ?>" rel="noopener noreferrer"><?= h(t('Jetzt weiter')) ?></a></p></div>
-<?php return; endif; ?>
+?>
 <main class="serp serp--<?= h($tab) ?>">
 <?php if (!empty($instant)): require __DIR__ . '/_instant.php'; ?>
-<?php elseif ($error !== ''): $fb = smFallbackUrl($q); ?>
+<?php elseif ($error !== ''): $fb = smFallbackTabUrl($q, $tab, $me); ?>
     <div class="alert alert--error serp__error">
         <strong><?= h(t('Die Suche hat nicht geklappt.')) ?></strong> <?= h($error) ?>
         <p><a class="btn btn--small" href="<?= h(smSelf()) ?>"><?= h(t('Noch einmal versuchen')) ?></a>
-<?php if ($fb !== ''): ?> <a class="btn btn--small btn--primary" href="<?= h($fb) ?>"<?= $rel . $target ?>><?= h(t('Bei %s suchen', smFallbackName())) ?></a><?php endif; ?>
-<?php if ($flt['src'] !== ''): ?> <a class="btn btn--small" href="<?= h(smUrl(['src' => null] + $base)) ?>" data-load><?= h(t('Automatisch einen anderen Dienst nehmen')) ?></a><?php endif; ?>
-<?php if ($me && $me['is_admin']): ?> <a class="btn btn--small" href="<?= h(smUrl(['a' => 'admin', 'tab' => smProvOrder() ? 'usage' : 'providers'])) ?>"><?= h(smProvOrder() ? t('Verbrauch ansehen') : t('Suchdienst einrichten')) ?></a><?php endif; ?></p>
+<?php if ($fb !== ''): ?> <a class="btn btn--small btn--primary" href="<?= h($fb) ?>"<?= $rel . $target ?>><?= h(t('Bei %s suchen', smFallbackName($me))) ?></a><?php endif; ?></p>
     </div>
-<?php require __DIR__ . '/_srcbar.php'; ?>
 <?php elseif ($res): ?>
-<?php require __DIR__ . '/_srcbar.php'; ?>
-<?php if (!empty($res['notice']) && empty($res['cached'])): ?>
-    <p class="serp__notice"><strong><?= h($res['source'] === 'multi' ? t('Ergebnisse von %s', implode(' + ', array_map(function ($i) { return smProviders()[$i]['name']; }, $res['sources']))) : t('Ergebnisse von %s', smProviders()[$res['source']]['name'] ?? $res['source'])) ?>.</strong>
-        <?= h(implode(' · ', $res['notice'])) ?></p>
-<?php endif; ?>
 <?php if (!empty($widened)): ?>
     <p class="serp__note"><?= h(t('Nichts aus dem Zeitraum „%s“, darum: %s.', smTierLabel($widened), smTierLabel($fresh))) ?></p>
 <?php endif; ?>
@@ -37,6 +25,18 @@ if (!empty($fallback_go)): ?>
     <p class="serp__note"><?= h($res['hidden'] === 1 ? t('1 Treffer ausgeblendet (deine Blockliste).') : t('%d Treffer ausgeblendet (deine Blockliste).', $res['hidden'])) ?>
         <a href="<?= h(smUrl(['a' => 'settings', 'tab' => 'domains'])) ?>"><?= h(t('Listen bearbeiten')) ?></a></p>
 <?php endif; ?>
+<?php if (!empty($didyoumean)): ?>
+    <p class="serp__altered"><?= t('Meintest du: <a href="%s" data-load><strong>%s</strong></a>', h(smUrl(['q' => $didyoumean, 'exact' => null] + $base)), h($didyoumean)) ?></p>
+<?php endif; ?>
+<?php if (!empty($answer)): ?>
+    <section class="answer" data-answer="<?= h($answer['url']) ?>"<?= $answer['auto'] ? ' data-answer-auto' : '' ?> data-error="<?= h(t('Brave konnte gerade keine Antwort liefern.')) ?>">
+        <h2 class="answer__title"><?= h(t('KI-Antwort')) ?> <span class="answer__src">Brave</span></h2>
+        <div class="answer__text" data-answer-text aria-live="polite"></div>
+        <p class="answer__go"><button type="button" class="btn btn--small" data-answer-go><?= h(t('Antwort holen')) ?></button>
+            <span class="spinner" hidden></span> <small class="muted"><?= h(t('Dauert ein paar Sekunden, kostet etwas Brave-Guthaben.')) ?></small></p>
+        <p class="answer__note muted small" hidden><?= h(t('KI-Antworten können falsch sein. Wichtiges bitte in den Quellen prüfen.')) ?></p>
+    </section>
+<?php endif; ?>
 <?php if (!empty($res['altered']) && !$exact): ?>
     <p class="serp__altered"><?= t('Ergebnisse für <strong>%s</strong>', h($res['altered'])) ?><br>
         <small><?= t('Stattdessen suchen nach <a href="%s">%s</a>', h(smUrl(['exact' => '1'] + $base)), h($q)) ?></small></p>
@@ -49,16 +49,13 @@ if (!empty($fallback_go)): ?>
 <?php if ($fresh): ?><li><a href="<?= h(smUrl(['f' => $flt['casc'] ? 'all' : null, 'xf' => null] + $base)) ?>"><?= h(t('Ohne Zeitraum suchen')) ?></a></li><?php endif; ?>
 <?php if ($ft): ?><li><a href="<?= h(smUrl(['ft' => null] + $base)) ?>"><?= h(t('Ohne Dateityp suchen')) ?></a></li><?php endif; ?>
 <?php if ($lens): ?><li><a href="<?= h(smUrl(['l' => null] + $base)) ?>"><?= h(t('Ohne Linse suchen')) ?></a></li><?php endif; ?>
-<?php if ($flt['io'] || $flt['is'] || $flt['ic'] || $flt['it'] || $flt['il']): ?><li><a href="<?= h(smUrl(['io' => null, 'is' => null, 'ic' => null, 'it' => null, 'il' => null] + $base)) ?>"><?= h(t('Ohne Bildfilter suchen')) ?></a></li><?php endif; ?>
+<?php if ($flt['io'] || $flt['is']): ?><li><a href="<?= h(smUrl(['io' => null, 'is' => null] + $base)) ?>"><?= h(t('Ohne Bildfilter suchen')) ?></a></li><?php endif; ?>
 <?php if ($flt['fd'] || $flt['td']): ?><li><a href="<?= h(smUrl(['fd' => null, 'td' => null] + $base)) ?>"><?= h(t('Ohne eigenen Zeitraum suchen')) ?></a></li><?php endif; ?>
 <?php if ($flt['sl'] || $flt['cr'] || $flt['vb'] || $flt['vd']): ?><li><a href="<?= h(smUrl(['sl' => null, 'cr' => null, 'vb' => null, 'vd' => null] + $base)) ?>"><?= h(t('Ohne Sprache, Region, Wortgenau und Länge suchen')) ?></a></li><?php endif; ?>
-<?php if ($flt['src'] !== ''): ?><li><a href="<?= h(smUrl(['src' => null] + $base)) ?>"><?= h(t('Mit einem anderen Suchdienst suchen')) ?></a></li><?php endif; ?></ul>
+<li><a href="<?= h(smFallbackTabUrl($q, $tab, $me)) ?>"<?= $rel . $target ?>><?= h(t('Bei %s suchen', smFallbackName($me))) ?></a></li></ul>
     </div>
 <?php elseif ($tab === 'web'): ?>
-<?php if ($page === 1) require __DIR__ . '/_cards.php'; ?>
-<?php if ($page === 1 && !empty($res['cards_url'])): ?>
-    <div class="cards-slot" data-cards="<?= h($res['cards_url']) ?>"></div>
-<?php endif; ?>
+<?php if ($page === 1) require __DIR__ . '/_infobox.php'; ?>
     <div class="serp__main">
 <?php foreach ($res['order'] as $o):
         if ($o[0] === 'web'): $r = $res['results'][$o[1]]; require __DIR__ . '/_result.php';
@@ -174,6 +171,5 @@ if (!empty($fallback_go)): ?>
     </div>
 <?php endif; ?>
 <?php if ($res['cached']): ?><p class="serp__cached"><?= h(t('Aus dem Zwischenspeicher, kostet keine Suche.')) ?></p><?php endif; ?>
-<?php if (!empty($res['source']) && $res['source'] !== 'multi' && !$res['cached']): ?><p class="serp__cached"><?= h(t('Geliefert von %s.', smProviders()[$res['source']]['name'] ?? $res['source'])) ?></p><?php endif; ?>
 <?php endif; ?>
 </main>

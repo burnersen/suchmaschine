@@ -33,13 +33,12 @@ $all = array_keys(smProviders());
 <?php elseif ($f['fits']): ?>
         <p class="verdict verdict--ok">✓ <?= h(t('Reicht bis zum Reset (beim jetzigen Tempo etwa %d %% des Limits).', (int)round($f['projected'] / max(1, $f['limit']) * 100))) ?></p>
 <?php else: ?>
-        <p class="verdict verdict--warn">⚠ <?= h($f['empty_at'] ? t('Reicht beim jetzigen Tempo nur bis etwa %s, %s Tage vor dem Reset.', smDate($f['empty_at']), smNumF(max(0, ceil(($c['end'] - $f['empty_at']) / 86400)))) : t('Limit erreicht.')) ?>
-            <?= h(smSetting('balance') === '1' && count($ids) > 1 ? t('Die Lastverteilung schont den Dienst schon.') : '') ?></p>
+        <p class="verdict verdict--warn">⚠ <?= h($f['empty_at'] ? t('Reicht beim jetzigen Tempo nur bis etwa %s, %s Tage vor dem Reset.', smDate($f['empty_at']), smNumF(max(0, ceil(($c['end'] - $f['empty_at']) / 86400)))) : t('Limit erreicht.')) ?></p>
 <?php endif; ?>
     </section>
 <?php endforeach; ?>
     </div>
-    <p class="muted small"><?= h(t('Gezählt werden nur echte Anfragen an die Dienste. Treffer aus dem Zwischenspeicher, Bangs und Sofort-Antworten sind kostenlos. Den genauen Stand zeigen die Dashboards der Dienste.')) ?></p>
+    <p class="muted small"><?= h(t('Gezählt werden nur echte Anfragen an Brave. Treffer aus dem Zwischenspeicher, Bangs, Sofort-Antworten und alle Suchen, die zur Ausweich-Suchmaschine gehen, sind kostenlos. Den genauen Stand zeigt das Dashboard von Brave.')) ?></p>
 
 <?php if ($ids && $users): ?>
     <section class="panel">
@@ -48,7 +47,7 @@ $all = array_keys(smProviders());
         <table class="table">
             <thead><tr><th><?= h(t('Konto')) ?></th><?php foreach ($ids as $id): ?><th><?= h(smProviders()[$id]['badge']) ?></th><?php endforeach; ?></tr></thead>
             <tbody>
-<?php foreach (array_merge($users, smSetting('public') === '1' ? [['id' => 0, 'name' => t('Besucher ohne Anmeldung')]] : []) as $u): $qq = smQuotaOf((int)$u['id']); ?>
+<?php foreach ($users as $u): $qq = smQuotaOf((int)$u['id']); ?>
                 <tr><td><?= h($u['name']) ?></td>
 <?php foreach ($ids as $id): $used = smUsageSum($id, smProvCycle($id)['from'], (int)$u['id']); ?>
                     <td><?= h(smNumF($used)) ?><?= isset($qq['lim'][$id]) ? ' <span class="muted">/ ' . (int)$qq['lim'][$id] . '</span>' : '' ?><?= $qq['allow'] !== null && !in_array($id, $qq['allow'], true) ? ' <span class="muted">' . h(t('(gesperrt)')) . '</span>' : '' ?></td>

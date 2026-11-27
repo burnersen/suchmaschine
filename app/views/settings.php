@@ -41,11 +41,31 @@ $lists = smDomainLists($me);
             </fieldset>
             <div id="sort"></div>
 <?php $sp = $prefs; require __DIR__ . '/_sortprefs.php'; ?>
-            <div class="form__row">
-                <label class="field field--short"><span><?= h(t('Brave springt ein nach (Sekunden)')) ?></span>
-                    <input type="number" name="race" min="0" max="20" value="<?= h($prefs['race']) ?>" placeholder="<?= h(t('Standard: %s', smSetting('race'))) ?>">
-                    <small class="muted"><?= h(t('Liefert Google so lange nichts, fragt die Suchmaschine Brave dazu, und die schnellere Antwort gewinnt. Bei Bildern doppelt so lange. 0 = Brave nur, wenn Google gar nicht kann. Leer = Standard der Installation.')) ?></small></label>
-            </div>
+<?php if (smExActive('suggest') || smExActive('spell') || smExActive('answer')): ?>
+            <h3 class="form__sub" id="extras"><?= h(t('Hilfen von Brave')) ?></h3>
+<?php if (smExActive('suggest')): ?>
+            <label class="switch"><input type="checkbox" name="x_suggest" value="1"<?= $prefs['x_suggest'] !== 'off' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Suchvorschläge beim Tippen')) ?><br><small class="muted"><?= h(t('Brave schlägt passende Suchen vor, unter deinen eigenen letzten Suchen.')) ?></small></span></label>
+<?php else: ?><input type="hidden" name="x_suggest" value="<?= $prefs['x_suggest'] !== 'off' ? '1' : '' ?>"><?php endif; ?>
+<?php if (smExActive('spell')): ?>
+            <label class="switch"><input type="checkbox" name="x_spell" value="1"<?= $prefs['x_spell'] !== 'off' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Rechtschreibhilfe („Meintest du …?“)')) ?><br><small class="muted"><?= h(t('Zeigt über den Treffern eine korrigierte Schreibweise, wenn du dich vertippt hast.')) ?></small></span></label>
+<?php else: ?><input type="hidden" name="x_spell" value="<?= $prefs['x_spell'] !== 'off' ? '1' : '' ?>"><?php endif; ?>
+<?php if (smExActive('answer')): ?>
+            <fieldset class="field"><legend><?= h(t('KI-Antwort von Brave')) ?></legend>
+                <div class="seg">
+<?php foreach (['off' => t('Aus'), 'button' => t('Auf Knopfdruck'), 'auto' => t('Automatisch')] as $k => $v): ?>
+                    <label><input type="radio" name="x_answer" value="<?= $k ?>"<?= $k === $prefs['x_answer'] ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
+<?php endforeach; ?>
+                </div>
+                <small class="muted"><?= h(t('Eine kurze Antwort zur Suche über den Treffern. Sie braucht ein paar Sekunden und kostet bei Brave Guthaben, darum ist „Auf Knopfdruck“ voreingestellt. „Automatisch“ holt sie bei jeder neuen Suche auf „Alle“, die Treffer warten nicht darauf.')) ?></small>
+            </fieldset>
+<?php else: ?><input type="hidden" name="x_answer" value="<?= h($prefs['x_answer']) ?>"><?php endif; ?>
+<?php else: ?>
+            <input type="hidden" name="x_suggest" value="<?= $prefs['x_suggest'] !== 'off' ? '1' : '' ?>"><input type="hidden" name="x_spell" value="<?= $prefs['x_spell'] !== 'off' ? '1' : '' ?>"><input type="hidden" name="x_answer" value="<?= h($prefs['x_answer']) ?>">
+<?php endif; ?>
+            <h3 class="form__sub" id="fallback"><?= h(t('Wenn Brave nicht kann')) ?></h3>
+<?php $fbCur = $prefs['fallback']; $fbDefault = true; require __DIR__ . '/_fallback.php'; ?>
             <h3 class="form__sub"><?= h(t('Wetter')) ?></h3>
             <div class="form__row">
                 <label class="field"><span><?= h(t('Dein Ort fürs Wetter')) ?></span><input type="text" name="city" maxlength="60" value="<?= h($me['prefs']['city'] ?? '') ?>" placeholder="<?= h(t('z. B. Berlin')) ?>">

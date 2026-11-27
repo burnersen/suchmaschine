@@ -27,7 +27,7 @@ function smRun(): void
     if (!smHasUsers()) {
         $err = '';
         if ($post && $a === 'setup' && smSameOrigin()) {
-            // Der Brave-Key ist freiwillig: andere Suchdienste lassen sich auch später in der Verwaltung eintragen
+            // Der Brave-Key ist freiwillig: ohne Key geht jede Suche zur Ausweich-Suchmaschine, der Key lässt sich später eintragen
             $key = trim((string)($_POST['key'] ?? ''));
             $err = $key === '' ? '' : smTestKey($key);
             if ($err === '') $err = smSetup((string)($_POST['name'] ?? ''), (string)($_POST['pass'] ?? ''), (string)($_POST['pass2'] ?? ''), $key);
@@ -104,9 +104,11 @@ function smRun(): void
         smRedirect(smBase());
     }
 
+    // Gäste: Startseite, Bangs, Sofort-Antworten, Werkzeuge und Hilfe. Suchen gehen bei ihnen immer zur Ausweich-Suchmaschine.
+    // Mit „Nur mit Anmeldung“ (Verwaltung → Einstellungen) sehen Gäste nur die Anmeldung.
     $public = smSetting('public') === '1';
-    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'img', 'go', 'qr', 'tools', 'bangs', 'suggest', 'cards'], true))) {
-        if (in_array($a, ['img', 'qr', 'go', 'suggest', 'cards'], true)) {
+    if (!$me && !($public && in_array($a, ['', 'lucky', 'help', 'qr', 'tools', 'bangs', 'fb'], true))) {
+        if ($a === 'qr') {
             http_response_code(403);
             exit;
         }
@@ -124,14 +126,22 @@ function smRun(): void
         case 'img':
             smServeImgProxy();
             return;
-        case 'go':
-            smServeGo();
-            return;
         case 'suggest':
-            smServeSuggest();
+            smServeSuggest($me);
             return;
-        case 'cards':
-            smServeCards($me);
+        case 'answer':
+            smServeAnswer($me);
+            return;
+        case 'fb':
+            // Gäste wählen ihre Suchmaschine (gemerkt nur im Browser), Konten in den Einstellungen
+            if ($post && !$me) {
+                $u = (string)($_POST['fallback'] ?? '');
+                $path = (string)parse_url(smBase(), PHP_URL_PATH);
+                setcookie('smfb', smFallbackValid($u, true) ? $u : '', ['expires' => smFallbackValid($u, true) ? time() + 31536000 : time() - 3600,
+                    'path' => $path !== '' ? $path : '/', 'samesite' => 'Lax', 'secure' => smIsHttps(), 'httponly' => true]);
+                smFlash('ok', t('Gespeichert. Deine Suchen gehen jetzt zu %s.', smFallbackName(null, smFallbackValid($u, true) ? $u : smFallbackDefault())));
+            }
+            smRedirect($me ? smUrl(['a' => 'settings', 'tab' => 'search']) : smBase());
             return;
         case 'qr':
             smServeQr();

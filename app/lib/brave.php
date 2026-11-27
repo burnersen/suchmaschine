@@ -45,7 +45,7 @@ function smSearchLangs(): array
     return $l;
 }
 
-/** Zeitraum-Filter: Wert in der Adresse => Bezeichnung (ph = letzte Stunde kann nur Google, Brave nimmt dann den letzten Tag) */
+/** Zeitraum-Filter: Wert in der Adresse => Bezeichnung (ph = letzte Stunde: Brave nimmt den letzten Tag, danach wird gefiltert) */
 function smFreshness(): array
 {
     return ['' => t('Beliebige Zeit'), 'ph' => t('Letzte Stunde'), 'pd' => t('Letzte 24 Stunden'), 'pw' => t('Letzte Woche'), 'pm' => t('Letzter Monat'), 'py' => t('Letztes Jahr')];

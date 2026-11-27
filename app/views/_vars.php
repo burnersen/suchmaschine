@@ -6,11 +6,10 @@ $ft = $ft ?? '';
 $lens = $lens ?? '';
 $flt = $flt ?? smSearchFilters($tab, $prefs);
 $base = ['q' => $q, 't' => $tab !== 'web' ? $tab : null, 'f' => $flt['f_q'] ?: null, 'xf' => $flt['xf'] ?: null, 'exact' => $exact ? '1' : null, 'ft' => $ft ?: null, 'l' => $lens ?: null,
-         'src' => $flt['src'] ?: null, 'sort' => $flt['sort_q'] ?: null, 'dl' => $flt['dl'] ?: null,
+         'sort' => $flt['sort_q'] ?: null, 'dl' => $flt['dl'] ?: null,
          'io' => $flt['io'] ?: null, 'is' => $flt['is'] ?: null, 'isort' => $flt['isort'] ?: null,
          'fd' => $flt['fd'] ?: null, 'td' => $flt['td'] ?: null, 'vb' => $flt['vb'] ?: null, 'sl' => $flt['sl'] ?: null, 'cr' => $flt['cr'] ?: null,
-         'ic' => $flt['ic'] ?: null, 'it' => $flt['it'] ?: null, 'il' => $flt['il'] ?: null, 'vd' => $flt['vd'] ?: null,
-         'iq' => ($flt['iq'] ?? '') !== '' && $flt['iq'] !== smImageTiers()[0] ? $flt['iq'] : null];
+         'vd' => $flt['vd'] ?: null];
 // Ein Auswahlmenü in der Filterleiste: Adressparameter, Werte => Bezeichnung, Beschriftung ohne Auswahl
 $smDrop = function (string $param, array $opts, string $label) use ($flt, $base) {
     $cur = (string)($flt[$param] ?? '');
@@ -31,5 +30,3 @@ $smHidden = function (array $except) use ($base) {
 // Zurück hierher nach einer Schnellaktion an einem Treffer (beim Endlos-Scrollen an den Anfang der Liste)
 $back = smUrl(['p' => $page > 1 && $prefs['scroll'] !== 'endless' ? $page : null] + $base);
 $me = $me ?? null;
-// Quell-Badges an jedem Treffer nur bei „Alle zusammen“ (sonst steht der Dienst schon in der Leiste über den Treffern)
-$showSrc = isset($res['source']) && $res['source'] === 'multi';

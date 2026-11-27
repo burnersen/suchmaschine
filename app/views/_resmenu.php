@@ -1,20 +1,23 @@
 <?php defined('SM_VERSION') || exit;
-/** Menü ⋮ an einem Treffer: nur auf dieser Domain suchen, Archiv, QR-Code; mit Konto auch Domain hoch-/herabstufen oder blockieren */
+/** Menü ⋮ an einem Treffer: neuer Tab, teilen, nur auf dieser Domain suchen, Bilder der Domain, Archiv, QR-Code; mit Konto auch lesen, prüfen, Domain hoch-/herabstufen oder blockieren */
 $dom = smCleanDomain($r['host']);
 $qNoSite = trim(preg_replace('/(^|\s)-?site:\S+/i', ' ', $q));
 $acts = ['raise' => t('Hochstufen'), 'lower' => t('Herabstufen'), 'block' => t('Blockieren')];
-// Google-Weiterleitung über den eigenen Server (?a=go): kopieren und QR mit der vollen Adresse, Archive gibt es dafür nicht
 $direct = preg_match('~^https?://~i', $r['url']) === 1;
 $full = $direct ? $r['url'] : substr(smOrigin(), 0, -strlen(smBase())) . $r['url']; ?>
             <details class="resmenu">
                 <summary class="iconbtn resmenu__btn" aria-label="<?= h(t('Optionen für %s', $r['host'])) ?>" title="<?= h(t('Optionen für %s', $r['host'])) ?>"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="18.5" r="1.3"/></svg></summary>
                 <div class="resmenu__panel">
                     <span class="resmenu__dom"><?= h($dom !== '' ? $dom : $r['host']) ?></span>
+                    <a href="<?= h($r['url']) ?>" target="_blank" rel="noopener noreferrer"><?= h(t('In neuem Tab öffnen')) ?></a>
+                    <button type="button" data-share="<?= h($full) ?>" data-share-title="<?= h((string)($r['title'] ?? '')) ?>" hidden><?= h(t('Teilen …')) ?></button>
 <?php if ($dom !== ''): ?>
                     <a href="<?= h(smUrl(['q' => 'site:' . $dom . ($qNoSite !== '' ? ' ' . $qNoSite : '')] + array_diff_key($base, ['q' => 1]))) ?>" data-load><?= h(t('Nur auf dieser Domain suchen')) ?></a>
+                    <a href="<?= h(smUrl(['q' => 'site:' . $dom . ($qNoSite !== '' ? ' ' . $qNoSite : ''), 't' => 'images'])) ?>" data-load><?= h(t('Bilder dieser Domain')) ?></a>
 <?php endif; ?>
 <?php if ($me): ?>
                     <a href="<?= h(smUrl(['a' => 'read', 'u' => $r['url']])) ?>" class="resmenu__read"><?= h(t('Ohne Werbung lesen')) ?></a>
+                    <a href="<?= h(smToolUrl('down', ['url' => $full])) ?>"><?= h(t('Erreichbar? Seite prüfen')) ?></a>
 <?php endif; ?>
 <?php if ($direct): ?>
                     <a href="https://web.archive.org/web/2/<?= h($r['url']) ?>" rel="noopener noreferrer" target="_blank"><?= h(t('Archiv: web.archive.org')) ?></a>
