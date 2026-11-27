@@ -1777,4 +1777,10 @@ return [
     'Pro Konto (laufender Monat)' => 'Per account (current month)',
     'Verlauf nach Kalendermonat (Requests)' => 'History by calendar month (requests)',
     'Noch keine Requests.' => 'No requests yet.',
+    'Sekunden pro Bild' => 'Seconds per image',
+    'Diashow starten (Taste S)' => 'Start slideshow (key S)',
+    'Diashow anhalten (Taste S)' => 'Stop slideshow (key S)',
+    'Diashow in der Bildvorschau starten und anhalten' => 'Start and stop the slideshow in the image preview',
+    'Suchst du hier angemeldet über Brave, brauchst du nichts davon: Bild antippen, dann oben den Vollbild-Knopf (oder Taste F). Daneben startest du die Diashow und wählst, wie viele Sekunden jedes Bild bleibt.' => 'If you are signed in and search with Brave here, you need none of this: tap an image, then the full-screen button at the top (or key F). Next to it you start the slideshow and choose how many seconds each image stays.',
+    'Blättern: wischen, Pfeiltasten oder links/rechts ins Bild tippen. ⛶ oder Taste F: Vollbild. ▶ oder Taste S: Diashow starten und anhalten, daneben die Sekunden pro Bild (nach dem letzten Bild geht es von vorne los). ↗: Bild in Originalgröße öffnen. ×, Esc oder nach unten wischen: schließen.' => 'Browse: swipe, arrow keys or tap the left/right side of the image. ⛶ or key F: full screen. ▶ or key S: start and stop the slideshow, next to it the seconds per image (after the last image it starts over). ↗: open the image in original size. ×, Esc or swipe down: close.',
 ];

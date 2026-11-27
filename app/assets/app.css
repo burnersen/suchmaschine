@@ -1268,3 +1268,13 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .plan__acts { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .usage .plan { margin: 0 0 18px; }
 
+/* ---------- 3.3: Diashow in der Bildvorschau ---------- */
+.lightbox__play .ico-pause, .lightbox.is-playing .lightbox__play .ico-play { display: none; }
+.lightbox.is-playing .lightbox__play .ico-pause { display: block; }
+.lightbox.is-playing .lightbox__play { color: var(--accent); }
+.lightbox__secs { display: inline-flex; align-items: center; }
+.lightbox__secs select { height: 40px; padding: 0 6px; border-radius: 999px; border: 0; font-size: 14px; background: rgb(0 0 0 / .45); color: #fff; cursor: pointer; }
+.lightbox:not(.is-full) .lightbox__secs select { background: var(--bg-2); color: var(--text); border: 1px solid var(--line); }
+.lightbox.is-full .lightbox__secs { transition: opacity .35s; }
+.lightbox.is-full.is-idle .lightbox__secs { opacity: 0; }
+

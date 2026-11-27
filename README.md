@@ -87,7 +87,7 @@ Die Keys trägst du nach der Installation unter **Verwaltung → Suchdienste** e
 - **Ersatz-Suchmaschine nach Wahl**, sofort und ohne Zwischenstopp, wenn Brave nicht kann, und immer für Gäste.
 - **Seitenweise oder endlos scrollen**, für jedes Konto einstellbar.
 - **Zeitraum-Filter** (letzte Stunde, 24 Stunden, Woche, Monat, Jahr oder **von/bis**), **Sprache und Region** pro Suche, **Wortgenau**, **Rechtschreibkorrektur** mit „Stattdessen suchen nach …“ und „Meintest du …?“, **„Auf gut Glück“**.
-- **Bildvorschau** im Großformat mit Pfeiltasten und Wischen zum Blättern, dazu ein **echter Vollbild-Modus** (Knopf oder Taste `F`) für Fernseher und große Bildschirme: randlos auf Schwarz, Bedienelemente blenden sich aus. Das Bild kommt dabei in **voller Auflösung über den eigenen Server**, ohne die strengen Sicherheitsregeln aufzuweichen und ohne Suche bei Brave. Für fremde Bildersuchen gibt es das Lesezeichen **„Bilder groß“**.
+- **Bildvorschau** im Großformat mit Pfeiltasten und Wischen zum Blättern, dazu ein **echter Vollbild-Modus** (Knopf oder Taste `F`) und eine **Diashow** (Knopf oder Taste `S`, Sekunden pro Bild wählbar, nach dem letzten Bild wieder von vorne) für Fernseher und große Bildschirme: randlos auf Schwarz, Bedienelemente blenden sich aus. Das Bild kommt dabei in **voller Auflösung über den eigenen Server**, ohne die strengen Sicherheitsregeln aufzuweichen und ohne Suche bei Brave. Für fremde Bildersuchen gibt es das Lesezeichen **„Bilder groß“**.
 - **Dateityp-Filter** (PDF, DOCX, XLSX, PPTX, TXT, EPUB, CSV, ODT und mehr, oder jede andere Endung zum Eintippen). Bleibt beim Blättern und Endlos-Scrollen erhalten.
 - **Hilfeseite** mit allen Suchoperatoren, die Brave kennt (`site:`, `filetype:`, `intitle:`, `"…"`, `OR`, `NOT`, `-` …), mit Beispielen zum Anklicken und der Übersicht über die eigenen Bangs, Linsen und Domain-Listen.
 - **Vorschläge beim Tippen:** aus den eigenen letzten Suchen (bleiben nur im Browser) und, wenn eingerichtet, von Brave.
@@ -121,7 +121,7 @@ Drei freiwillige Zusätze, jeder mit eigenem Brave-Plan, eigenem Key, eigenem Mo
 
 Bei Brave zeigt die Bildvorschau jedes Bild in voller Auflösung und im Vollbild. Für die Bildersuche anderer Suchmaschinen gibt es das Lesezeichen **„Bilder groß“** (Hilfe → Bilder groß):
 
-- Auf der fremden Bilderseite antippen: Es sammelt die Bilder in der größten Fassung, die die Seite verrät, und zeigt sie **randlos auf Schwarz**. Wischen oder Pfeiltasten blättern, `F` schaltet Vollbild, `Esc` oder nach unten wischen schließt.
+- Auf der fremden Bilderseite antippen: Es sammelt die Bilder in der größten Fassung, die die Seite verrät, und zeigt sie **randlos auf Schwarz**. Wischen oder Pfeiltasten blättern, `F` schaltet Vollbild, `S` startet und stoppt die Diashow (Sekunden pro Bild wählbar), `Esc` oder nach unten wischen schließt.
 - Am Rechner den Knopf in die Lesezeichenleiste ziehen. Auf iPad und iPhone irgendeine Seite als Lesezeichen sichern, das Lesezeichen bearbeiten und die Adresse durch den kopierten Code ersetzen.
 - Am besten klappt es mit der **Bildersuche von Bing**, dort stehen die Originale direkt in der Seite. Bei anderen Suchmaschinen kommen je nach Seite die größten Vorschauen.
 - Das Lesezeichen läuft nur in deinem Browser und schickt nichts an den Server oder sonst wohin.
@@ -332,6 +332,7 @@ Auf der Ergebnisseite, sobald kein Eingabefeld aktiv ist:
 | `←` `→` | vorige/nächste Ergebnisseite, in der Bildvorschau blättern |
 | `/` | Suchfeld fokussieren und markieren |
 | `F` | Bildvorschau im Vollbild |
+| `S` | Diashow in der Bildvorschau starten und anhalten |
 | `?` | Übersicht aller Kürzel (deutsche Tastatur: `Shift` + `ß`) |
 | `Esc` | Übersicht, Menüs, Bildvorschau, Vollbild schließen |
 

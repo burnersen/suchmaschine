@@ -141,6 +141,7 @@ $flash = smFlash();
             <div><dt><kbd>Strg</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></dt><dd><?= h(t('im neuen Tab öffnen')) ?></dd></div>
             <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd><?= h(t('Seite zurück/weiter, in der Bildvorschau blättern')) ?></dd></div>
             <div><dt><kbd>F</kbd></dt><dd><?= h(t('Bildvorschau im Vollbild')) ?></dd></div>
+            <div><dt><kbd>S</kbd></dt><dd><?= h(t('Diashow in der Bildvorschau starten und anhalten')) ?></dd></div>
             <div><dt><kbd>?</kbd></dt><dd><?= h(t('diese Übersicht')) ?></dd></div>
             <div><dt><kbd>Esc</kbd></dt><dd><?= h(t('Übersicht, Menüs, Bildvorschau und Vollbild schließen')) ?></dd></div>
         </dl>
