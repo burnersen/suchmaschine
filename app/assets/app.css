@@ -1282,3 +1282,9 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .has-menu > .resmenu { position: absolute; top: 6px; right: 0; z-index: 2; }
 .has-menu > .news__link, .has-menu > .video__link { padding-right: 34px; }
 .serp-wait--warm { display: flex !important; }
+/* Menü ⋮ gut erkennbar, vor allem am Handy: runder Knopf mit Fläche, volle Farbe, größere Punkte */
+.resmenu__btn { width: 34px; height: 34px; border-radius: 50%; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--line-2); }
+.resmenu__btn svg { width: 20px; height: 20px; }
+.resmenu:not([open]) .resmenu__btn { opacity: 1; }
+.resmenu__btn:hover, .resmenu[open] .resmenu__btn { color: var(--accent); border-color: var(--accent); }
+@media (pointer: coarse) { .resmenu__btn { width: 40px; height: 40px; } .resmenu__btn svg { width: 22px; height: 22px; } }
