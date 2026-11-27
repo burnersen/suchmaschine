@@ -46,7 +46,6 @@ function smPageAdmin(array $me, bool $post): void
                 $pid = (string)($_POST['p'] ?? '');
                 if (!isset(smProviders()[$pid]) || trim(smProvGet($pid, 'key')) === '') { $err = t('Unbekannte Aktion.'); break; }
                 $err = smProvTest($pid, smProvGet($pid, 'key'));
-                if ($err === '' && smProvHasSync($pid)) $err = smProvSync($pid);
                 if ($err === '') { smProvOk($pid, 0); $ok = t('%s: Der API-Key funktioniert.', smProviders()[$pid]['name']); }
                 else smProvFail($pid, $err, 0);
                 break;
@@ -137,7 +136,6 @@ function smPageAdmin(array $me, bool $post): void
         smAppIconFromRaster((string)@file_get_contents(SM_DATA_DIR . '/logo.bin'));
     }
     // Guthaben und Reset-Datum bei den Diensten abgleichen, die das können (höchstens alle 6 Stunden)
-    if ($tab === 'usage' || $tab === 'providers') smProvSyncAll();
     if ($tab === 'usage') $vars['history'] = smUsageHistory(12);
     if ($tab === 'users' || $tab === 'usage') $vars['users'] = smUsers();
     smRender('admin', $vars);
@@ -191,6 +189,13 @@ function smSaveProviders(): string
 {
     $err = '';
     foreach (smProviders() as $id => $p) {
+        // Bright Data: Name der API (Zone) vor dem Key, der Test braucht ihn schon
+        foreach (['zone', 'unlocker'] as $zf) {
+            if ($id !== 'brightdata' || !isset($_POST[$zf][$id]) || !is_string($_POST[$zf][$id])) continue;
+            $z = trim($_POST[$zf][$id]);
+            if ($z === '' || preg_match('/^[A-Za-z0-9_-]{1,64}$/', $z)) smProvSet($id, $zf, $z);
+            else $err = t('%s: Der Name der Zone darf nur Buchstaben, Ziffern, _ und - enthalten.', $p['name']);
+        }
         if (!empty($_POST['keydel'][$id])) {
             smProvSet($id, 'key', '');
         } else {
@@ -201,7 +206,6 @@ function smSaveProviders(): string
                 smProvSet($id, 'key', $key);
                 smProvUnpause($id);
                 smProvOk($id, 0);
-                if (smProvHasSync($id)) smProvSync($id);
             }
         }
         if (!isset($_POST['limit'][$id])) continue;   // Dienst war nicht im Formular (noch kein Key)

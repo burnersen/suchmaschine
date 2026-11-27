@@ -62,11 +62,12 @@ $combos = $de ? [
         <h2><?= h(t('Überblick')) ?></h2>
         <div class="feat">
 <?php foreach ([
-    ['🔎', t('Mehrere Suchdienste'), t('Brave, Tavily, Exa, parallel.ai und Firecrawl. Automatisch der beste verfügbare, gezielt per Bang oder alle zusammen.')],
+    ['🔎', t('Google und Brave'), t('Echte Google-Ergebnisse über Bright Data und Brave als zweiter Dienst. Automatisch der beste verfügbare, gezielt per Bang oder beide zusammen.')],
+    ['⚽', t('Live-Infos'), t('Spielstände, Aktienkurse, Öffnungszeiten, Adresse und Bewertung von Geschäften und Googles KI-Übersicht, direkt über den Treffern.')],
     ['⚖️', t('Lastverteilung'), t('Die freien Kontingente reichen gleichmäßig über den Monat. Fällt ein Dienst aus, springt der nächste ein.')],
     ['⚡', t('Sofort-Antworten'), t('Rechner, Währungen, Einheiten, Wetter, Kalenderwoche, Würfel, Timer und mehr, ohne Guthaben zu verbrauchen.')],
     ['🧰', t('Werkzeuge'), t('Rechner, Timer, Feiertage, Passwörter, QR-Codes, Scanner, Kurzlinks und mehr.')],
-    ['🎛️', t('Filter'), t('Zeitraum, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bildfilter wie bei Google.')],
+    ['🎛️', t('Filter'), t('Zeitraum (auch letzte Stunde oder von/bis), Sprache und Region, Wortgenau, Dateityp, Linsen, Sortierung nach Datum, max. 3 Treffer pro Domain, Bilder nach Größe, Format, Farbe, Typ und Lizenz, Videos nach Länge.')],
     ['⌨️', t('Tastatur'), t('Durch alle Treffer mit J/K oder Pfeilen, Enter öffnet, ? zeigt alle Kürzel.')],
     ['🔑', t('Login-Token'), t('Einmal ?token=… aufrufen und ein Jahr angemeldet bleiben, auch als Standardsuche im Browser.')],
     ['🛡️', t('Privat'), t('Keine Werbung, kein Tracking, kein Suchverlauf auf dem Server. Alles läuft auf deinem eigenen Webspace.')],
@@ -92,10 +93,11 @@ $combos = $de ? [
         </div>
         <ul class="bullets">
             <li><?= h(t('Lastverteilung: Verbraucht ein Dienst schneller, als sein Kontingent bis zum Reset reicht, gehen Suchen schon vorher an den nächsten.')) ?></li>
-            <li><?= h(t('Gleiche Suchen kommen eine Weile aus dem Zwischenspeicher und kosten nichts (Brave bis 60 Minuten, die anderen standardmäßig 8 Stunden).')) ?></li>
+            <li><?= h(t('Gleiche Suchen kommen eine Weile aus dem Zwischenspeicher und kosten nichts (Brave bis 60 Minuten, Google standardmäßig 1 Stunde, Spielstände und Kurse höchstens 5 Minuten).')) ?></li>
             <li><?= h(t('Ist alles aufgebraucht oder gestört, leitet die Suche zum eingestellten Ausweichziel weiter (z. B. Startpage). So funktioniert sie immer.')) ?></li>
-            <li><?= h(t('Bilder und Videos liefert nur Brave. News gehen auch über Tavily, Exa und Firecrawl.')) ?></li>
-            <li><?= h(t('Liefert Tavily, gibt es oben eine kurze KI-Antwort. Liefert ein Dienst ohne Infobox, ergänzt die Suchmaschine eine Kurzinfo von Wikipedia.')) ?></li>
+            <li><?= h(t('Beide Dienste können Web, Bilder, News und Videos. Bildfarbe, Bildtyp und Lizenz kann nur Google.')) ?></li>
+            <li><?= h(t('Google liefert Infobox, Öffnungszeiten, Spielstände, Kurse und KI-Übersicht. Fehlt eine Infobox, ergänzt die Suchmaschine eine Kurzinfo von Wikipedia.')) ?></li>
+            <li><?= h(t('Google packt Links in eigene Weiterleitungen. Die löst dein Server auf, du landest direkt auf der Seite und Google erfährt nicht, was du anklickst.')) ?></li>
         </ul>
     </section>
 

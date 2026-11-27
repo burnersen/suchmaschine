@@ -63,7 +63,7 @@ function smSafeGet(string $url, array $headers, int $max, int $timeout = 15): ar
 
 /**
  * Liest eine Seite. Liefert ['ok', 'title', 'site', 'byline', 'date', 'url', 'blocks' => [['t' => h|p|li|oli|quote|img|pre, …]], 'kind' => recipe|article, 'why']
- * $html: schon geholtes HTML (z. B. von Firecrawl), sonst holt der Server die Seite selbst.
+ * $html: schon geholtes HTML (z. B. vom Web Unlocker), sonst holt der Server die Seite selbst.
  */
 function smReadPage(string $url, ?string $html = null): array
 {

@@ -3,14 +3,14 @@
 <h1 align="center">Search engine without ads</h1>
 
 <p align="center"><b>Your own search engine. No ads, no tracking, on your own web space.</b><br>
-Results by Brave Search, Tavily, Exa, parallel.ai and Firecrawl, with load balancing and failover,<br>
+Real Google results (through Bright Data) and Brave Search, with load balancing and failover,<br>
 entirely within the free monthly quotas for normal private use.</p>
 
 <p align="center"><a href="README.md">Deutsche Version</a> · <a href="../../releases/latest">Download the latest version</a></p>
 
 <p align="center"><img src="docs/en/ergebnisse.png" alt="Results page with top stories and overview panel" width="820"></p>
 
-> 🚀 **New: version 2.0, the big tools upgrade.** 47 tools with QR studio, scanner (scan a barcode and search right away), password generator, short links with statistics, encrypted text snippets, network and developer tools. [Everything that is new](#new-in-20-the-big-tools-upgrade)
+> 🚀 **New: version 2.2, Google results.** Real Google results for web, images, news and videos through Bright Data, 5,000 requests a month free. Plus live info (scores, stock prices, opening hours, AI overview) and Google’s filters. [Everything that is new](#new-in-22-google-results-through-bright-data)
 
 Upload `suchmaschine-install.php`, open it in the browser, create your account, paste one or more API keys. That is the whole installation.
 
@@ -47,36 +47,27 @@ The server runs PHP and SQLite, the browser plain JavaScript and CSS. No framewo
 
 ## What does it cost?
 
-Nothing for normal private use. The search engine can use five search APIs, each with its own free monthly quota. One is enough, several together give a big buffer:
+Nothing for normal private use. The search engine can use two search APIs, each with its own free monthly quota. One is enough, both together give a big buffer:
 
 | Service | Free per month | Counted in | Default limit | Can do |
 |---|---|---|---|---|
+| [Bright Data](https://brightdata.com) (Google) | **5,000 requests**, reset on the 1st | requests | 4,950 | web, images, news, videos, info box with opening hours, scores, stock prices, AI overview, all Google filters |
 | [Brave Search](https://brave.com/search/api/) | $5 credit, about **1,000 searches** | searches | 950 | web, images, news, videos, info box |
-| [Tavily](https://tavily.com) | **1,000 credits** (basic search = 1 credit) | credits | 950 | web, news, quick answer |
-| [Exa](https://exa.ai) | **$10 credit** | cents (real cost from every answer) | 950 | web, news |
-| [parallel.ai](https://parallel.ai) | up to **5,000 requests** (card on file) | requests | 4,950 | web |
-| [Firecrawl](https://firecrawl.dev) | **1,000 credits** on the free plan | credits (reported per search) | 950 | web, news |
 
 - Each service gets its **own limit** in the admin page. The default is always the free quota **minus 50 as a buffer**. When a limit is reached, the next service takes over automatically.
-- **Reset date:** Brave and Firecrawl report when their quota restarts, the search engine takes it over automatically. Firecrawl and Tavily also report their remaining credits and the counter follows them. For Exa and parallel.ai you enter a **reference date** (the day of the month the quota restarts, without one the first of the month applies).
-- **Usage according to dashboard:** for services that do not report their usage, enter in the admin page what the dashboard currently shows as used, any time. The counter is set to exactly that value and keeps counting from there, handy too when you add a key in the middle of the month.
-- Switch off **automatic top-up** at every provider and set a spending limit of 0 where possible. Then nothing can be charged.
-- A **cache** makes reloading, the back button and paging free: up to 60 minutes for Brave (more is not allowed by Brave's terms), 8 hours by default for the others.
+- **Reset date:** Brave reports when its quota restarts, the search engine takes it over automatically. For Bright Data it is the first of the month (the default).
+- **Usage according to dashboard:** enter in the admin page what the dashboard currently shows as used, any time. The counter is set to exactly that value and keeps counting from there.
+- **Don’t add a card** or switch off automatic top-up. Bright Data’s plan is “pay as you go” ($1.50 per 1,000 requests beyond the free quota): without a card nothing can be charged, and the limit in the search engine stops earlier anyway.
+- A **cache** makes reloading, the back button and paging free: up to 60 minutes for Brave (more is not allowed by Brave's terms), 1 hour by default for Google (scores and stock prices at most 5 minutes).
 - **Instant answers** (calculator, currencies, weather …), **bangs** and **tools** cost nothing at all, because they do not ask a search service.
 
 ## Setting up search services (getting API keys)
 
 Enter the keys after installation under **Admin → Search services**. Every key is checked with a test search first. Services without a key do not show up anywhere. Keys **never** belong in code or Git, they only live in your database in `data/`.
 
+**Bright Data (Google):** sign up at [brightdata.com](https://brightdata.com) (**don’t add a card**). Under **"Web Access" → "Add API"** choose **"SERP API"**, give it a **name** (e.g. `serp_api1`, cannot be changed later), set **data format "Full JSON"**, leave the **advanced settings off** and tap **"Add API"**. Then enter that name as the **zone** together with the **API key** (looks like `1a2b3c4d-…`) under *Admin → Search services*. Optional for reader mode: add a **"Web Unlocker API"** and enter its name as the **Web Unlocker zone**.
+
 **Brave Search:** sign up at [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com), choose the **"Search"** plan (a card is required against abuse, billing works with credit, no subscription), **keep automatic top-up off**, create a key under **"API Keys"** (starts with `BSA`).
-
-**Tavily:** sign in at [app.tavily.com](https://app.tavily.com). The free "Researcher" plan has 1,000 credits a month without a card. Copy the key from the dashboard (starts with `tvly-`). Keep pay-as-you-go off.
-
-**Exa:** sign in at [dashboard.exa.ai](https://dashboard.exa.ai), create a key under **"API Keys"**. The monthly free credit ($10) works for all endpoints. Do not set up automatic top-up. The search engine counts Exa **in cents**, from the real cost Exa sends with every answer.
-
-**parallel.ai:** sign in at [platform.parallel.ai](https://platform.parallel.ai). The monthly free credit requires a card on file: under "Billing" turn **auto-reload off** and set a **spend limit**. Create a key under **"API Keys"**.
-
-**Firecrawl:** sign in at [firecrawl.dev](https://www.firecrawl.dev), the free plan has 1,000 credits. Copy the key from **"API Keys"** (starts with `fc-`). Reset date and remaining credits come straight from Firecrawl, no reference date needed.
 
 In the admin page you also set the **order** (who is asked first), switch **load balancing** on or off, pick the services for **"All together"** and the **fallback target** for emergencies.
 
@@ -107,6 +98,16 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Bangs** like `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r` jump straight to another site's search. They are handled before Brave is asked and **cost no credit**. `!i`, `!n` and `!v` switch to images, news and videos. **Over 10,800 bangs** from [Kagi’s open list](https://github.com/kagisearch/bangs) (MIT) are built in, plus German extras. Typing `!` (or the `!` button) suggests bangs and shows where they lead. Under *Settings → Bangs* you can search, edit and delete any bang and restore the defaults; admins can do this for everyone. The list updates itself weekly and targets are checked for reachability, without using searches. Works from the browser's address bar too.
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
+
+## New in 2.2: Google results through Bright Data
+
+- **Real Google results** for web, images, news and videos through [Bright Data](https://brightdata.com)’s SERP API. 5,000 requests a month free, more than 160 searches a day. Google comes first, Brave steps in when Google is used up or down. The order can be changed in the admin page. Pick one with `!bd` or `!brave`, both with `!multi`.
+- **Live info above the results:** scores (e.g. “bayern vs dortmund”), stock and index prices (“dax”), **opening hours**, address, phone and rating of businesses in the info box, and **Google’s AI overview** with sources (can be turned off). Scores and prices are cached for at most 5 minutes.
+- **Filters like Google:** time with **past hour** and **from/to**, **language and region** per search, **verbatim**, images by **colour** (including single colours), **type** (photo, clip art, line drawing, GIF, face) and **licence** (Creative Commons), size and format now applied by Google, **videos by length**. What Brave can’t do itself (past hour, video length) is filtered afterwards.
+- **Related searches** below the results.
+- **Private as before:** Google wraps links in its own redirects, your server resolves them. Google’s thumbnails are loaded through your server. Google only ever sees your server, never your visitors.
+- **Reader mode:** “Try via Bright Data” instead of Firecrawl (optional, with a Web Unlocker zone).
+- **Cleaned up:** Tavily, Exa, parallel.ai and Firecrawl are gone. On update their keys and settings are removed, Google is moved to first place, usage history stays.
 
 ## New in 2.0: the big tools upgrade
 
@@ -171,11 +172,11 @@ Some paid search engine are known for a few ideas that are available here for ev
 
 - **Appearance** (Settings → Appearance, per account, with an installation default): 17 light and dark designs, including muted ones (Paper, Mist, Sage, Slate, Dusk), the colour mixer from “Kaufen” with sliders, colour code, live preview, contrast warning and automatic matching, five built-in fonts served from your own server (Atkinson Hyperlegible, Lexend, Source Sans 3, Inter, Literata, all SIL OFL, nothing from Google), sizes, line spacing, spacing and list width.
 - **Endless or paged for all tabs.** **Loading with resistance:** plain scrolling loads nothing; only after reaching the bottom and deliberately pulling on (a clear swipe on phones, several wheel notches) do more results load. **Images:** 200 per request, paging is free afterwards.
-- **News:** Brave fetches 50 at once, older news comes from Exa with an exact date range (or Firecrawl/Tavily). No empty sections.
+- **News:** Brave fetches 50 at once, older news comes from Google with an exact date range. No empty sections.
 
 ## Reader mode and PDF
 
-“Read without ads” in the **⋮** menu of every result (accounts only): your server fetches the page and keeps only the content. Recipes are detected from their structured data (ingredients, steps, image), switchable to the whole article. Optional Firecrawl fallback (1 credit). **Save as PDF** in the browser with live preview, font, size, line spacing, 1 or 2 columns, margins and selectable images, or **Print**.
+“Read without ads” in the **⋮** menu of every result (accounts only): your server fetches the page and keeps only the content. Recipes are detected from their structured data (ingredients, steps, image), switchable to the whole article. Optional fallback through Bright Data’s Web Unlocker (1 request). **Save as PDF** in the browser with live preview, font, size, line spacing, 1 or 2 columns, margins and selectable images, or **Print**.
 
 **Please use it fairly:** for private reading and archiving only. Accounts only, at most 60 pages per hour, nothing is stored on the server, paywalls are not bypassed, and source, date and “for private use only” appear in the view and on every PDF page. Rights remain with the original sites.
 
@@ -188,6 +189,8 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Bangs without flashing:** the redirect page is empty and uses the page colours; a "Continue" button only appears after 2 seconds if the target hangs.
 
 ## New in 1.2
+
+*Since 2.2 only Google (through Bright Data) and Brave are left. Tavily, Exa, parallel.ai and Firecrawl are gone, everything else here still applies.*
 
 **Several search services, load balancing, failover**
 - **Automatic:** the first service in your order that still has credit and works. Above every result list you see who delivered and why another one was skipped.
@@ -225,7 +228,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 ## Requirements
 
 - Web space with **PHP 8.0 or newer** and the extensions `pdo_sqlite` and `curl`.
-- Outgoing connections allowed: to the search APIs (`api.search.brave.com`, `api.tavily.com`, `api.exa.ai`, `api.parallel.ai`, `api.firecrawl.dev`), for instant answers to `api.frankfurter.dev`, `geocoding-api.open-meteo.com`, `api.brightsky.dev`, `api.open-meteo.com`, `wttr.in`, `*.wikipedia.org`, and for updates to `github.com`.
+- Outgoing connections allowed: to the search APIs (`api.brightdata.com`, `api.search.brave.com`), to `www.google.com` (resolving redirect links) and `*.gstatic.com` (Google’s thumbnails), for instant answers to `api.frankfurter.dev`, `geocoding-api.open-meteo.com`, `api.brightsky.dev`, `api.open-meteo.com`, `wttr.in`, `*.wikipedia.org`, and for updates to `github.com`.
 - The `openssl` extension for the encrypted backup and the encrypted login tokens (almost always available).
 - **HTTPS.**
 - **Apache** (or LiteSpeed) blocks the internal folders by itself via `.htaccess`. **nginx** needs two lines in the configuration, see below.
@@ -236,7 +239,7 @@ Some paid search engine are known for a few ideas that are available here for ev
 1. **Get API keys**, see [Setting up search services](#setting-up-search-services-getting-api-keys). One is enough to start.
 2. Download **`suchmaschine-install.php`** from the [latest release](../../releases/latest) and copy it to a folder on your web space.
 3. Open it in the browser **right away** and click **"Install now"**. It unpacks the program, deletes itself and redirects.
-4. **Create your account** right afterwards and optionally **paste the Brave key**. The key is checked with a test search. This account is the administrator. Add more services under *Admin → Search services*.
+4. **Create your account** right afterwards and optionally **paste the Brave key**. The key is checked with a test search. This account is the administrator. Add Google through Bright Data (5,000 requests a month free) under *Admin → Search services*.
 5. **Test:** in Admin → *Update → Data protection* click "Check now". It must say "All tight".
 
 On **Plesk** hosts (e.g. Netcup), nginx in front of Apache may serve files directly and skip `.htaccess`. Open the domain's **"Apache & nginx Settings"** and turn off **"Serve static files directly by nginx"** / **"Smart static files processing"**.
@@ -272,7 +275,7 @@ For 1.2 the search engine was reviewed from an attacker's point of view and hard
 
 ## Disclaimer
 
-Free hobby software, provided **as is, without any warranty**. Use at your own risk. Whoever runs it is responsible for the server, its updates and backups, and for complying with the providers' terms. This project is not affiliated with Brave Software, Tavily, Exa, Parallel Web Systems or Firecrawl.
+Free hobby software, provided **as is, without any warranty**. Use at your own risk. Whoever runs it is responsible for the server, its updates and backups, and for complying with the providers' terms. This project is not affiliated with Brave Software, Bright Data or Google.
 
 ## License
 

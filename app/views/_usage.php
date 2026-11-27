@@ -39,7 +39,7 @@ $all = array_keys(smProviders());
     </section>
 <?php endforeach; ?>
     </div>
-    <p class="muted small"><?= h(t('Gezählt werden nur echte Anfragen an die Dienste. Treffer aus dem Zwischenspeicher, Bangs und Sofort-Antworten sind kostenlos. Exa wird in Cent nach den gemeldeten Kosten gezählt. Den genauen Stand zeigen die Dashboards der Dienste.')) ?></p>
+    <p class="muted small"><?= h(t('Gezählt werden nur echte Anfragen an die Dienste. Treffer aus dem Zwischenspeicher, Bangs und Sofort-Antworten sind kostenlos. Den genauen Stand zeigen die Dashboards der Dienste.')) ?></p>
 
 <?php if ($ids && $users): ?>
     <section class="panel">

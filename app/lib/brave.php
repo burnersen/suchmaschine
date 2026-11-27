@@ -45,10 +45,10 @@ function smSearchLangs(): array
     return $l;
 }
 
-/** Zeitraum-Filter: Wert für Brave => Bezeichnung */
+/** Zeitraum-Filter: Wert in der Adresse => Bezeichnung (ph = letzte Stunde kann nur Google, Brave nimmt dann den letzten Tag) */
 function smFreshness(): array
 {
-    return ['' => t('Beliebige Zeit'), 'pd' => t('Letzte 24 Stunden'), 'pw' => t('Letzte Woche'), 'pm' => t('Letzter Monat'), 'py' => t('Letztes Jahr')];
+    return ['' => t('Beliebige Zeit'), 'ph' => t('Letzte Stunde'), 'pd' => t('Letzte 24 Stunden'), 'pw' => t('Letzte Woche'), 'pm' => t('Letzter Monat'), 'py' => t('Letztes Jahr')];
 }
 
 /** Prüft einen Brave-Key mit einer echten Suche. Liefert Fehlertext oder ''. */

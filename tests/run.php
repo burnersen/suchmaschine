@@ -216,17 +216,81 @@ smQ("DELETE FROM bang_check");
 same('Nicht erreichbar: leer, wenn alles antwortet', [], smBangSearch('', null, 'mine', 'dead', 300)['rows']);
 
 /* ---------- Reihenfolge der Suchdienste ---------- */
-foreach (['brave' => 'BSAtest', 'tavily' => 'tvly-test', 'exa' => 'exa-test'] as $pid => $pk) smProvSet($pid, 'key', $pk);
-smSetSetting('prov_order', 'exa,tavily,brave');
+smProvSet('brave', 'key', 'BSAtest');
+smProvSet('brightdata', 'key', '00000000-0000-0000-0000-000000000000');
+same('Google ohne Zone ist nicht aktiv', false, smProvActive('brightdata'));
+smProvSet('brightdata', 'zone', 'serp_api1');
+same('Google mit Key und Zone ist aktiv', true, smProvActive('brightdata'));
+smSetSetting('prov_order', 'brightdata,brave');
 smSetSetting('balance', '1');
-same('Reihenfolge: Websuche fragt zuerst den obersten Dienst', ['exa', 'tavily', 'brave'], smProvPick('web', 0, null, 1)[0]);
-same('Reihenfolge: Bilder nur bei Diensten, die Bilder können', ['brave'], smProvPick('images', 0, null, 1)[0]);
-smUsageAdd('exa', 'web', 0, 20);
-same('Lastverteilung: ein paar Suchen am Anfang ändern die Reihenfolge nicht', 'exa', smProvPick('web', 0, null, 1)[0][0] ?? null);
-smSetSetting('prov_order', 'tavily,exa,brave');
-same('Reihenfolge: Umsortieren wirkt sofort', 'tavily', smProvPick('web', 0, null, 1)[0][0] ?? null);
-foreach (['brave', 'tavily', 'exa'] as $pid) smProvSet($pid, 'key', '');
+same('Reihenfolge: Websuche fragt zuerst den obersten Dienst', ['brightdata', 'brave'], smProvPick('web', 0, null, 1)[0]);
+same('Reihenfolge: Bilder können beide', ['brightdata', 'brave'], smProvPick('images', 0, null, 1)[0]);
+same('Nur-Google-Filter: Brave wird übersprungen', ['brightdata'], smProvPick('images', 0, null, 1, 0, true)[0]);
+smUsageAdd('brightdata', 'web', 0, 20);
+same('Lastverteilung: ein paar Suchen am Anfang ändern die Reihenfolge nicht', 'brightdata', smProvPick('web', 0, null, 1)[0][0] ?? null);
+smSetSetting('prov_order', 'brave,brightdata');
+same('Reihenfolge: Umsortieren wirkt sofort', 'brave', smProvPick('web', 0, null, 1)[0][0] ?? null);
+same('Unbekannte alte Dienste fallen aus der Reihenfolge', ['brightdata', 'brave'], (function () { smSetSetting('prov_order', 'tavily,brightdata,exa'); return smProvOrder(); })());
+foreach (['brave', 'brightdata'] as $pid) smProvSet($pid, 'key', '');
+smProvSet('brightdata', 'zone', '');
 
+/* ---------- Google über Bright Data ---------- */
+$gp = smSearchParams('images', 'katze NOT site:pinterest.com lang:de', ['page' => 1, 'country' => 'DE', 'search_lang' => 'de', 'safesearch' => 'strict',
+    'freshness' => 'pw', 'io' => 'land', 'is' => 'large', 'ic' => 'red', 'it' => 'photo', 'il' => 'cl']);
+parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
+same('Google: Suchbegriff mit Minus statt NOT, ohne lang:', 'katze -site:pinterest.com', $gq['q'] ?? null);
+same('Google: Sprache aus lang:', 'lang_de', $gq['lr'] ?? null);
+same('Google: Bildersuche', 'isch', $gq['tbm'] ?? null);
+same('Google: Filter in tbs', 'qdr:w,isz:l,iar:w,ic:specific,isc:red,itp:photo,il:cl', $gq['tbs'] ?? null);
+same('Google: SafeSearch streng', 'active', $gq['safe'] ?? null);
+same('Google: Region', 'de', $gq['gl'] ?? null);
+$gp = smSearchParams('web', 'test', ['page' => 3, 'from' => '2024-03-01', 'to' => '2024-06-30', 'verb' => true, 'lr' => 'en-gb']);
+parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
+same('Google: eigener Zeitraum und Wortgenau', 'cdr:1,cd_min:3/1/2024,cd_max:6/30/2024,li:1', $gq['tbs'] ?? null);
+same('Google: Seite 3 beginnt bei 20', '20', $gq['start'] ?? null);
+same('Google: Sprache ausdrücklich gewählt', 'lang_en', $gq['lr'] ?? null);
+$gp = smSearchParams('videos', 'x', ['vdur' => 'l', 'freshness' => 'ph']);
+parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
+same('Google: letzte Stunde und lange Videos', 'qdr:h,dur:l', $gq['tbs'] ?? null);
+check('Google: Datum „vor 3 Stunden“', abs(smBdTime('vor 3 Stunden') - (time() - 10800)) < 5);
+check('Google: Datum „vor einem Tag“', abs(smBdTime('vor einem Tag') - (time() - 86400)) < 5);
+check('Google: Datum „2 days ago“', abs(smBdTime('2 days ago') - (time() - 172800)) < 5);
+same('Google: Datum 22.08.2026', '2026-08-22', date('Y-m-d', smBdTime('22.08.2026')));
+same('Google: Datum 22.8.26', '2026-08-22', date('Y-m-d', smBdTime('22.8.26')));
+same('Google: kein Datum in einem Kurs', 0, smBdTime('25.458,99'));
+same('Google: Anzeige-Adresse zerlegen', ['zeit.de', '› thema › angela-merkel'], smBdDisplayHost('https://www.zeit.de › thema › angela-merkel'));
+same('Google: Weiterleitung erkannt', true, smBdIsRedirect('https://www.google.com/goto?url=CAESabc'));
+same('Google: /url?q= direkt ausgepackt', 'https://example.org/a', smBdUnwrap('https://www.google.de/url?q=https://example.org/a&sa=U'));
+same('Google: fremde Bilder nur über den eigenen Server', '', smBdImg('https://evil.example/x.png'));
+check('Google: Vorschaubild von gstatic über den eigenen Server', strpos(smBdImg('https://encrypted-tbn0.gstatic.com/images?q=tbn:x'), 'a=img') !== false);
+same('Google: eingebettetes Vorschaubild bleibt', 'data:image/png;base64,iVBORw0KGgo=', smBdImg('data:image/png;base64,iVBORw0KGgo='));
+same('Google: kaputtes eingebettetes Bild fällt weg', '', smBdImg('data:image/svg+xml;base64,PHN2Zz4='));
+same('Kurs passt nicht zur Suche: weggelassen', null, smBdStock(['title' => 'Dell Technologies Inc', 'symbol' => 'DELL', 'price' => '297,06'], 'apple aktie'));
+$stk = smBdStock(['title' => 'DAX Performance Index', 'symbol' => 'DAX', 'price' => '25.458,99', 'currency' => '25.458,99',
+    'price_change' => ['abs' => '0,97 %', 'rel' => '+243,47', 'period' => 'heute'], 'hoch' => '25.463,15'], 'dax aktuell');
+same('Kurs: Prozent und Punkte richtig zugeordnet', ['+243,47', '0,97 %', true, ''], [$stk['abs'] ?? null, $stk['pct'] ?? null, $stk['up'] ?? null, $stk['currency'] ?? null]);
+$sp = smBdSports(['events' => [['teams' => [['name' => 'Bayern', 'score' => '2'], ['name' => 'Dortmund', 'score' => '2']], 'status' => 'Endstand', 'date' => '31.10']]]);
+same('Spielstand gelesen', ['Bayern', '2', 'Dortmund', 'Endstand'], [$sp['events'][0]['teams'][0]['name'] ?? null, $sp['events'][0]['teams'][0]['score'] ?? null, $sp['events'][0]['teams'][1]['name'] ?? null, $sp['events'][0]['status'] ?? null]);
+[$ans, $alinks] = smBdAnswer(['texts' => [['type' => 'paragraph', 'snippet' => 'Der Eiffelturm ist [Beginn der Markierung] 330 Meter [Ende der Markierung] hoch. +1', 'links' => [['link' => 'https://www.toureiffel.paris/de']]],
+    ['type' => 'paragraph', 'snippet' => 'Von Google lizenziertTeilenDownload'], ['type' => 'list', 'list' => [['type' => 'paragraph', 'snippet' => 'Erster Punkt']]]]]);
+same('KI-Übersicht: Markierungen und Ballast entfernt', "Der Eiffelturm ist 330 Meter hoch.\n• Erster Punkt", $ans);
+same('KI-Übersicht: Quelle', 'https://www.toureiffel.paris/de', $alinks[0]['url'] ?? null);
+putenv('SM_BD_GOTO_BASE=http://127.0.0.1:1/');   // keine echten Abrufe bei Google in den Tests
+$web = smBdNormalize(smSearchParams('web', 'merkel', ['page' => 1]), ['general' => ['query' => 'merkel', 'detected_query' => 'merkel'], 'organic' => [
+    ['link' => 'https://de.wikipedia.org/wiki/Angela_Merkel', 'display_link' => 'https://de.wikipedia.org › wiki › Angela_Merkel', 'source' => 'Wikipedia', 'title' => 'Angela Merkel',
+     'description' => 'Angela Merkel ist eine Politikerin', 'snippet_highlighted_words' => ['Angela Merkel'], 'extensions' => [['type' => 'text', 'text' => '26.10.2026']]],
+    ['link' => 'https://www.google.com/goto?url=CAESxyz', 'display_link' => 'https://www.zeit.de › thema', 'title' => 'Zeit', 'description' => 'Text'],
+], 'knowledge' => ['name' => 'IKEA Hamburg-Altona', 'summary' => 'Möbelgeschäft', 'rating' => 4.1, 'reviews_cnt' => 13298,
+    'facts' => [['key' => 'Öffnungszeiten', 'value' => [['text' => 'Geöffnet'], ['text' => 'Schließt um 19:00']]]]],
+  'pagination' => ['next_page_start' => 10], 'related' => [['text' => 'merkel heute']]]);
+putenv('SM_BD_GOTO_BASE');
+same('Google: Treffer mit Hervorhebung, ohne HTML', '<strong>Angela Merkel</strong> ist eine Politikerin', $web['results'][0]['desc'] ?? null);
+same('Google: Datum aus den Zusatzangaben', '26.10.2026', $web['results'][0]['age'] ?? null);
+same('Google: nicht aufgelöste Weiterleitung geht über den eigenen Server', true, strpos($web['results'][1]['url'] ?? '', 'a=go') !== false);
+same('Google: Domain trotzdem aus der Anzeige-Adresse', 'zeit.de', $web['results'][1]['host'] ?? null);
+same('Google: Öffnungszeiten in der Infobox', ['Öffnungszeiten', 'Geöffnet · Schließt um 19:00'], $web['infobox']['attrs'][1] ?? null);
+same('Google: weitere Seiten', true, $web['more'] ?? null);
+same('Google: ähnliche Suchen', ['merkel heute'], $web['related'] ?? null);
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
 same('Aussehen: Größe begrenzt', 150, $lk['fs']);
@@ -266,15 +330,16 @@ same('Installer-Format: falsche Prüfsumme wird abgelehnt', null, smPayloadParse
 same('Installer-Format: Pfad außerhalb von app/ wird abgelehnt', null, smPayloadParse($payload . "../x.php\t" . hash('sha256', 'x') . "\t" . base64_encode('x') . "\n"));
 
 /* ---------- Zähler auf den Stand laut Dashboard setzen ---------- */
-smUsageAdd('exa', 'web', 1, 10);
-$from = smProvCycle('exa')['from'];
-smProvSetUsed('exa', 4);
-same('Dashboard-Stand: niedriger als gezählt', 4.0, round(smUsageSum('exa', $from), 3));
-smUsageAdd('exa', 'web', 1, 1.5);
-same('Dashboard-Stand: zählt danach weiter', 5.5, round(smUsageSum('exa', $from), 3));
-smProvSetUsed('exa', 250);
-same('Dashboard-Stand: höher als gezählt', 250.0, round(smUsageSum('exa', $from), 3));
-same('Dashboard-Stand: eigener Verbrauch des Kontos bleibt', 11.5, round(smUsageSum('exa', $from, 1), 3));
+$from = smProvCycle('brightdata')['from'];
+$base0 = smUsageSum('brightdata', $from);
+smUsageAdd('brightdata', 'web', 1, 10);
+smProvSetUsed('brightdata', 4);
+same('Dashboard-Stand: niedriger als gezählt', 4.0, round(smUsageSum('brightdata', $from), 3));
+smUsageAdd('brightdata', 'web', 1, 1.5);
+same('Dashboard-Stand: zählt danach weiter', 5.5, round(smUsageSum('brightdata', $from), 3));
+smProvSetUsed('brightdata', 250);
+same('Dashboard-Stand: höher als gezählt', 250.0, round(smUsageSum('brightdata', $from), 3));
+same('Dashboard-Stand: eigener Verbrauch des Kontos bleibt', 11.5, round(smUsageSum('brightdata', $from, 1), 3));
 
 /* ---------- Unterschrift der Updates (Ed25519) ---------- */
 if (function_exists('sodium_crypto_sign_keypair')) {

@@ -123,7 +123,14 @@ function smServeImgProxy(): void
 {
     $u = isset($_GET['u']) && is_string($_GET['u']) ? $_GET['u'] : '';
     $s = isset($_GET['s']) && is_string($_GET['s']) ? $_GET['s'] : '';
-    if (!smImgProxyOn() || $u === '' || !hash_equals(smImgSig($u), $s)) {
+    // k=t: Vorschaubild von Googles Vorschau-Server (gstatic.com). Geht immer, auch ohne große Bilder über den Server.
+    $thumb = ($_GET['k'] ?? '') === 't';
+    if ($thumb) {
+        if (smThumbUrl($u) === '' || !hash_equals(substr(hash_hmac('sha256', 'thumb|' . $u, smImgSecret()), 0, 32), $s) || !function_exists('curl_init')) {
+            http_response_code(403);
+            exit;
+        }
+    } elseif (!smImgProxyOn() || $u === '' || !hash_equals(smImgSig($u), $s)) {
         http_response_code(403);
         exit;
     }
@@ -138,7 +145,7 @@ function smServeImgProxy(): void
     header('Cross-Origin-Resource-Policy: same-origin');
     header('Content-Type: ' . $mime);
     header('Content-Length: ' . strlen($body));
-    header('Cache-Control: private, max-age=3600');
+    header('Cache-Control: private, max-age=' . ($thumb ? 86400 : 3600));
     echo $body;
     exit;
 }

@@ -96,6 +96,8 @@ function smImageFilter(array $res, string $or, string $size, bool $byRes): array
     $list = array_values(array_filter($res['results'] ?? [], function ($im) use ($or, $size) {
         $w = (int)$im['w'];
         $h = (int)$im['h'];
+        // Google filtert schon bei der Suche und meldet keine Maße
+        if ($w <= 0 && $h <= 0 && in_array('brightdata', (array)($im['via'] ?? []), true)) return true;
         if (($or !== '' || $size !== '') && ($w <= 0 || $h <= 0)) return false;
         if ($or === 'land' && !($w > $h * 1.1)) return false;
         if ($or === 'port' && !($h > $w * 1.1)) return false;
@@ -116,6 +118,38 @@ function smImageFilter(array $res, string $or, string $size, bool $byRes): array
     }
     $res['results'] = $list;
     $res['img_hidden'] = $before - count($list);
+    return $res;
+}
+
+/** Nur Treffer aus den letzten $secs Sekunden (ohne Datum bleiben sie). Für „letzte Stunde“, das Brave nicht kann. */
+function smKeepRecent(array $res, int $secs): array
+{
+    $limit = time() - $secs - 120;
+    $keep = array_filter($res['results'] ?? [], function ($r) use ($limit) { return (int)($r['ts'] ?? 0) <= 0 || (int)$r['ts'] >= $limit; });
+    return count($keep) === count($res['results'] ?? []) ? $res : smSetWeb($res, $keep);
+}
+
+/** Videolänge in Sekunden aus „8:56“ oder „1:02:03“ */
+function smDurSecs(array $v): int
+{
+    if (!empty($v['dur_s'])) return (int)$v['dur_s'];
+    $parts = explode(':', (string)($v['duration'] ?? ''));
+    if (count($parts) < 2 || count($parts) > 3 || array_filter($parts, function ($x) { return !ctype_digit(trim($x)); })) return 0;
+    $s = 0;
+    foreach ($parts as $x) $s = $s * 60 + (int)$x;
+    return $s;
+}
+
+/** Videos nach Länge (bei Google schon in der Suche, bei Brave hier) */
+function smVideoDurFilter(array $res, string $d): array
+{
+    $def = smVideoDurations()[$d] ?? null;
+    if (!$def) return $res;
+    $res['results'] = array_values(array_filter($res['results'] ?? [], function ($v) use ($def) {
+        $s = smDurSecs($v);
+        if ($s <= 0) return in_array('brightdata', (array)($v['via'] ?? []), true);
+        return $s >= $def[1] && ($def[2] === 0 || $s < $def[2]);
+    }));
     return $res;
 }
 
