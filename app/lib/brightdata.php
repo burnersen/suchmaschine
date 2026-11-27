@@ -378,7 +378,7 @@ function smBdWeb(array $p, array $d): array
     $videos = smBdVideos((array)($d['videos'] ?? []));
     $out = [
         'results' => $web, 'news' => [], 'videos' => $videos, 'faq' => [], 'discussions' => [],
-        'infobox' => smBdInfobox((array)($d['knowledge'] ?? [])),
+        'infobox' => smBdInfobox((array)($d['knowledge'] ?? []), (string)$p['q']),
         'more' => smBdMore($d), 'altered' => smBdAltered($d),
         'answer' => '', 'answer_links' => [], 'sports' => null, 'stock' => null, 'related' => [],
         'cards' => !empty($p['html']),   // diese Antwort bringt die Karten schon mit
@@ -490,9 +490,18 @@ function smBdFixLinks(array $out): array
 
 /* ---------- Extras: Infobox, KI-Übersicht, Spielstände, Kurse ---------- */
 
-function smBdInfobox(array $k): ?array
+function smBdInfobox(array $k, string $q = ''): ?array
 {
     if (empty($k['name']) || !is_string($k['name'])) return null;
+    // Die Zerlegung erwischt manchmal den Namen eines Nachbarn („Dell“ bei „apple aktie“). Passt der Name nicht zur Suche,
+    // die Beschreibung aber schon, gilt der Anfang der Beschreibung („Apple Inc. ist …“) als Name.
+    $words = array_filter(preg_split('/[\s,.:]+/u', mb_strtolower($q)), function ($w) { return mb_strlen($w) >= 3; });
+    $hits = function (string $s) use ($words): bool { foreach ($words as $w) if (mb_strpos(mb_strtolower($s), $w) !== false) return true; return false; };
+    $desc0 = smPlain((string)($k['description'] ?? ''));
+    if ($words && !$hits($k['name']) && preg_match('/^(.{2,50}?) (ist|war|sind|is|was|are) /u', $desc0, $m) && $hits($m[1])) {
+        $k['name'] = $m[1];
+        unset($k['summary'], $k['subtitle'], $k['images']);
+    }
     $attrs = [];
     if (is_numeric($k['rating'] ?? null)) {
         $attrs[] = [t('Bewertung'), smNumF((float)$k['rating'], 1) . ' ★' . (is_numeric($k['reviews_cnt'] ?? null) ? ' (' . t('%s Rezensionen', smNum((int)$k['reviews_cnt'])) . ')' : '')];
@@ -539,7 +548,8 @@ function smBdAnswer(array $ai): array
     };
     $add = function (array $t, string $prefix) use (&$lines, &$links, $clean) {
         $s = $clean(smPlain((string)($t['snippet'] ?? $t['title'] ?? '')));
-        if ($s !== '' && mb_strlen($s) >= 3 && !preg_match('/lizenziert|TeilenDownload|^Bild zum/u', $s)) $lines[] = $prefix . $s;
+        // Ohne Ballast und ohne die Rückfrage am Ende („Möchtest du mehr über … erfahren?“)
+        if ($s !== '' && mb_strlen($s) >= 3 && !preg_match('/lizenziert|TeilenDownload|^Bild zum|^(Möchtest|Möchten Sie|Willst|Wollen Sie|Soll ich|Sollen wir|Would you like|Do you want)\b.*\?$/u', $s)) $lines[] = $prefix . $s;
         foreach ((array)($t['links'] ?? []) as $l) {
             if (is_array($l) && ($u = smLink(smBdUnwrap((string)($l['link'] ?? '')))) !== '') $links[$u] = ['url' => $u, 'title' => smPlain((string)($l['title'] ?? ''))];
         }

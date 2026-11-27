@@ -318,6 +318,36 @@ same('Google: älter als ein Jahr ohne Anfang', 'cdr:1,cd_min:,cd_max:' . date('
 parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('videos', 'x', ['freshness' => 'pw', 'older' => 1])), PHP_URL_QUERY), $gq);
 check('Google: Woche ohne den letzten Tag', strpos($gq['tbs'] ?? '', 'cdr:1,cd_min:') === 0 && strpos($gq['tbs'] ?? '', 'cd_max:' . date('n/j/Y', intdiv(time(), 3600) * 3600 - 86400)) !== false, $gq['tbs'] ?? '');
 
+/* ---------- Karten: Sport aus Googles Seite, Infobox, Proxy-Land ---------- */
+$start = gmdate('Y-m-d\TH:i:s\Z', strtotime('tomorrow 14:00'));
+$past = gmdate('Y-m-d\TH:i:s\Z', strtotime('-3 days 18:30'));
+$sportHtml = '<div><div class="ZtSsId">Hansa Rostock</div><span class="mKwiob imso-ani">12. Platz 3. Liga</span>'
+    . '<div class="box"><span class="imso-ln">3. Liga</span><span class="imso_mh__lr-dt-ds">heute 19:00</span>'
+    . '<div class="imso_mh__first-tn-ed"><img id="dimg_1" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><div class="imso_mh__tm-nm"><span aria-hidden="true">Hansa Rostock</span></div></div>'
+    . '<div class="imso_mh__second-tn-ed"><div class="imso_mh__tm-nm"><span aria-hidden="true">Havelse</span></div></div></div>'
+    . '<div data-mid="m1" data-start-time="' . $start . '"><table><tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Fortuna Köln</span></td></tr>'
+    . '<tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Hansa Rostock</span></td></tr></table></div>'
+    . '<div data-mid="m2" data-start-time="' . $past . '"><div class="imspo_mt__match-status">Endstand</div><table>'
+    . '<tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Verl</span></td><td><div class="imspo_mt__t-sc">1</div></td></tr>'
+    . '<tr><td class="tns-c imspo_mt__tt-w"><span aria-hidden="true">Hansa Rostock</span></td><td><div class="imspo_mt__t-sc">3</div><svg class="imspo_mt__triangle"></svg></td></tr></table></div></div>'
+    . "<script>(function(){var s='data:image/png;base64,iVBORw0KGgo\\x3d';var ii=['dimg_1'];})();</script>";
+$sp = smBdSportsHtml($sportHtml);
+same('Sport-Karte: Kopf', ['Hansa Rostock', '12. Platz 3. Liga'], [$sp['title'] ?? null, $sp['sub'] ?? null]);
+same('Sport-Karte: Spiel von heute', ['3. Liga', 'heute 19:00', 'Hansa Rostock', 'Havelse'], [$sp['main']['league'] ?? null, $sp['main']['when'] ?? null, $sp['main']['teams'][0]['name'] ?? null, $sp['main']['teams'][1]['name'] ?? null]);
+same('Sport-Karte: Wappen aus dem Skript', 'data:image/png;base64,iVBORw0KGgo=', $sp['main']['teams'][0]['logo'] ?? null);
+same('Sport-Karte: kommendes Spiel zuerst, mit eigener Uhrzeit', [t('morgen %s', '14:00'), 'Fortuna Köln'], [$sp['events'][0]['when'] ?? null, $sp['events'][0]['teams'][0]['name'] ?? null]);
+same('Sport-Karte: Ergebnis mit Sieger', ['Endstand', '1', '3', true], [$sp['events'][1]['status'] ?? null, $sp['events'][1]['teams'][0]['score'] ?? null, $sp['events'][1]['teams'][1]['score'] ?? null, $sp['events'][1]['teams'][1]['win'] ?? null]);
+same('Sport-Karte: fremde Seite ohne Sport', null, smBdSportsHtml('<html><body><p>nichts</p></body></html>'));
+$ib = smBdInfobox(['name' => 'Dell Technologies Inc', 'summary' => 'NYSE: DELL', 'description' => 'Apple Inc. ist ein US-amerikanischer Hersteller.'], 'apple aktie');
+same('Infobox: falscher Name wird aus der Beschreibung korrigiert', ['Apple Inc.', ''], [$ib['title'] ?? null, $ib['subtitle'] ?? null]);
+same('Infobox: passender Name bleibt', 'IKEA Kaarst', smBdInfobox(['name' => 'IKEA Kaarst', 'description' => 'Möbelhaus'], 'ikea kaarst')['title'] ?? null);
+$body = json_decode(smBdRequest(smSearchParams('web', 'x', ['country' => 'DE']), 'k')['body'], true);
+same('Bright Data: Abruf aus dem Land der Suche', 'de', $body['country'] ?? null);
+same('Bright Data: ohne Land kein Land', null, json_decode(smBdRequest(smSearchParams('web', 'x', ['country' => 'ALL']), 'k')['body'], true)['country'] ?? null);
+same('Seite 1 ohne Zeitfilter holt die Karten mit', [true, false], [smSearchParams('web', 'x', ['page' => 1])['html'], smSearchParams('web', 'x', ['page' => 1, 'freshness' => 'pd'])['html']]);
+[$ans] = smBdAnswer(['texts' => [['type' => 'paragraph', 'snippet' => 'Er ist 76 Jahre alt.'], ['type' => 'paragraph', 'snippet' => 'Möchten Sie mehr über seine Karriere erfahren?']]]);
+same('KI-Übersicht ohne Rückfrage am Ende', 'Er ist 76 Jahre alt.', $ans);
+
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
 same('Aussehen: Größe begrenzt', 150, $lk['fs']);
