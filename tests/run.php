@@ -285,6 +285,8 @@ smExSetUsed('answer', 0.62);
 same('KI-Antwort: Stand laut Dashboard gesetzt', 0.62, round(smExUsed('answer'), 4));
 smExBook('answer', 1, 0.06);
 same('KI-Antwort: zählt danach weiter', 0.68, round(smExUsed('answer'), 4));
+smExSetUsed('answer', null, 3);
+same('KI-Antwort: Requests laut Dashboard, Betrag bleibt', [3, 0.68], [smExRequests('answer'), round(smExUsed('answer'), 4)]);
 smExSetUsed('suggest', 1234);
 same('Vorschläge: Stand laut Dashboard gesetzt', 1234.0, smExUsed('suggest'));
 same('Zahl aus dem Feld: 0,62 $', 0.62, smParseAmount('0,62 $'));

@@ -247,10 +247,14 @@ function smSaveProviders(): string
         }
         if (!empty($_POST['xshown'][$xid])) smExSet($xid, 'on', empty($_POST['xon'][$xid]) ? '0' : '1');
         // Verbrauch laut Dashboard (leer = nichts ändern)
-        if (isset($_POST['xused'][$xid]) && is_string($_POST['xused'][$xid]) && trim($_POST['xused'][$xid]) !== '') {
-            $raw = smParseAmount($_POST['xused'][$xid]);
-            if ($raw === null) $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $x['name']);
-            else smExSetUsed($xid, max(0.0, min(10000000.0, $raw)));
+        $in = function (string $f) use ($xid) { return isset($_POST[$f][$xid]) && is_string($_POST[$f][$xid]) && trim($_POST[$f][$xid]) !== '' ? smParseAmount($_POST[$f][$xid]) : false; };
+        $req = $in('xreq');
+        $usd = $x['money'] ? $in('xused') : false;
+        if ($req === null || $usd === null) $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $x['name']);
+        elseif ($req !== false || $usd !== false) {
+            $req = $req === false ? null : (int)round(max(0.0, min(10000000.0, $req)));
+            // Bei Vorschlägen und Rechtschreibung zählt die Bremse in Anfragen, bei der KI-Antwort in Dollar
+            smExSetUsed($xid, $x['money'] ? ($usd === false ? null : max(0.0, min(100000.0, $usd))) : ($req === null ? null : (float)$req), $req);
         }
     }
     [$fb, $fberr] = smFallbackFromPost();
