@@ -332,10 +332,12 @@
 #print-area { display: none; }
 @media print {
     html, body { background: #fff !important; }
-    body > *:not(#print-area) { display: none !important; }
-    #print-area { display: flex !important; align-items: center; justify-content: center; min-height: 90vh; }
+    /* Nur beim Drucken aus den QR-Werkzeugen (Klasse print-area) zählt allein die Druckfläche, sonst die normale Seite */
+    body.print-area > *:not(#print-area) { display: none !important; }
+    body.print-area #print-area { display: flex !important; align-items: center; justify-content: center; min-height: 90vh; }
+    body:not(.print-area) #print-area { display: none !important; }
     #print-area svg { width: 70%; height: auto; }
-    #print-area.pages { display: block !important; min-height: 0; }
+    body.print-area #print-area.pages { display: block !important; min-height: 0; }
     #print-area.pages svg { display: block; width: auto; height: auto; break-after: page; page-break-after: always; }
     #print-area.pages svg:last-child { break-after: auto; page-break-after: auto; }
 }

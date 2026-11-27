@@ -1069,6 +1069,18 @@ html:not(.has-js) .lightbox__full { display: none; }
 @media (max-width: 760px) { .pdfpanel__box { grid-template-columns: 1fr; } .pdfpanel { place-items: start center; } }
 @media print {
     .top, .tabs, .foot, footer, .reader__bar, .reader__legal, .flash, .pdfpanel { display: none !important; }
+    /* Suchergebnisse, Sofort-Antworten und Werkzeuge: nur der Inhalt */
+    .sbox, .srcbar, .serp__notice, .resmenu, .pager, .more, .more__end, .serp-wait, .crumbs, .toolmore, .tools__foot, .warnbar,
+    .ia .btn, .ia form, .tool form, .page--tools .tool__desc, [data-print], .cards-slot:empty, .lightbox, .overlay { display: none !important; }
+    .serp, .page--tools { padding: 0 !important; max-width: none !important; }
+    .ia, .lcard, .kp, .answer { border-color: #999 !important; break-inside: avoid; box-shadow: none !important; }
+    a { color: #000 !important; text-decoration: none !important; }
+    .res { break-inside: avoid; }
+    .res__thumb, .news__img { max-width: 80px; }
+    /* Jahreskalender auf eine Seite: Monate im Raster, kleine Schrift */
+    .yearcal { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; font-size: 9pt; }
+    .yearcal__m { break-inside: avoid; }
+    @page { margin: 12mm; }
     body { background: #fff !important; color: #000 !important; zoom: 1; }
     .reader { max-width: none; margin: 0; padding: 0; }
     .reader__doc { color: #000; font-size: 12pt; }
@@ -1276,3 +1288,15 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .gteam.is-win .gteam__name { font-weight: 700; }
 .gteam__logo { width: 24px; height: 24px; object-fit: contain; flex: none; }
 .gteam__logo--txt { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-2, var(--bg-2)); color: var(--text-2); font-size: 12px; font-weight: 600; }
+
+/* Menü ⋮ auch bei News und Videos: oben rechts über dem Treffer */
+.has-menu { position: relative; }
+.has-menu > .resmenu { position: absolute; top: 6px; right: 0; z-index: 2; }
+.has-menu > .news__link, .has-menu > .video__link { padding-right: 34px; }
+.serp-wait--warm { display: flex !important; }
+/* Menü ⋮ gut erkennbar, vor allem am Handy: runder Knopf mit Fläche, volle Farbe, größere Punkte */
+.resmenu__btn { width: 34px; height: 34px; border-radius: 50%; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--line-2); }
+.resmenu__btn svg { width: 20px; height: 20px; }
+.resmenu:not([open]) .resmenu__btn { opacity: 1; }
+.resmenu__btn:hover, .resmenu[open] .resmenu__btn { color: var(--accent); border-color: var(--accent); }
+@media (pointer: coarse) { .resmenu__btn { width: 40px; height: 40px; } .resmenu__btn svg { width: 22px; height: 22px; } }

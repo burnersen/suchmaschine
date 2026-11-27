@@ -23,7 +23,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 date_default_timezone_set('Europe/Berlin');
 
-define('SM_VERSION', '2.4.0');
+define('SM_VERSION', '2.5.0');
 define('SM_ROOT', __DIR__);
 define('SM_APP', SM_ROOT . '/app');
 defined('SM_DATA_DIR') || define('SM_DATA_DIR', SM_ROOT . '/data');   // die Tests nehmen einen eigenen Ordner

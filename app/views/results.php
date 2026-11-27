@@ -137,6 +137,6 @@ require __DIR__ . '/_vars.php';
 </nav>
 
 <?php if (!empty($stream)): ?>
-<div class="serp-wait" role="status"><span class="spinner"></span> <?= h(t('Suche läuft …')) ?></div>
+<div class="serp-wait<?= !empty($warm) ? ' serp-wait--warm' : '' ?>" role="status"<?= !empty($warm) ? ' data-warm="' . h($warm) . '"' : '' ?>><span class="spinner"></span> <?= h(t('Suche läuft …')) ?></div>
 <!--SM-STREAM-->
 <?php else: require __DIR__ . '/_serp.php'; endif; ?>

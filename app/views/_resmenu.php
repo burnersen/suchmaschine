@@ -2,7 +2,10 @@
 /** Menü ⋮ an einem Treffer: nur auf dieser Domain suchen, Archiv, QR-Code; mit Konto auch Domain hoch-/herabstufen oder blockieren */
 $dom = smCleanDomain($r['host']);
 $qNoSite = trim(preg_replace('/(^|\s)-?site:\S+/i', ' ', $q));
-$acts = ['raise' => t('Hochstufen'), 'lower' => t('Herabstufen'), 'block' => t('Blockieren')]; ?>
+$acts = ['raise' => t('Hochstufen'), 'lower' => t('Herabstufen'), 'block' => t('Blockieren')];
+// Google-Weiterleitung über den eigenen Server (?a=go): kopieren und QR mit der vollen Adresse, Archive gibt es dafür nicht
+$direct = preg_match('~^https?://~i', $r['url']) === 1;
+$full = $direct ? $r['url'] : substr(smOrigin(), 0, -strlen(smBase())) . $r['url']; ?>
             <details class="resmenu">
                 <summary class="iconbtn resmenu__btn" aria-label="<?= h(t('Optionen für %s', $r['host'])) ?>" title="<?= h(t('Optionen für %s', $r['host'])) ?>"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="18.5" r="1.3"/></svg></summary>
                 <div class="resmenu__panel">
@@ -13,10 +16,12 @@ $acts = ['raise' => t('Hochstufen'), 'lower' => t('Herabstufen'), 'block' => t('
 <?php if ($me): ?>
                     <a href="<?= h(smUrl(['a' => 'read', 'u' => $r['url']])) ?>" class="resmenu__read"><?= h(t('Ohne Werbung lesen')) ?></a>
 <?php endif; ?>
+<?php if ($direct): ?>
                     <a href="https://web.archive.org/web/2/<?= h($r['url']) ?>" rel="noopener noreferrer" target="_blank"><?= h(t('Archiv: web.archive.org')) ?></a>
                     <a href="https://archive.today/newest/<?= h($r['url']) ?>" rel="noopener noreferrer" target="_blank"><?= h(t('Archiv: archive.today')) ?></a>
-                    <button type="button" data-qr="<?= h($r['url']) ?>" data-qr-src="<?= h(smUrl(['a' => 'qr', 'd' => $r['url']])) ?>"><?= h(t('Als QR-Code anzeigen')) ?></button>
-                    <button type="button" data-copy-text="<?= h($r['url']) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Adresse kopieren')) ?></button>
+<?php endif; ?>
+                    <button type="button" data-qr="<?= h($full) ?>" data-qr-src="<?= h(smUrl(['a' => 'qr', 'd' => $full])) ?>"><?= h(t('Als QR-Code anzeigen')) ?></button>
+                    <button type="button" data-copy-text="<?= h($full) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Adresse kopieren')) ?></button>
 <?php if ($me && $dom !== ''): ?>
                     <span class="resmenu__sep"></span>
 <?php foreach ($acts as $k => $label): ?>

@@ -142,6 +142,12 @@ function smPageSearch(?array $me): void
     }
 
     $uid = $me ? (int)$me['id'] : 0;
+    $optFor = function () use ($q, $ft, $lens, $lenses, $page, $fresh, $exact, $prefs, $flt): array {
+        return [smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null), ['page' => $page, 'freshness' => $fresh, 'exact' => $exact,
+            'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src'], 'older' => smTierDays($flt['xf']), 'from' => $flt['fd'], 'to' => $flt['td'],
+            'verb' => $flt['vb'] === '1', 'lr' => $flt['sl'], 'io' => $flt['io'], 'is' => $flt['is'], 'ic' => $flt['ic'], 'it' => $flt['it'], 'il' => $flt['il'],
+            'vdur' => $flt['vd'], 'iq' => $flt['iq']] + ($flt['cr'] !== '' ? ['country' => $flt['cr']] : []) + $prefs];
+    };
     // Die eigentliche Suche. Läuft bei normalen Seitenaufrufen erst, nachdem Kopf, Suchfeld und Filter schon beim Browser sind.
     $run = function () use ($me, $uid, $q, $tab, $prefs, $part, $lens, $lenses, $exact, $ft, $flt, $page, $fresh): array {
         $res = null;
@@ -232,6 +238,17 @@ function smPageSearch(?array $me): void
         return $vars + ['res' => $res, 'error' => $error, 'flt' => $flt, 'fallback_go' => $redirect];
     };
 
+    // ?warm=1: nur suchen (füllt den Zwischenspeicher), die Warteseite lädt danach sich selbst neu
+    if (($_GET['warm'] ?? '') === '1') {
+        $run();
+        smHeaders();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        $path = (string)parse_url(smBase(), PHP_URL_PATH);
+        setcookie('smsw', '1', ['expires' => time() + 60, 'path' => $path !== '' ? $path : '/', 'samesite' => 'Lax', 'secure' => smIsHttps(), 'httponly' => true]);
+        echo '{"ok":1}';
+        exit;
+    }
     if ($part) {
         // Endlos-Scrollen: nur die nächsten Treffer, ohne Seitengerüst
         $vars = $run() + $vars;
@@ -239,8 +256,23 @@ function smPageSearch(?array $me): void
         smRender('part', $vars, false);
         return;
     }
-    // Seite sofort zeigen: Kopf, Suchfeld und Filter gehen gleich raus, die Treffer folgen, sobald sie da sind.
-    // Ohne Zwischenpuffer des Servers sieht man so sofort, dass gesucht wird.
+    // Seite sofort zeigen. Mit JavaScript: erst eine kleine Warteseite (Suchfeld, Filter, „Suche läuft …“), die die Suche anstößt
+    // und sich danach neu lädt, dann aus dem Zwischenspeicher. Das klappt auch bei Webservern, die Antworten erst am Stück schicken.
+    // Liegt die Suche schon im Zwischenspeicher, kommt die fertige Seite gleich.
+    $bypass = isset($_COOKIE['smsw']);
+    if ($bypass) {
+        $path = (string)parse_url(smBase(), PHP_URL_PATH);
+        setcookie('smsw', '', ['expires' => time() - 3600, 'path' => $path !== '' ? $path : '/', 'samesite' => 'Lax', 'secure' => smIsHttps(), 'httponly' => true]);
+    }
+    if (smSetting('stream') === '1' && !$bypass && ($_COOKIE['smjs'] ?? '') === '1' && $view < 0) {
+        [$pq, $po] = $optFor();
+        if (!smSearchPeek($tab, $pq, $po)) {
+            $warm = smUrl(['warm' => '1'] + array_filter($_GET, function ($v, $k) { return is_string($v) && !in_array($k, ['warm', 'part'], true); }, ARRAY_FILTER_USE_BOTH));
+            smRender('results', $vars + ['title' => $q . ' – ' . smSiteName(), 'stream' => true, 'warm' => $warm]);
+            return;
+        }
+    }
+    // Ohne JavaScript: Kopf, Suchfeld und Filter gehen gleich raus, die Treffer folgen (wenn der Webserver nicht puffert)
     if (smSetting('stream') === '1') {
         smRenderStream('results', $vars + ['title' => $q . ' – ' . smSiteName(), 'stream' => true], $run);
         return;

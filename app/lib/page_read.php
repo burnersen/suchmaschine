@@ -9,7 +9,7 @@ defined('SM_VERSION') || exit;
 function smPageRead(array $me, bool $post): void
 {
     $u = trim((string)($_GET['u'] ?? $_POST['u'] ?? ''));
-    $u = smLink($u);
+    $u = smLink(smBdRealUrl($u));
     if ($u === '' || strlen($u) > 2000) smRedirect(smBase());
     $view = ($_GET['v'] ?? '') === 'all' ? 'all' : '';
     $k = hash('sha256', 'read|' . $me['id'] . '|' . date('YmdH'));
