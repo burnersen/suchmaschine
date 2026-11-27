@@ -1739,4 +1739,9 @@ return [
     '„Ganzer Artikel“ zeigt den Text der Seite mit allen Bildern, falls du doch mehr lesen willst.' => '“Whole article” shows the page’s text with all images, in case you want to read more.',
     'Nichts davon kostet Brave-Guthaben, dein Server holt die Seite selbst.' => 'None of this uses Brave credit, your server fetches the page itself.',
     'Mit dem Lesezeichen „Lesen & Drucken“ klappt es meist trotzdem, weil dann dein Browser die fertige Seite mitschickt.' => 'With the “Read & print” bookmark it usually works anyway, because your browser then sends the finished page along.',
+    'Requests laut Dashboard' => 'Requests according to dashboard',
+    'Credits used laut Dashboard ($)' => 'Credits used according to dashboard ($)',
+    '%s Requests' => '%s requests',
+    'Im Brave-Dashboard unter „Usage by plan“ → „%s“ die Zahl bei „Requests“ eintragen. Der Zähler übernimmt genau diesen Stand und zählt von da an weiter. Leer lassen = nichts ändern.' => 'In the Brave dashboard under “Usage by plan” → “%s”, enter the number shown at “Requests”. The counter takes over exactly this value and keeps counting from there. Leave empty = no change.',
+    'Im Brave-Dashboard unter „Usage by plan“ → „%s“ die Zahl bei „Requests“ und den Betrag bei „Credits used this month“ eintragen (z. B. 0,18). Die Bremse richtet sich nach dem Betrag. Leer lassen = nichts ändern.' => 'In the Brave dashboard under “Usage by plan” → “%s”, enter the number at “Requests” and the amount at “Credits used this month” (e.g. 0.18). The brake follows the amount. Leave empty = no change.',
 ];

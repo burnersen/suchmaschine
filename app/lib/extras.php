@@ -61,14 +61,23 @@ function smExUsed(string $id): float
  * Zähler auf den Stand laut Brave-Dashboard setzen (z. B. nach einem neuen Server mitten im Monat): Danach ist der Verbrauch
  * im laufenden Monat genau $used, alles Weitere zählt dazu. Die Korrektur steht als eigene Zeile (Konto -1) am Monatsersten.
  */
-function smExSetUsed(string $id, float $used): void
+function smExSetUsed(string $id, ?float $used, ?int $requests = null): void
 {
     $from = date('Y-m-01');
     $p = 'x_' . $id;
+    // Bisherige Korrektur merken, damit ein Feld das andere nicht überschreibt
+    $old = smQ("SELECT COALESCE(SUM(credits), 0) AS c, COALESCE(SUM(req), 0) AS n FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$p, $from])->fetch();
     smQ("DELETE FROM usage_log WHERE provider = ? AND user_id = -1 AND day >= ?", [$p, $from]);
-    $diff = $used - smExUsed($id);
-    if (abs($diff) >= 0.0005) smQ("INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, 'adjust', -1, ?, 0)", [$from, $p, round($diff, 4)]);
+    $c = $used !== null ? $used - smExUsed($id) : (float)$old['c'];
+    $n = $requests !== null ? $requests - smExRequests($id) : (int)$old['n'];
+    if (abs($c) >= 0.0005 || $n !== 0) smQ("INSERT INTO usage_log (day, provider, kind, user_id, credits, req) VALUES (?, ?, 'adjust', -1, ?, ?)", [$from, $p, round($c, 4), $n]);
     smExSet($id, 'usedset', (string)time());
+}
+
+/** Anzahl Anfragen im laufenden Monat (wie „Requests“ im Brave-Dashboard) */
+function smExRequests(string $id): int
+{
+    return (int)smQ("SELECT COALESCE(SUM(req), 0) FROM usage_log WHERE provider = ? AND day >= ?", ['x_' . $id, date('Y-m-01')])->fetchColumn();
 }
 
 /** Darf der Dienst jetzt für dieses Konto fragen? $est = was die Anfrage voraussichtlich kostet */

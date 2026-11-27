@@ -47,17 +47,16 @@ $without = array_values(array_diff($order, $withKey));
             </div>
 <?php if ($f['api_left'] !== null): ?>
             <p class="small prov__api"><?= h(t('Laut %s noch %s %s übrig (zuletzt abgeglichen: %s). Der Zähler hier richtet sich danach.', $p['name'], smNumF($f['api_left']), $p['unit'], smDate((int)$api['at']) . ' ' . date('H:i', (int)$api['at']))) ?></p>
-<?php else: ?>
+<?php endif; ?>
             <div class="form__row">
 <?php $setAt = (int)smProvGet($id, 'usedset'); ?>
-                <label class="field field--short"><span><?= h(t('Verbrauch laut Dashboard')) ?></span>
-                    <input type="text" inputmode="decimal" name="used[<?= h($id) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', smNumF($f['used']))) ?>" autocomplete="off">
-                    <small class="muted"><?= h(t('Trag hier ein, was das Dashboard von %s gerade als verbraucht anzeigt (in %s). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $p['name'], $p['unit'])) ?>
+                <label class="field field--short"><span><?= h(t('Requests laut Dashboard')) ?></span>
+                    <input type="text" inputmode="numeric" name="used[<?= h($id) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', smNumF($f['used']))) ?>" autocomplete="off">
+                    <small class="muted"><?= h(t('Im Brave-Dashboard unter „Usage by plan“ → „%s“ die Zahl bei „Requests“ eintragen. Der Zähler übernimmt genau diesen Stand und zählt von da an weiter. Leer lassen = nichts ändern.', 'Search')) ?>
 <?php if ($setAt > 0 && $setAt >= strtotime($f['cycle']['from'])): ?>
                         <?= h(t('Zuletzt nach Dashboard gesetzt: %s.', smDate($setAt) . ' ' . date('H:i', $setAt))) ?>
 <?php endif; ?></small></label>
             </div>
-<?php endif; ?>
             <div class="form__row form__row--3">
                 <label class="field"><span><?= h(t('Limit pro Zeitraum')) ?></span><input type="number" name="limit[<?= h($id) ?>]" min="0" value="<?= (int)smProvGet($id, 'limit') ?>">
                     <small class="muted"><?= h(t('Frei: %s. Vorschlag: %d (50 Puffer). 0 = ohne Grenze.', smNumF($p['free']) . ' ' . $p['unit'], $p['limit'])) ?></small></label>
@@ -117,17 +116,22 @@ $without = array_values(array_diff($order, $withKey));
 <?php if ($xk !== ''): ?>
             <div class="prov__meter">
                 <progress class="meter" max="<?= $xl > 0 ? $xl : 1 ?>" value="<?= $xl > 0 ? min($xu, $xl) : 0 ?>"></progress>
-                <span><?= h($xfmt($xu)) ?> / <?= $xl > 0 ? h($xfmt($xl)) : '∞' ?><?= $x['money'] ? '' : ' ' . h(t('Anfragen')) ?> · <?= h(t('Reset am %s', smDate(mktime(0, 0, 0, (int)date('n') + 1, 1, (int)date('Y'))))) ?></span>
+                <span><?= h($xfmt($xu)) ?> / <?= $xl > 0 ? h($xfmt($xl)) : '∞' ?><?= $x['money'] ? ' · ' . h(t('%s Requests', smNumF((float)smExRequests($xid)))) : ' ' . h(t('Anfragen')) ?> · <?= h(t('Reset am %s', smDate(mktime(0, 0, 0, (int)date('n') + 1, 1, (int)date('Y'))))) ?></span>
             </div>
 <?php endif; ?>
-<?php if ($xk !== ''): $xset = (int)smExGet($xid, 'usedset'); ?>
+<?php if ($xk !== ''): $xset = (int)smExGet($xid, 'usedset'); $xreq = smExRequests($xid); ?>
             <div class="form__row">
-                <label class="field field--short"><span><?= h(t('Verbrauch laut Dashboard')) ?></span>
-                    <input type="text" inputmode="decimal" name="xused[<?= h($xid) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', $xfmt($xu))) ?>" autocomplete="off">
-                    <small class="muted"><?= h($x['money'] ? t('Trag hier ein, was das Brave-Dashboard bei „%s“ für diesen Monat als verbraucht zeigt, in Dollar (z. B. 0,62). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $x['plan'])
-                        : t('Trag hier ein, was das Brave-Dashboard bei „%s“ für diesen Monat als verbraucht zeigt (Anzahl Anfragen). Der Zähler wird genau auf diesen Stand gesetzt und zählt von da an weiter. Leer lassen = nichts ändern.', $x['plan'])) ?>
-<?php if ($xset >= strtotime(date('Y-m-01'))): ?> <?= h(t('Zuletzt nach Dashboard gesetzt: %s.', smDate($xset) . ' ' . date('H:i', $xset))) ?><?php endif; ?></small></label>
+                <label class="field field--short"><span><?= h(t('Requests laut Dashboard')) ?></span>
+                    <input type="text" inputmode="numeric" name="xreq[<?= h($xid) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', smNumF((float)$xreq))) ?>" autocomplete="off"></label>
+<?php if ($x['money']): ?>
+                <label class="field field--short"><span><?= h(t('Credits used laut Dashboard ($)')) ?></span>
+                    <input type="text" inputmode="decimal" name="xused[<?= h($xid) ?>]" value="" placeholder="<?= h(t('jetzt gezählt: %s', $xfmt($xu))) ?>" autocomplete="off"></label>
+<?php endif; ?>
             </div>
+            <p class="muted small"><?= h($x['money']
+                ? t('Im Brave-Dashboard unter „Usage by plan“ → „%s“ die Zahl bei „Requests“ und den Betrag bei „Credits used this month“ eintragen (z. B. 0,18). Die Bremse richtet sich nach dem Betrag. Leer lassen = nichts ändern.', $x['plan'])
+                : t('Im Brave-Dashboard unter „Usage by plan“ → „%s“ die Zahl bei „Requests“ eintragen. Der Zähler übernimmt genau diesen Stand und zählt von da an weiter. Leer lassen = nichts ändern.', $x['plan'])) ?>
+<?php if ($xset >= strtotime(date('Y-m-01'))): ?> <?= h(t('Zuletzt nach Dashboard gesetzt: %s.', smDate($xset) . ' ' . date('H:i', $xset))) ?><?php endif; ?></p>
 <?php endif; ?>
             <div class="form__row">
                 <label class="field"><span><?= h(t('API-Key für %s', $x['plan'])) ?><?= $xk !== '' ? ' <small class="muted">(' . h(mb_substr($xk, 0, 4) . '…' . mb_substr($xk, -4)) . ')</small>' : '' ?></span>
