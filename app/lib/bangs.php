@@ -87,18 +87,61 @@ function smBangIsTool(string $t): bool
 /** Kürzel säubern: Buchstaben (auch Umlaute), Ziffern, Punkt, Minus, Unterstrich, Plus, &; höchstens 24 Zeichen */
 function smCleanBangTrigger($t): string
 {
-    $t = mb_strtolower(ltrim(trim(is_string($t) ? $t : ''), '!'));
+    // Zahlen zulassen: rein numerische Kürzel (!1337) werden als Array-Schlüssel in PHP zu int
+    $t = mb_strtolower(ltrim(trim(is_string($t) || is_int($t) ? (string)$t : ''), '!'));
     return preg_match('/^[\p{L}\p{N}][\p{L}\p{N}._+&-]{0,23}$/u', $t) ? $t : '';
 }
 
-/** Zieladresse: http(s) mit {q}, oder /search?q=… für eine Suche hier (wie bei Kagi für Bangs mit site:) */
+/** Zieladresse: nur https:// mit {q} (unverschlüsselte Ziele gibt es nicht), oder /search?q=… für eine Suche hier (wie bei Kagi für Bangs mit site:) */
 function smCleanBangUrl($u): string
 {
     $u = trim(is_string($u) ? $u : '');
     if (strlen($u) > 800 || preg_match('/[\x00-\x20"<>\\\\]/', $u)) return '';
     if (preg_match('~^/search\?q=~', $u)) return $u;
-    if (!preg_match('~^https?://[^\s/?#]+~i', $u)) return '';
+    if (!preg_match('~^https://[^\s/?#]+~i', $u)) return '';
     return $u;
+}
+
+/**
+ * Sprache eines Bangs, geschätzt aus Domain, Adresse und Name: 'de', 'en' oder 'xx' (andere Sprache).
+ * Deutsch: .de/.at/.ch/.li, de.… oder /de/ in der Adresse. Andere: Länder-Domains und Sprachkürzel anderer Sprachen.
+ * Alles übrige (.com, .org, .io, .uk …) gilt als Englisch bzw. international.
+ */
+function smBangLang(array $b): string
+{
+    static $other = null;
+    if ($other === null) $other = array_flip(explode(' ', 'fr es it nl pl ru jp cn br pt se no dk fi cz sk hu ro bg gr tr ua kr tw hk vn th id ir il ar mx cl co pe ve uy ec bo py by kz lt lv ee si hr rs ba mk al md ge am az is fo lu be my ph sa ae eg ma dz tn ng ke za pk bd lk np mn su cat eus gal bzh'));
+    $d = strtolower((string)($b['d'] ?? ''));
+    $u = strtolower((string)($b['u'] ?? ''));
+    $n = mb_strtolower((string)($b['n'] ?? ''));
+    $tld = (string)substr((string)strrchr('.' . $d, '.'), 1);
+    $de = '~(^|\.)de\.|[/=._-]de([/_-]|$)|[?&](lang|hl|language|locale|lr|setlang|uilang)=de|deutsch|german~';
+    if (in_array($tld, ['de', 'at', 'ch', 'li'], true) || preg_match($de, $d . ' ' . preg_replace('~^https://[^/]+~', '', $u)) || preg_match('/\b(deutsch|german|\(de\))/u', $n)) return 'de';
+    if (isset($other[$tld])) return 'xx';
+    // Sprachkürzel vorne in der Domain (fr.wikipedia.org) oder im Pfad (/fr/, /es-es/, ?hl=ja)
+    // Sprachkürzel vorne in der Domain (fr.wikipedia.org, ja.example.com)
+    $code2tld = ['ja' => 'jp', 'zh' => 'cn', 'sv' => 'se', 'da' => 'dk', 'cs' => 'cz', 'ko' => 'kr', 'el' => 'gr', 'he' => 'il', 'fa' => 'ir', 'ca' => 'cat'];
+    if (preg_match('~^([a-z]{2,3})(-[a-z]{2,4})?\.~', $d, $m) && substr_count($d, '.') >= 2) {
+        $c = $code2tld[$m[1]] ?? $m[1];
+        if (!in_array($m[1], ['www', 'en', 'de', 'us', 'eu', 'my', 'go', 'm', 'id', 'co', 'me', 'ai', 'is', 'am', 'be', 'by', 'al', 'ar', 'ma'], true) && isset($other[$c])) return 'xx';
+    }
+    if (preg_match('~/(fr|es|it|nl|pl|ru|ja|zh|pt|sv|da|fi|cs|hu|ro|tr|ko|el|he|ar)([-_][a-z]{2})?/|[?&](lang|hl|language|locale|setlang)=(fr|es|it|nl|pl|ru|ja|zh|pt|sv|da|fi|cs|hu|ro|tr|ko|el|he|ar)\b~', $u)) return 'xx';
+    if (preg_match('/\b(french|français|spanish|español|italian|italiano|dutch|polish|russian|japanese|chinese|portugu|swedish|svenska|danish|norsk|norwegian|finnish|suomi|czech|hungarian|turkish|korean|greek|hebrew|arabic|persian|ukrain|romanian|catal)/u', $n)) return 'xx';
+    return 'en';
+}
+
+/** Namen der Sprachfilter */
+function smBangLangs(): array
+{
+    return ['' => t('Alle Sprachen'), 'deen' => t('Deutsch und Englisch'), 'de' => t('Deutsch'), 'en' => t('Englisch und international'), 'xx' => t('Andere Sprachen')];
+}
+
+/** Passt ein Bang zum Sprachfilter? */
+function smBangLangOk(array $b, string $lang): bool
+{
+    if ($lang === '') return true;
+    $l = $b['c'] === 'Extra' && $b['layer'] === 'sys' ? 'de' : smBangLang($b);
+    return $lang === 'deen' ? $l !== 'xx' : $l === $lang;
 }
 
 /** Domain einer Bang-Adresse (für die Anzeige und die Erreichbarkeit) */
@@ -134,7 +177,7 @@ function smCleanBangOff($in): array
         if ($t !== '') $out[$t] = true;
         if (count($out) >= SM_MAX_BANG_OFF) break;
     }
-    return array_keys($out);
+    return array_map('strval', array_keys($out));
 }
 
 /** Was der Administrator für alle festgelegt hat: ['own' => eigene/geänderte, 'off' => gelöschte] */
@@ -290,6 +333,8 @@ function smBangSeed(): void
         [$new, $gone, $n] = smBangStore(smBangParseTsv($raw));
         if (!$fresh) smSetSetting('bang_upd', json_encode(['at' => time(), 'n' => $n, 'add' => $count ? $new : 0, 'del' => $count ? $gone : 0, 'src' => 'file', 'err' => '']));
     }
+    // Nur https: alte, unverschlüsselte Ziele aus früheren Listen entfernen
+    smQ("DELETE FROM bang_list WHERE u NOT LIKE 'https://%' AND u NOT LIKE '/search?%'");
     smSetSetting('bang_seed', $key);
 }
 
@@ -419,8 +464,10 @@ function smBangTarget(string $q, ?array $me): ?array
  * Bangs suchen. $filter: '' = alle aktiven, 'own' = eigene und geänderte, 'off' = gelöschte, 'dead' = nicht erreichbare.
  * Liefert ['rows' => [...], 'more' => bool]. Jede Zeile wie smBangRow plus 'hidden', 'edited', 'dead'.
  */
-function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $filter = '', int $limit = 50): array
+function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $filter = '', int $limit = 50, string $lang = '', int $page = 1): array
 {
+    $full = $filter === 'all' || ($filter === '' && $lang !== '' && trim($q) === '');
+    if ($filter === 'all') $filter = '';
     smBangSeed();
     $L = smBangLayers($me, $scope);
     $q = mb_strtolower(trim(ltrim(trim($q), '!')));
@@ -452,6 +499,8 @@ function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $fil
         }
     } elseif ($filter === 'dead') {
         foreach (smQ($sql . ' AND d IN (SELECT d FROM bang_check WHERE fails >= ?) ORDER BY t LIMIT 1000', [SM_BANG_DEAD])->fetchAll() as $r) $add(smBangRow($r, 'sys'));
+    } elseif ($full && $q === '') {
+        foreach (smQ($sql . ' ORDER BY t')->fetchAll() as $r) $add(smBangRow($r, 'sys'));
     } elseif ($filter === '' && $q !== '') {
         $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
         $pre = substr($like, 1);
@@ -475,7 +524,8 @@ function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $fil
         if ($filter === 'off' && !$hidden) continue;
         if ($filter !== 'off' && $hidden) continue;
         if ($filter === 'own' && !$own) continue;
-        if ($filter === '' && $q === '' && $r['layer'] === 'sys' && $r['c'] !== 'Extra') continue;   // ohne Suchbegriff: nur eigene, für alle und die Extras
+        if (!$full && $filter === '' && $q === '' && $r['layer'] === 'sys' && $r['c'] !== 'Extra') continue;   // ohne Suchbegriff: nur eigene, für alle und die Extras
+        if ($lang !== '' && !smBangLangOk($r, $lang)) continue;
         $r['hidden'] = $hidden;
         $r['edited'] = $own && $lower($r);
         $r['dead'] = false;
@@ -483,7 +533,8 @@ function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $fil
         $rows[] = $r;
     }
     $rank = function (array $r): int { return $r['layer'] === 'own' ? 0 : ($r['layer'] === 'global' ? 1 : ($r['c'] === 'Extra' ? 2 : 3)); };
-    usort($rows, function ($a, $b) use ($rank) {
+    if ($full && $q === '') usort($rows, function ($a, $b) { return strcmp($a['t'], $b['t']); });   // komplette Liste: einfach nach Kürzel
+    else usort($rows, function ($a, $b) use ($rank) {
         return [$a['score'], $rank($a), mb_strlen($a['t']), $a['t']] <=> [$b['score'], $rank($b), mb_strlen($b['t']), $b['t']];
     });
     // „Nicht erreichbar“: nur Bangs, deren Domain wirklich mehrmals nicht geantwortet hat.
@@ -495,15 +546,26 @@ function smBangSearch(string $q, ?array $me, string $scope = 'mine', string $fil
         }
         $rows = array_values(array_filter($rows, function ($r) use ($dead) { return isset($dead[$r['d']]); }));
     }
-    $more = count($rows) > $limit;
-    $rows = array_slice($rows, 0, $limit);
+    $total = count($rows);
+    $pages = max(1, (int)ceil($total / max(1, $limit)));
+    $page = max(1, min($pages, $page));
+    $more = $total > $page * $limit;
+    $rows = array_slice($rows, ($page - 1) * $limit, $limit);
     // Erreichbarkeit dazuschreiben
     $ds = array_values(array_unique(array_filter(array_column($rows, 'd'))));
     if ($ds) {
         $dead = array_flip(smQ('SELECT d FROM bang_check WHERE fails >= ? AND d IN (' . implode(',', array_fill(0, count($ds), '?')) . ')', array_merge([SM_BANG_DEAD], $ds))->fetchAll(PDO::FETCH_COLUMN));
         foreach ($rows as $i => $r) $rows[$i]['dead'] = isset($dead[$r['d']]);
     }
-    return ['rows' => $rows, 'more' => $more];
+    return ['rows' => $rows, 'more' => $more, 'total' => $total, 'page' => $page, 'pages' => $pages, 'full' => $full];
+}
+
+/** Alle Kürzel (Hauptkürzel, wie zum Löschen nötig), die zu einem Filter passen, ohne Seiten. Für „alle anderssprachigen löschen“. */
+function smBangAllTriggers(?array $me, string $scope, string $lang): array
+{
+    $out = [];
+    foreach (smBangSearch('', $me, $scope, 'all', 100000, $lang)['rows'] as $r) $out[] = $r['layer'] === 'sys' ? ($r['main'] ?? $r['t']) : $r['t'];
+    return array_values(array_unique($out));
 }
 
 /* ---------- Bangs ändern (Einstellungen): für das eigene Konto oder, als Administrator, für alle ---------- */
@@ -526,7 +588,7 @@ function smBangEdit(array $layer, string $do, array $in, callable $lower): array
             $orig = smCleanBangTrigger($in['orig'] ?? '');
             if ($t === '') return [$layer, t('Das Kürzel darf nur Buchstaben, Ziffern, Punkt, Minus, Plus und Unterstrich enthalten (höchstens 24 Zeichen).'), ''];
             if (smBangReserved($t)) return [$layer, t('Das Kürzel !%s ist für die Reiter oder Suchdienste reserviert.', $t), ''];
-            if ($u === '') return [$layer, t('Die Adresse muss mit https:// oder http:// beginnen. {q} steht für den Suchbegriff.'), ''];
+            if ($u === '') return [$layer, t('Die Adresse muss mit https:// beginnen (unverschlüsselte Seiten gehen nicht). {q} steht für den Suchbegriff.'), ''];
             if (!isset($own[$t]) && count($own) >= SM_MAX_BANGS) return [$layer, t('Es sind schon zu viele eigene Bangs.'), ''];
             // Kürzel beim Bearbeiten geändert: das alte verschwindet (eigenes gelöscht, mitgeliefertes ausgeblendet)
             // „geändert“ (e) heißt: ersetzt ein mitgeliefertes und fliegt beim Wiederherstellen raus. Neu angelegte bleiben immer.
@@ -554,6 +616,24 @@ function smBangEdit(array $layer, string $do, array $in, callable $lower): array
             }
             $ok = t('Bang !%s gelöscht.', $t);
             break;
+        case 'bang_bulkdel':
+            $n = 0;
+            foreach ((array)($in['ts'] ?? []) as $x) {
+                $x = smCleanBangTrigger($x);
+                if ($x === '') continue;
+                if (isset($own[$x])) {
+                    $wasEdit = !empty($own[$x]['e']);
+                    unset($own[$x]);
+                    if ($wasEdit && $lower($x)) $off[$x] = true;
+                    $n++;
+                } elseif ($lower($x) && !isset($off[$x])) {
+                    $off[$x] = true;
+                    $n++;
+                }
+            }
+            if ($n === 0) return [$layer, t('Nichts markiert.'), ''];
+            $ok = t('%d Bangs gelöscht.', $n);
+            break;
         case 'bang_revert':
             unset($own[$t]);
             $ok = t('Bang !%s ist wieder im Original.', $t);
@@ -573,6 +653,49 @@ function smBangEdit(array $layer, string $do, array $in, callable $lower): array
             $err = t('Unbekannte Aktion.');
     }
     return [['own' => array_values($own), 'off' => array_keys($off)], $err, $ok];
+}
+
+/* ---------- Rückgängig: was eine Änderung an einer Schicht getan hat, kurz merken ---------- */
+
+/** Unterschied alt → neu: ['add' => neu gelöscht, 'del' => wiederhergestellt, 'own' => [t => altes Bang oder null]] */
+function smBangDiff(array $old, array $new): array
+{
+    $oo = []; foreach (smCleanBangs($old['own'] ?? []) as $b) $oo[$b['t']] = $b;
+    $no = []; foreach (smCleanBangs($new['own'] ?? []) as $b) $no[$b['t']] = $b;
+    $of = array_flip(smCleanBangOff($old['off'] ?? []));
+    $nf = array_flip(smCleanBangOff($new['off'] ?? []));
+    $own = [];
+    foreach ($oo + $no as $t => $_) if (($oo[$t] ?? null) != ($no[$t] ?? null)) $own[$t] = $oo[$t] ?? null;
+    return ['add' => array_keys(array_diff_key($nf, $of)), 'del' => array_keys(array_diff_key($of, $nf)), 'own' => $own];
+}
+
+/** Änderung umkehren */
+function smBangUndoApply(array $layer, array $diff): array
+{
+    $own = []; foreach (smCleanBangs($layer['own'] ?? []) as $b) $own[$b['t']] = $b;
+    $off = array_flip(smCleanBangOff($layer['off'] ?? []));
+    foreach ((array)($diff['add'] ?? []) as $t) unset($off[$t]);
+    foreach ((array)($diff['del'] ?? []) as $t) $off[$t] = true;
+    foreach ((array)($diff['own'] ?? []) as $t => $b) { if (is_array($b)) $own[$t] = $b; else unset($own[$t]); }
+    return ['own' => array_values($own), 'off' => array_keys($off)];
+}
+
+/** Schlüssel für die Rückgängig-Daten: pro Konto oder „für alle“ */
+function smBangUndoKey(?array $me, string $scope): string
+{
+    return 'bang_undo_' . ($scope === 'all' ? 'all' : (int)($me['id'] ?? 0));
+}
+
+/** Letzte Änderung zum Rückgängigmachen (10 Minuten lang) oder null: ['msg', 'diff', 'at'] */
+function smBangUndoGet(?array $me, string $scope): ?array
+{
+    $u = json_decode(smSetting(smBangUndoKey($me, $scope)), true);
+    return is_array($u) && (int)($u['at'] ?? 0) > time() - 600 && isset($u['diff']) ? $u : null;
+}
+
+function smBangUndoSet(?array $me, string $scope, ?array $diff, string $msg = ''): void
+{
+    smSetSetting(smBangUndoKey($me, $scope), $diff && ($diff['add'] || $diff['del'] || $diff['own']) ? json_encode(['at' => time(), 'msg' => $msg, 'diff' => $diff], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '');
 }
 
 /* ---------- Bangs im Hintergrund: Liste aktualisieren, Erreichbarkeit prüfen ---------- */
@@ -624,13 +747,78 @@ function smBangCheck(int $n = 25): array
         if ($st > 0 || in_array($r['error'], ['blocked', 'self', 'port', 'scheme'], true)) {
             smQ('INSERT INTO bang_check (d, checked, fails, status, err, ok_at) VALUES (?, ?, 0, ?, \'\', ?)
                  ON CONFLICT(d) DO UPDATE SET checked = excluded.checked, fails = 0, status = excluded.status, err = \'\', ok_at = excluded.ok_at', [$d, $now, $st, $now]);
+            smBangAutoRestore($d);
         } else {
             $bad++;
             smQ('INSERT INTO bang_check (d, checked, fails, status, err, ok_at) VALUES (?, ?, 1, 0, ?, 0)
                  ON CONFLICT(d) DO UPDATE SET checked = excluded.checked, fails = fails + 1, status = 0, err = excluded.err', [$d, $now, (string)$r['error']]);
+            if ((int)smQ('SELECT fails FROM bang_check WHERE d = ?', [$d])->fetchColumn() >= SM_BANG_DEAD) smBangAutoDelete($d);
         }
     }
     return [count($ds), $bad];
+}
+
+/* ---------- Automatisch aufräumen (für alle): Domains, die per https dauerhaft nicht antworten ---------- */
+
+/** Ist das automatische Löschen an? (Standard: an) */
+function smBangAutoOn(): bool
+{
+    return smSetting('bang_autodel') !== '0';
+}
+
+/** Automatisch gelöschte: [Kürzel => [Domain, Zeitpunkt]] */
+function smBangAutoList(): array
+{
+    $a = json_decode(smSetting('bang_autodel_list'), true);
+    return is_array($a) ? $a : [];
+}
+
+/**
+ * Alle Bangs einer Domain für alle löschen (ausblenden), weil sie per https mehrmals hintereinander nicht geantwortet hat
+ * (keine Verbindung, kein https, Domain weg). Sie landen unter „Gelöschte“ und kommen zurück, sobald die Domain wieder antwortet.
+ */
+function smBangAutoDelete(string $d): int
+{
+    if (!smBangAutoOn() || $d === '') return 0;
+    $ts = smQ('SELECT t FROM bang_list WHERE t = main AND d = ?', [$d])->fetchAll(PDO::FETCH_COLUMN);
+    if (!$ts) return 0;
+    $g = smBangGlobal();
+    $off = array_flip($g['off']);
+    $list = smBangAutoList();
+    $n = 0;
+    foreach ($ts as $t) {
+        if (isset($off[$t]) || count($off) >= SM_MAX_BANG_OFF) continue;
+        $off[$t] = true;
+        $list[$t] = [$d, time()];
+        $n++;
+    }
+    if ($n) {
+        smBangSetGlobal(['own' => $g['own'], 'off' => array_keys($off)]);
+        smSetSetting('bang_autodel_list', json_encode($list, JSON_UNESCAPED_SLASHES));
+    }
+    return $n;
+}
+
+/** Domain antwortet wieder: automatisch gelöschte Bangs dieser Domain zurückholen (von Hand gelöschte bleiben weg) */
+function smBangAutoRestore(string $d): void
+{
+    $list = smBangAutoList();
+    $back = [];
+    foreach ($list as $t => $x) if (($x[0] ?? '') === $d) $back[] = $t;
+    if (!$back) return;
+    $g = smBangGlobal();
+    smBangSetGlobal(['own' => $g['own'], 'off' => array_values(array_diff($g['off'], $back))]);
+    foreach ($back as $t) unset($list[$t]);
+    smSetSetting('bang_autodel_list', json_encode($list, JSON_UNESCAPED_SLASHES));
+}
+
+/** Schon bekannte tote Domains nachträglich aufräumen (z. B. direkt nach dem Einschalten). Liefert die Zahl gelöschter Bangs. */
+function smBangAutoSweep(): int
+{
+    if (!smBangAutoOn()) return 0;
+    $n = 0;
+    foreach (smQ('SELECT d FROM bang_check WHERE fails >= ?', [SM_BANG_DEAD])->fetchAll(PDO::FETCH_COLUMN) as $d) $n += smBangAutoDelete((string)$d);
+    return $n;
 }
 
 /** Steht Hintergrundarbeit an? (dann holt die Seite per JavaScript ?a=bangtick ab, ohne dass jemand darauf wartet) */

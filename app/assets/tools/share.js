@@ -1,6 +1,6 @@
 /* Suchmaschine – Kurzlinks und Text-Schnipsel im Browser.
    Kurzlinks: Wunschname, Ablauf, Aufruf-Grenze, Passwort, Ziel ändern, an/aus, Statistik, QR, Ziele prüfen, CSV, Lesezeichen-Knopf.
-   Schnipsel: werden hier verschlüsselt (AES-256-GCM), der Schlüssel steht nur im Link hinter dem #. */
+   Schnipsel: werden hier verschlüsselt (AES-256-GCM), der Schlüssel entsteht aus dem Pflicht-Passwort, der Link bleibt kurz. */
 (function () {
 'use strict';
 const CF = window.CF;
@@ -198,26 +198,27 @@ CF.views.kurzlinks = {
 const b64u = a => { let s = ''; a.forEach(x => { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 const hex = a => Array.from(a, x => x.toString(16).padStart(2, '0')).join('');
 
-/** Verschlüsseln: liefert { data (JSON-Text für den Server), key (für den Link), auth (Prüfwert bei Passwort) } */
+/**
+ * Verschlüsseln (v2): der Schlüssel kommt ganz aus dem Passwort (PBKDF2, 600.000 Runden, SHA-256). Aus 512 Bit werden
+ * 256 Bit AES-Schlüssel und 256 Bit Prüfwert (auth). Nur die Prüfsumme des Prüfwerts liegt auf dem Server, darum braucht der Link keinen Schlüssel.
+ * Liefert { data (JSON-Text für den Server), auth }
+ */
 async function seal(text, pass) {
-    const key = crypto.getRandomValues(new Uint8Array(32));
-    let raw = key, salt = null, auth = '';
-    if (pass) {
-        salt = crypto.getRandomValues(new Uint8Array(16));
-        const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
-        const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 310000 }, base, 512));
-        const both = new Uint8Array(64);
-        both.set(key, 0); both.set(bits.slice(0, 32), 32);
-        raw = new Uint8Array(await crypto.subtle.digest('SHA-256', both));
-        auth = hex(bits.slice(32));
-    }
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+    const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 600000 }, base, 512));
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const k = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt']);
+    const k = await crypto.subtle.importKey('raw', bits.slice(0, 32), 'AES-GCM', false, ['encrypt']);
     const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(JSON.stringify({ t: text }))));
-    const data = { v: 1, iv: b64u(iv), ct: b64u(ct) };
-    if (salt) data.salt = b64u(salt);
-    return { data: JSON.stringify(data), key: b64u(key), auth };
+    return { data: JSON.stringify({ v: 2, iv: b64u(iv), ct: b64u(ct), salt: b64u(salt) }), auth: hex(bits.slice(32)) };
 }
+/** Gut lesbares Zufallspasswort (ohne verwechselbare Zeichen), 12 Zeichen ≈ 70 Bit */
+function randomPass() {
+    const abc = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const r = crypto.getRandomValues(new Uint32Array(12));
+    return Array.from(r, x => abc[x % abc.length]).join('');
+}
+const NOTE_MIN_PASS = 8;
 
 CF.views.schnipsel = {
     mount(root, params) {
@@ -227,7 +228,8 @@ CF.views.schnipsel = {
         const ta = el('textarea', { class: 'in', rows: 9, placeholder: T('Text, Passwort, Zugangsdaten, Notiz …'), maxlength: 80000 });
         if (params.text) ta.value = params.text;
         let hours = CF.ls.get('noteHours', 24), views = CF.ls.get('noteViews', 1);
-        const pass = input({ type: 'text', placeholder: T('optional'), autocomplete: 'off', spellcheck: 'false' });
+        const pass = input({ type: 'text', placeholder: T('mindestens %s Zeichen', NOTE_MIN_PASS), autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off' });
+        pass.value = randomPass();
         const label = input({ placeholder: T('optional, nur für dich'), maxlength: 80 });
         const count = el('span', { class: 'tiny faint' });
         ta.addEventListener('input', () => { count.textContent = T('%s Zeichen', ta.value.length); });
@@ -235,14 +237,16 @@ CF.views.schnipsel = {
         const listBox = el('div', { class: 'hlist' });
         const make = btn(T('Verschlüsseln und Link erzeugen'), 'btn-primary btn-lg', async () => {
             if (!ta.value.trim()) { ta.focus(); return; }
+            if (pass.value.length < NOTE_MIN_PASS) { CF.toast(T('Das Passwort braucht mindestens %s Zeichen.', NOTE_MIN_PASS), 'warn'); pass.focus(); return; }
             make.disabled = true;
+            const pw = pass.value;
             try {
-                const s = await seal(ta.value, pass.value);
-                const r = await CF.api('note_create', { data: s.data, hours, views, pass: pass.value ? 1 : 0, auth: s.auth, label: label.value });
-                const link = r.url + '#' + s.key;
+                const s = await seal(ta.value, pw);
+                const r = await CF.api('note_create', { data: s.data, hours, views, pass: 1, auth: s.auth, label: label.value });
+                const link = r.url;
                 links[r.id] = link;
                 CF.ls.set('notes', links);
-                ta.value = ''; pass.value = ''; label.value = ''; count.textContent = '';
+                ta.value = ''; pass.value = randomPass(); label.value = ''; count.textContent = '';
                 const pv = el('div', { class: 'preview', style: { minHeight: '0', padding: '.6rem', maxWidth: '9rem' } });
                 pv.innerHTML = qrSvg(link);
                 fill(out, el('div', { class: 'card flat', style: { marginTop: '.8rem' } }, el('div', { class: 'row nw', style: { alignItems: 'flex-start' } }, pv,
@@ -251,7 +255,10 @@ CF.views.schnipsel = {
                         el('div', { class: 'row' }, btn(T('Link kopieren'), 'btn-primary btn-sm', () => CF.copy(link), 'copy'),
                             navigator.share ? btn(T('Teilen'), 'btn-second btn-sm', () => CF.share({ url: link }), 'share') : null,
                             btn(T('QR-Code'), 'btn-ghost btn-sm', () => qrDialog(link, T('Text-Schnipsel')), 'qr')),
-                        pass.value === '' ? null : null))));
+                        el('div', { class: 'small', text: T('Passwort (am besten auf einem anderen Weg schicken):') }),
+                        el('div', { class: 'code-line' }, el('span', { text: pw })),
+                        el('div', { class: 'row' }, btn(T('Passwort kopieren'), 'btn-second btn-sm', () => CF.copy(pw), 'copy'),
+                            btn(T('Link und Passwort kopieren'), 'btn-ghost btn-sm', () => CF.copy(link + '\n' + T('Passwort: %s', pw)), 'copy'))))));
                 CF.copy(link, true);
                 CF.toast(T('Link kopiert'));
                 load();
@@ -280,15 +287,15 @@ CF.views.schnipsel = {
                     el('div', { class: 'grid2' },
                         field(T('Gültig'), select([['1', T('1 Stunde')], ['24', T('1 Tag')], ['72', T('3 Tage')], ['168', T('7 Tage')], ['720', T('30 Tage')]], String(hours), v => { hours = +v; CF.ls.set('noteHours', hours); })),
                         field(T('Abrufe'), select([['1', T('einmal, danach weg')], ['3', T('3 Mal')], ['10', T('10 Mal')], ['0', T('beliebig bis zum Ablauf')]], String(views), v => { views = +v; CF.ls.set('noteViews', views); }))),
-                    el('div', { class: 'grid2' }, field(T('Passwort'), pass, T('extra Schutz, getrennt schicken')), field(T('Bezeichnung'), label)),
+                    el('div', { class: 'grid2' }, field(T('Passwort (Pflicht)'), el('div', { class: 'row nw' }, pass, ibtn('refresh', T('Neues Zufallspasswort'), () => { pass.value = randomPass(); }, 'sm')), T('schon ausgefüllt, getrennt vom Link schicken')), field(T('Bezeichnung'), label)),
                     el('div', { class: 'row' }, make), out)),
                 CF.card(T('Deine offenen Schnipsel'), 'list', listBox)),
             el('div', { class: 'sticky stack lg' },
                 CF.card(T('So funktioniert es'), 'shield', el('div', { class: 'stack small' },
-                    el('p', { text: T('Dein Browser verschlüsselt den Text mit AES-256-GCM. Der Schlüssel steht nur im Link hinter dem #, den Teil schickt kein Browser an einen Server.') }),
+                    el('p', { text: T('Dein Browser verschlüsselt den Text mit AES-256-GCM. Der Schlüssel entsteht aus dem Passwort und verlässt deinen Browser nie, darum ist der Link so kurz.') }),
                     el('p', { text: T('Auf dem Server liegt nur unlesbarer Datensalat. Nach dem letzten erlaubten Abruf oder nach Ablauf wird er gelöscht.') }),
                     el('p', { text: T('Die Abholseite zeigt den Text erst nach einem Klick. So verbrauchen Linkvorschauen in Messengern keinen Abruf.') }),
-                    el('p', { text: T('Mit Passwort: schick das Passwort auf einem anderen Weg als den Link (z. B. per Anruf).') }))))));
+                    el('p', { text: T('Schick das Passwort auf einem anderen Weg als den Link (z. B. per Anruf oder anderem Messenger). Wer nur den Link hat, kann nichts lesen.') }))))));
         load();
         setTimeout(() => CF.focus(ta), 30);
     },

@@ -679,11 +679,30 @@ function smFallbackPresets(): array
     return array_map(function ($e) { return $e[0]; }, smFallbackEngines());
 }
 
-/** Taugt die Adresse als Ziel? https://, mit {q}. Gäste dürfen nur aus der Liste wählen. */
+/** Taugt die Adresse als Ziel? https://, mit {q}. Gäste dürfen nur aus der Liste wählen (oder den Standard der Installation). */
 function smFallbackValid(string $u, bool $presetOnly = false): bool
 {
     if (isset(smFallbackPresets()[$u])) return true;
-    return !$presetOnly && strpos($u, '{q}') !== false && smCleanBangUrl($u) !== '' && strpos($u, 'https://') === 0;
+    $ok = strpos($u, '{q}') !== false && smCleanBangUrl($u) !== '' && strpos($u, 'https://') === 0;
+    if ($presetOnly) return $ok && $u === smSetting('fallback_url');
+    return $ok;
+}
+
+/**
+ * Eingabe für die Ausweich-Suchmaschine aufbereiten. Ein Startpage-Einstellungslink (…/do/mypage.pl?prfe=…) wird zur Suchadresse
+ * mit genau diesen Einstellungen: https://www.startpage.com/sp/search?query={q}&prfe=… (ohne Cookies, für jeden Besucher gleich).
+ */
+function smFallbackNormalize(string $u): string
+{
+    $u = trim($u);
+    $host = strtolower((string)parse_url($u, PHP_URL_HOST));
+    if (strpos($u, '{q}') === false && preg_match('/(^|\.)startpage\.com$/', $host)) {
+        parse_str((string)parse_url($u, PHP_URL_QUERY), $qs);
+        $prfe = is_string($qs['prfe'] ?? null) ? $qs['prfe'] : '';
+        if (preg_match('/^[a-f0-9]{16,600}$/i', $prfe)) return 'https://www.startpage.com/sp/search?query={q}&prfe=' . $prfe;
+        if ($u !== '') return 'https://www.startpage.com/sp/search?query={q}';
+    }
+    return $u;
 }
 
 /** Standard der Installation (Verwaltung), sonst Startpage */
@@ -717,6 +736,8 @@ function smFallbackTabUrl(string $q, string $tab, ?array $me): string
     $tpl = smFallbackFor($me);
     $i = ['images' => 1, 'news' => 2, 'videos' => 3][$tab] ?? 0;
     if ($i && ($alt = smFallbackEngines()[$tpl][$i] ?? '') !== '') $tpl = $alt;
+    // Eigene Startpage-Adresse (z. B. mit Einstellungen per prfe): Bereich über cat=
+    elseif ($i && preg_match('~^https://(www\.)?startpage\.com/~', $tpl) && strpos($tpl, 'cat=') === false) $tpl .= '&cat=' . ['', 'images', 'news', 'video'][$i];
     return smFallbackUrl($q, $me, $tpl);
 }
 
@@ -724,7 +745,9 @@ function smFallbackTabUrl(string $q, string $tab, ?array $me): string
 function smFallbackName(?array $me = null, ?string $tpl = null): string
 {
     $u = $tpl ?? smFallbackFor($me);
-    return smFallbackPresets()[$u] ?? smHost((string)parse_url($u, PHP_URL_HOST));
+    if (isset(smFallbackPresets()[$u])) return smFallbackPresets()[$u];
+    if (preg_match('~^https://(www\.)?startpage\.com/~', $u)) return strpos($u, 'prfe=') !== false ? t('Startpage (mit festen Einstellungen)') : 'Startpage';
+    return smHost((string)parse_url($u, PHP_URL_HOST));
 }
 
 /**

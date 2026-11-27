@@ -1365,6 +1365,14 @@
         });
         paint();
     })();
+    /* ---------- Login per Token hinter dem # (…/?a=login#token=…): per POST schicken, damit er nie in einem Server-Protokoll steht ---------- */
+    var tokForm = $('[data-token-login]');
+    if (tokForm && /^#token=/.test(location.hash)) {
+        var tok = decodeURIComponent(location.hash.slice(7));
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+        if (tok) { tokForm.elements.token.value = tok; tokForm.submit(); }
+    }
+
     /* ---------- Drucken: jeder Knopf mit data-print (Lesemodus, Jahreskalender …) ---------- */
     $$('[data-print]').forEach(function (b) {
         b.addEventListener('click', function () {
@@ -1684,8 +1692,9 @@
                 // Adresse mitführen, damit Neuladen und Zurück dieselbe Suche zeigen
                 if (window.history && history.replaceState) {
                     var u = new URL(location.href);
-                    ['bq', 'bf'].forEach(function (k) { var v = p.get(k); if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); });
+                    ['bq', 'bf', 'bl'].forEach(function (k) { var v = p.get(k); if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); });
                     u.searchParams.delete('edit');
+                    u.searchParams.delete('bp');
                     history.replaceState(null, '', u.pathname + u.search);
                 }
             }).catch(function () { bangRes.classList.remove('is-busy'); });
@@ -1703,6 +1712,18 @@
             if (cancel) cancel.hidden = !b;
             $$('.bang.is-editing').forEach(function (r) { r.classList.remove('is-editing'); });
         }
+        // Mehrfach löschen: Häkchen zählen, „alle auf dieser Seite“ markieren
+        function picks() {
+            var boxes = $$('.bang__pick', bangRes), on = boxes.filter(function (x) { return x.checked; }).length;
+            var btn = $('[data-bang-bulk]', bangRes), cnt = $('[data-bang-count]', bangRes), all = $('[data-bang-all]', bangRes);
+            if (btn) btn.disabled = !on;
+            if (cnt) cnt.textContent = on ? '(' + on + ')' : '';
+            if (all) { all.checked = on > 0 && on === boxes.length; all.indeterminate = on > 0 && on < boxes.length; }
+        }
+        bangRes.addEventListener('change', function (ev) {
+            if (ev.target.matches('[data-bang-all]')) $$('.bang__pick', bangRes).forEach(function (x) { x.checked = ev.target.checked; });
+            if (ev.target.matches('[data-bang-all], .bang__pick')) picks();
+        });
         bangRes.addEventListener('click', function (ev) {
             var a = ev.target.closest('[data-bang-edit]');
             if (!a || !plainClick(ev)) return;

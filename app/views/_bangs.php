@@ -6,9 +6,12 @@
 $all = $for === 'all';
 $bq = mb_substr((string)($_GET['bq'] ?? ''), 0, 60);
 $bf = (string)($_GET['bf'] ?? '');
-$burl = function (array $more = []) use ($all, $bq, $bf) {
-    return smUrl(['a' => 'settings', 'tab' => 'bangs', 'for' => $all ? 'all' : null, 'bq' => $bq !== '' ? $bq : null, 'bf' => $bf !== '' ? $bf : null] + $more);
+$bl = (string)($_GET['bl'] ?? '');
+if (!isset(smBangLangs()[$bl])) $bl = '';
+$burl = function (array $more = []) use ($all, $bq, $bf, $bl) {
+    return smUrl(['a' => 'settings', 'tab' => 'bangs', 'for' => $all ? 'all' : null, 'bq' => $bq !== '' ? $bq : null, 'bf' => $bf !== '' ? $bf : null, 'bl' => $bl !== '' ? $bl : null] + $more);
 };
+$undo = smBangUndoGet($me, $all ? 'all' : 'mine');
 $L = smBangLayers($me, $all ? 'all' : 'mine');
 $mineOwn = $all ? $L['gown'] : $L['own'];
 $mineOff = $all ? $L['goff'] : $L['off'];
@@ -26,11 +29,28 @@ $total = smBangSysCount();
             <input type="search" name="bq" value="<?= h($bq) ?>" placeholder="<?= h(t('Kürzel, Name oder Domain, z. B. wiki, !yt, amazon')) ?>" aria-label="<?= h(t('Bangs suchen')) ?>"
                    autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="60">
             <select name="bf" aria-label="<?= h(t('Anzeigen')) ?>">
-<?php foreach (['' => t('Alle'), 'own' => $all ? t('Für alle angelegt oder geändert') : t('Eigene und geänderte'), 'off' => t('Gelöschte'), 'dead' => t('Nicht erreichbar')] as $k => $v): ?>
+<?php foreach (['' => t('Bekannte'), 'all' => t('Komplette Liste'), 'own' => $all ? t('Für alle angelegt oder geändert') : t('Eigene und geänderte'), 'off' => t('Gelöschte'), 'dead' => t('Nicht erreichbar')] as $k => $v): ?>
                 <option value="<?= h($k) ?>"<?= $k === $bf ? ' selected' : '' ?>><?= h($v) ?></option>
 <?php endforeach; ?>
             </select>
+            <select name="bl" aria-label="<?= h(t('Sprache')) ?>">
+<?php foreach (smBangLangs() as $k => $v): ?>
+                <option value="<?= h($k) ?>"<?= $k === $bl ? ' selected' : '' ?>><?= h($v) ?></option>
+<?php endforeach; ?>
+            </select>
             <button type="submit" class="btn"><?= h(t('Suchen')) ?></button>
+        </form>
+<?php if ($undo): ?>
+        <form method="post" action="<?= h($burl()) ?>" class="undobar" data-busy>
+            <?= smCsrfField($me) ?><input type="hidden" name="do" value="bang_undo">
+            <span><?= h((string)$undo['msg']) ?></span>
+            <button type="submit" class="btn btn--small btn--primary"><?= h(t('Rückgängig')) ?></button>
+        </form>
+<?php endif; ?>
+        <form method="post" action="<?= h($burl()) ?>" class="bangxx" data-busy>
+            <?= smCsrfField($me) ?><input type="hidden" name="do" value="bang_dellang"><input type="hidden" name="bl" value="xx">
+            <button type="submit" class="btn btn--small"><?= h(t('Alle anderssprachigen Bangs löschen')) ?></button>
+            <small class="muted"><?= h(t('Behält nur Deutsch und Englisch. Die Sprache wird aus Domain und Adresse geschätzt. Lässt sich rückgängig machen und unter „Gelöschte“ einzeln zurückholen.')) ?></small>
         </form>
         <div class="banglist" data-bang-results data-frag="<?= h(smUrl(['a' => 'settings', 'tab' => 'bangs', 'for' => $all ? 'all' : null, 'frag' => 1])) ?>">
 <?php require __DIR__ . '/_banglist.php'; ?>
@@ -83,6 +103,8 @@ $total = smBangSysCount();
             <?= smCsrfField($me) ?><input type="hidden" name="do" value="bang_cfg">
             <label class="check"><input type="checkbox" name="bang_auto" value="1"<?= smSetting('bang_auto') === '1' ? ' checked' : '' ?>> <?= h(t('Liste einmal pro Woche von Kagi (GitHub) aktualisieren')) ?></label>
             <label class="check"><input type="checkbox" name="bang_check" value="1"<?= smSetting('bang_check') === '1' ? ' checked' : '' ?>> <?= h(t('Zielseiten nach und nach auf Erreichbarkeit prüfen')) ?></label>
+            <label class="check"><input type="checkbox" name="bang_autodel" value="1"<?= smBangAutoOn() ? ' checked' : '' ?>> <?= h(t('Bangs, deren Seite per https mehrmals hintereinander nicht antwortet, für alle automatisch löschen')) ?></label>
+            <small class="muted"><?= h(t('Bangs ohne https gibt es grundsätzlich nicht mehr. Automatisch gelöschte stehen unter „Gelöschte“ und kommen von selbst zurück, sobald die Seite wieder antwortet. Gerade automatisch gelöscht: %d.', count(smBangAutoList()))) ?></small>
             <small class="muted"><?= h(t('Beides läuft im Hintergrund, während jemand die Suchmaschine benutzt, und verbraucht keine Suchanfragen. Geprüft wird nur, ob die Startseite der Domain antwortet.')) ?></small>
             <label class="check"><input type="checkbox" name="bang_ref" value="1"<?= smSetting('bang_ref') === '1' ? ' checked' : '' ?>> <?= h(t('Beim Weiterleiten die Adresse dieser Suchmaschine als Herkunft mitschicken')) ?></label>
             <small class="muted"><?= h(t('Wie bei DuckDuckGo und Kagi: Die Zielseite sieht nur, von welcher Suchmaschine du kommst, nie den Suchbegriff. Manche Seiten (z. B. Reddit) sperren Aufrufe ganz ohne Herkunft als vermeintliche Bots. Aus: keinerlei Herkunft.')) ?></small>

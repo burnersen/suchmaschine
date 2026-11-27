@@ -70,7 +70,7 @@ function smSortPrefsFromPost(): array
 function smFallbackFromPost(): array
 {
     $u = (string)($_POST['fallback_preset'] ?? '');
-    if ($u === 'own') $u = trim((string)($_POST['fallback_own'] ?? ''));
+    if ($u === 'own') $u = smFallbackNormalize((string)($_POST['fallback_own'] ?? ''));
     if ($u === '' || smFallbackValid($u)) return [$u, ''];
     return ['', t('Die eigene Suchmaschine muss mit https:// beginnen und {q} für den Suchbegriff enthalten, z. B. https://example.org/search?q={q}')];
 }

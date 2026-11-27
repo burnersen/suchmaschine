@@ -18,6 +18,6 @@ $fbIsPreset = isset(smFallbackPresets()[$fbCur]);
                         <option value="own"<?= !$fbIsPreset && $fbCur !== '' ? ' selected' : '' ?>><?= h(t('Eigene Adresse …')) ?></option>
                     </select></label>
                 <label class="field"><span><?= h(t('Eigene Adresse mit {q}')) ?></span><input type="text" name="fallback_own" value="<?= h($fbIsPreset ? '' : $fbCur) ?>" placeholder="https://example.org/search?q={q}" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="800">
-                    <small class="muted"><?= h(t('Nur bei „Eigene Adresse“. {q} wird durch den Suchbegriff ersetzt.')) ?></small></label>
+                    <small class="muted"><?= h(t('Nur bei „Eigene Adresse“. {q} wird durch den Suchbegriff ersetzt. Einen Startpage-Einstellungslink (…/mypage.pl?prfe=…) kannst du direkt einfügen, er wird zur Suche mit genau diesen Einstellungen.')) ?></small></label>
             </div>
             <p class="muted small"><?= h(t('Bilder dort trotzdem groß und im Vollbild ansehen:')) ?> <a href="<?= h(smUrl(['a' => 'help'])) ?>#bildergross"><?= h(t('Lesezeichen „Bilder groß“')) ?></a></p>

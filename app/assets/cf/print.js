@@ -66,18 +66,43 @@ function qrSvg(text, color, ecl) {
     return CF.Render.qr(q, qrStyle(color)).svg;
 }
 
-/** Druckt eine oder mehrere Seiten (SVG mit Maßen in mm). pageCss z. B. 'A4' oder '62mm 29mm' */
-function printPages(svgs, pageCss, margin) {
-    let pa = document.getElementById('print-area');
-    if (!pa) { pa = el('div', { id: 'print-area' }); document.body.append(pa); }
-    pa.className = 'pages';
-    pa.innerHTML = svgs.join('');
-    let st = document.getElementById('print-page-style');
-    if (!st) { st = el('style', { id: 'print-page-style' }); document.head.append(st); }
-    st.textContent = '@page { size: ' + pageCss + '; margin: ' + (margin || '0') + '; }';
-    document.body.classList.add('print-area');
-    window.print();
-    window.addEventListener('afterprint', function () { document.body.classList.remove('print-area'); }, { once: true });
+/**
+ * Druckt eine oder mehrere Seiten (SVG mit Maßen in mm). pageCss z. B. 'A4' oder '62mm 29mm'. single = ein einzelner Code, mittig.
+ * Gedruckt wird aus einem eigenen, unsichtbaren Rahmen: dort steht nur die Druckfläche, das Layout der Seite kann nichts verschieben.
+ * Die Stile (Papierformat, Farben exakt) kommen als Datei vom Server (?a=printcss), weil die Sicherheitsregeln (CSP) eingebettete <style> verbieten.
+ */
+function printPages(svgs, pageCss, margin, single) {
+    const old = document.getElementById('cf-print-frame');
+    if (old) old.remove();
+    const f = document.createElement('iframe');
+    f.id = 'cf-print-frame';
+    f.setAttribute('aria-hidden', 'true');
+    f.tabIndex = -1;
+    Object.assign(f.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', opacity: '0', pointerEvents: 'none' });
+    document.body.append(f);
+    const w = f.contentWindow, d = f.contentDocument || w.document;
+    if (!d.head) d.documentElement.prepend(d.createElement('head'));
+    if (!d.body) d.documentElement.append(d.createElement('body'));
+    d.title = document.title;
+    const link = d.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = new URL('?a=printcss&s=' + encodeURIComponent(pageCss || 'auto') + '&m=' + (parseInt(margin, 10) || 0) + (single ? '&one=1' : ''), location.href).href;
+    let done = false;
+    const go = () => {
+        if (done) return;
+        done = true;
+        setTimeout(() => {
+            try { w.focus(); w.print(); }
+            catch (e) { CF.toast(T('Drucken hat nicht geklappt. Bitte als PNG oder SVG laden und von dort drucken.'), 'warn'); }
+        }, 80);
+    };
+    link.onload = go;
+    link.onerror = go;
+    setTimeout(go, 2500);   // Sicherheitsnetz, falls load nie kommt
+    d.head.append(link);
+    d.body.innerHTML = svgs.join('');
+    w.addEventListener('afterprint', () => setTimeout(() => { if (f.isConnected) f.remove(); }, 1000), { once: true });
+    return f;
 }
 CF.printPages = printPages;
 

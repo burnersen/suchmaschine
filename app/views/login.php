@@ -1,4 +1,6 @@
-<?php defined('SM_VERSION') || exit; ?>
+<?php defined('SM_VERSION') || exit;
+/* Login per Token hinter dem # (…/?a=login#token=…): das Skript in app.js schickt ihn mit diesem Formular, ohne dass er im Server-Protokoll landet */ ?>
+<form method="post" action="<?= h(smUrl(['a' => 'tokenlogin'])) ?>" data-token-login hidden><input type="hidden" name="token" value=""></form>
 <main class="auth">
     <div class="auth__card">
         <a class="auth__logo" href="<?= h(smBase()) ?>"><?= smLogoHtml(true) ?><span class="auth__name"><?= smSiteNameHtml() ?></span></a>

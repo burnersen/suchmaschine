@@ -18,7 +18,7 @@ function smToolGroups(): array
         t('QR-Codes und Scanner') => [
             'qr'        => ['🔳', t('QR-Studio'), t('WLAN, Kontakt, GiroCode, Termin und mehr, mit Farben, Logo und Lesetest'), ['app' => array_merge($cf, ['cf/create']), 'wasm' => true, 'new' => true, 'kw' => 'qr code generator barcode wlan wifi vcard girocode design logo']],
             'scanner'   => ['📷', t('Scanner'), t('QR- und Barcodes mit Kamera oder aus Bildern lesen, mit Link-Röntgen'), ['app' => array_merge($cf, ['cf/scan']), 'wasm' => true, 'cam' => true, 'new' => true, 'kw' => 'scan kamera webcam barcode ean isbn lesen quishing']],
-            'qrdruck'   => ['🖨️', t('QR drucken'), t('WLAN-Schild, Tischkarte, Visitenkarte, Etiketten mit Seriennummern'), ['app' => array_merge($cf, []), 'new' => true, 'kw' => 'drucken etiketten aufsteller visitenkarte avery herma label print']],
+            'qrdruck'   => ['🖨️', t('QR drucken'), t('WLAN-Schild, Tischkarte, Visitenkarte, Etiketten mit Seriennummern'), ['app' => array_merge($cf, ['cf/create']), 'wasm' => true, 'new' => true, 'kw' => 'drucken etiketten aufsteller visitenkarte avery herma label print']],
             'nummern'   => ['🔢', t('Nummern-Detektiv'), t('IBAN, EAN, ISBN, IMEI prüfen, mit Prüfziffer und Zahlendreher-Suche'), ['app' => array_merge($cf, ['cf/convert']), 'wasm' => true, 'new' => true, 'kw' => 'iban ean isbn imei prüfziffer gtin upc pzn kreditkarte']],
         ],
         t('Sicherheit und Teilen') => [

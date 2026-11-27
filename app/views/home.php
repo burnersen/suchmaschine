@@ -8,7 +8,8 @@
     <form class="home__fb" method="post" action="<?= h(smUrl(['a' => 'fb'])) ?>">
         <label for="home-fb"><?= h(t('Deine Suchen gehen zu')) ?></label>
         <select id="home-fb" name="fallback" data-autosubmit-select>
-<?php foreach (smFallbackPresets() as $u => $n): ?>            <option value="<?= h($u) ?>"<?= $u === $fbMine ? ' selected' : '' ?>><?= h($n) ?></option>
+<?php $fbDef = smFallbackDefault(); $fbOpts = [$fbDef => t('Standard: %s', smFallbackName(null, $fbDef))] + smFallbackPresets(); ?>
+<?php foreach ($fbOpts as $u => $n): ?>            <option value="<?= h($u) ?>"<?= $u === $fbMine ? ' selected' : '' ?>><?= h($n) ?></option>
 <?php endforeach; ?>
         </select>
         <button type="submit" class="btn btn--small" data-nojs><?= h(t('Merken')) ?></button>

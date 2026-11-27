@@ -107,7 +107,7 @@ foreach (array_keys(smokeSettingsTabs()) as $t) $pages[] = '?a=settings&tab=' . 
 foreach (['users', 'providers', 'usage', 'config', 'backup', 'update'] as $t) $pages[] = '?a=admin&tab=' . $t;
 // Aussehen und Bangs: eigene Sicht, Sicht „für alle“, Bang-Suche, Teilliste, Vorschläge fürs Suchfeld
 foreach (['?a=settings&tab=look&for=all', '?a=settings&tab=bangs&for=all', '?a=settings&tab=bangs&bq=wiki', '?a=settings&tab=bangs&bf=off',
-          '?a=settings&tab=bangs&bf=dead&for=all', '?a=settings&tab=bangs&bq=yt&frag=1', '?a=settings&tab=bangs&edit=w', '?a=bangs&q=w', '?a=bangs&q='] as $p) $pages[] = $p;
+          '?a=settings&tab=bangs&bf=dead&for=all', '?a=settings&tab=bangs&bq=yt&frag=1', '?a=settings&tab=bangs&edit=w', '?a=bangs&q=w', '?a=bangs&q=', '?a=settings&tab=bangs&bf=all&bl=xx&bp=2', '?a=settings&tab=bangs&bl=deen&frag=1', '?a=printcss&s=A6&m=0'] as $p) $pages[] = $p;
 // Jedes Werkzeug aus der Übersicht, dazu jede Datei, die eine Werkzeugseite lädt (Bausteine, Apps, Stylesheet)
 [, $overview] = req($base . '?a=tools');
 preg_match_all('/data-tool="([a-z]+)"/', $overview, $tm);
@@ -231,11 +231,16 @@ check('API: Kurzlinks auflisten', count($j['links'] ?? []) >= 2);
 [, $j] = $api('short_stats', ['code' => 'smoke-test', 'days' => 30]);
 check('API: Statistik zählt die Aufrufe', array_sum($j['days'] ?? []) >= 2, json_encode($j));
 [, $j] = $api('note_create', ['data' => '{"v":1,"iv":"AAAA","ct":"BBBB"}', 'hours' => 1, 'views' => 1]);
-check('API: Schnipsel anlegen', ($j['ok'] ?? false) && preg_match('/[?&]n=[A-Za-z0-9_-]{16}$/', $j['url'] ?? ''), json_encode($j));
-$nid = substr((string)($j['url'] ?? ''), -16);
+check('API: Schnipsel ohne Passwort abgelehnt', !($j['ok'] ?? true), json_encode($j));
+$nauth = str_repeat('cd', 32);
+[, $j] = $api('note_create', ['data' => '{"v":2,"iv":"AAAA","ct":"BBBB","salt":"CCCC"}', 'hours' => 1, 'views' => 1, 'pass' => 1, 'auth' => $nauth]);
+check('API: Schnipsel anlegen (kurzer Link)', ($j['ok'] ?? false) && preg_match('/[?&]n=[A-Za-z0-9]{8}$/', $j['url'] ?? ''), json_encode($j));
+$nid = substr((string)($j['url'] ?? ''), -8);
 check('Schnipsel: Abholseite', req($base . '?n=' . $nid)[0] === 200);
-$g1 = json_decode(req($base . '?a=noteget', ['id' => $nid])[1], true);
-$g2 = json_decode(req($base . '?a=noteget', ['id' => $nid])[1], true);
+$g0 = json_decode(req($base . '?a=noteget', ['id' => $nid, 'auth' => str_repeat('00', 32)])[1], true);
+check('Schnipsel: falsches Passwort abgelehnt', !($g0['ok'] ?? true) && !empty($g0['pass']));
+$g1 = json_decode(req($base . '?a=noteget', ['id' => $nid, 'auth' => $nauth])[1], true);
+$g2 = json_decode(req($base . '?a=noteget', ['id' => $nid, 'auth' => $nauth])[1], true);
 check('Schnipsel: einmal abholen, danach weg', ($g1['ok'] ?? false) && !($g2['ok'] ?? true));
 [, $j] = $api('htpasswd', ['user' => 'anna', 'pass' => 'geheim']);
 check('API: .htpasswd mit bcrypt', strpos((string)($j['line'] ?? ''), 'anna:$2y$') === 0, json_encode($j));

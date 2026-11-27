@@ -9,6 +9,7 @@ const SM_SHORT_MAX = 500;            // Kurzlinks pro Konto
 const SM_NOTE_MAX_BYTES = 120000;    // verschlüsselter Text-Schnipsel, etwa 80.000 Zeichen
 const SM_NOTE_MAX_DAYS = 30;
 const SM_NOTE_MAX_PER_USER = 200;
+const SM_NOTE_ID = '/^([A-Za-z0-9]{8}|[A-Za-z0-9_-]{16})$/';   // neu: 8 Zeichen (Schlüssel aus dem Passwort), alt: 16 Zeichen (Schlüssel im Link)
 
 /** Ziel für einen Kurzlink prüfen: nur http(s), ohne Leerzeichen. Ohne Protokoll wird https:// ergänzt. '' = ungültig. */
 function smCleanShortTarget($u): string
@@ -22,6 +23,18 @@ function smCleanShortTarget($u): string
     $own = strtolower((string)parse_url(smOrigin(), PHP_URL_HOST));
     if ($own !== '' && strtolower($host) === $own && preg_match('/[?&](s|n)=/', $u)) return '';
     return $u;
+}
+
+/** Zeigt die Adresse auf einen Kurzlink oder Schnipsel dieser Suchmaschine? Dann eine verständliche Meldung, sonst ''. */
+function smShortOwnLink(string $u): string
+{
+    $u = trim($u);
+    $own = strtolower((string)parse_url(smOrigin(), PHP_URL_HOST));
+    $host = strtolower((string)parse_url(preg_match('~^[a-z][a-z0-9+.\-]*://~i', $u) ? $u : 'https://' . $u, PHP_URL_HOST));
+    if ($own === '' || $host !== $own) return '';
+    if (preg_match('/[?&]n=/', $u)) return t('Das ist schon ein Text-Schnipsel dieser Suchmaschine. Neue Schnipsel haben von sich aus einen kurzen Link, den musst du nicht extra kürzen.');
+    if (preg_match('/[?&]s=/', $u)) return t('Das ist schon ein Kurzlink dieser Suchmaschine.');
+    return '';
 }
 
 /** Tracking-Parameter entfernen (utm_…, fbclid, gclid und Verwandte) */
@@ -78,6 +91,7 @@ function smShortTitle(string $url): string
  */
 function smShortCreate(int $uid, string $url, array $o = []): array
 {
+    if (($own = smShortOwnLink($url)) !== '') return ['', $own];
     $url = smCleanShortTarget($url);
     if ($url === '') return ['', t('Bitte eine vollständige Adresse eingeben, z. B. https://example.org/seite.')];
     if (!empty($o['strip'])) $url = smStripTracking($url);
@@ -289,7 +303,11 @@ function smNoteCreate(int $uid, string $data, int $hours, int $views, bool $hasP
 {
     // Mit Passwort: der Browser leitet aus dem Passwort zusätzlich einen Prüfwert ab. Nur dessen Prüfsumme liegt hier,
     // so verbraucht ein falsches Passwort keinen Abruf und der Server kennt das Passwort trotzdem nie.
-    if ($hasPass && !preg_match('/^[a-f0-9]{64}$/', $auth)) return ['', t('Der verschlüsselte Inhalt ist ungültig.')];
+    // Neue Schnipsel (v2) brauchen immer ein Passwort: der Schlüssel kommt ganz aus dem Passwort, der Link bleibt kurz (…/?n=Ab3xK9pQ).
+    $dv = json_decode($data, true);
+    if (!$hasPass || !preg_match('/^[a-f0-9]{64}$/', $auth) || !is_array($dv) || (int)($dv['v'] ?? 0) !== 2 || (string)($dv['salt'] ?? '') === '') {
+        return ['', t('Bitte ein Passwort für den Schnipsel festlegen (mindestens 8 Zeichen).')];
+    }
     smNoteCleanup();
     if (strlen($data) > SM_NOTE_MAX_BYTES) return ['', t('Der Text ist zu lang.')];
     $d = json_decode($data, true);
@@ -299,7 +317,13 @@ function smNoteCreate(int $uid, string $data, int $hours, int $views, bool $hasP
     if ((int)smQ('SELECT COUNT(*) FROM notes WHERE user_id = ?', [$uid])->fetchColumn() >= SM_NOTE_MAX_PER_USER) return ['', t('Du hast schon %d Schnipsel. Bitte erst alte löschen.', SM_NOTE_MAX_PER_USER)];
     $hours = max(1, min(SM_NOTE_MAX_DAYS * 24, $hours));
     $views = max(0, min(100, $views));
-    $id = rtrim(strtr(base64_encode(random_bytes(12)), '+/', '-_'), '=');
+    $abc = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $id = '';
+    for ($try = 0; $try < 20; $try++) {
+        $id = '';
+        for ($i = 0; $i < 8; $i++) $id .= $abc[random_int(0, strlen($abc) - 1)];
+        if (!smQ('SELECT 1 FROM notes WHERE id = ?', [$id])->fetchColumn()) break;
+    }
     smQ('INSERT INTO notes (id, user_id, data, created, expires, views_left, has_pass, label, auth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [$id, $uid, $data, time(), time() + $hours * 3600, $views, $hasPass ? 1 : 0, mb_substr(trim($label), 0, 80), $hasPass ? hash('sha256', $auth) : '']);
     return [$id, ''];
@@ -308,7 +332,7 @@ function smNoteCreate(int $uid, string $data, int $hours, int $views, bool $hasP
 /** Schnipsel abholen (öffentlich). Verbraucht einen Abruf, beim letzten wird er sofort gelöscht. null = weg, 'pass' = Passwort falsch. */
 function smNoteFetch(string $id, string $auth = '')
 {
-    if (!preg_match('/^[A-Za-z0-9_-]{16}$/', $id)) return null;
+    if (!preg_match(SM_NOTE_ID, $id)) return null;
     smNoteCleanup();
     $row = smQ('SELECT * FROM notes WHERE id = ?', [$id])->fetch();
     if (!$row) return null;
@@ -322,11 +346,11 @@ function smNoteFetch(string $id, string $auth = '')
 /** Gibt es den Schnipsel noch? (ohne einen Abruf zu verbrauchen) */
 function smNoteExists(string $id): ?array
 {
-    if (!preg_match('/^[A-Za-z0-9_-]{16}$/', $id)) return null;
+    if (!preg_match(SM_NOTE_ID, $id)) return null;
     $row = smQ('SELECT expires, views_left, has_pass, data FROM notes WHERE id = ? AND expires >= ?', [$id, time()])->fetch();
     if (!$row) return null;
     $d = json_decode((string)$row['data'], true);
-    return ['expires' => (int)$row['expires'], 'left' => (int)$row['views_left'], 'pass' => (int)$row['has_pass'] === 1, 'salt' => is_array($d) ? (string)($d['salt'] ?? '') : ''];
+    return ['expires' => (int)$row['expires'], 'left' => (int)$row['views_left'], 'pass' => (int)$row['has_pass'] === 1, 'salt' => is_array($d) ? (string)($d['salt'] ?? '') : '', 'v' => is_array($d) ? (int)($d['v'] ?? 1) : 1];
 }
 
 function smNoteList(int $uid): array

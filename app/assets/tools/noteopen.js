@@ -1,4 +1,5 @@
-/* Suchmaschine – Text-Schnipsel abholen und im Browser entschlüsseln (AES-256-GCM, Schlüssel hinter dem # im Link) */
+/* Suchmaschine – Text-Schnipsel abholen und im Browser entschlüsseln (AES-256-GCM).
+   Neu (v2): Schlüssel kommt ganz aus dem Passwort (PBKDF2), der Link ist kurz. Alt (v1): Schlüssel hinter dem # im Link. */
 (function () {
 'use strict';
 var box = document.querySelector('[data-note]');
@@ -9,14 +10,19 @@ var errBox = box.querySelector('[data-note-err]');
 function err(m) { errBox.textContent = m; errBox.hidden = !m; }
 function b64d(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
 function hex(a) { return Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
-var frag = location.hash.slice(1);
-if (!/^[A-Za-z0-9_-]{40,}$/.test(frag)) { err(L('nokey')); form.hidden = true; return; }
-// Den Schlüssel sofort aus der Adressleiste nehmen, damit er nicht im Verlauf oder in Bildschirmfotos landet
-try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-var key = b64d(frag);
+var v2 = box.getAttribute('data-v') === '2';
+var key = null;
+if (!v2) {
+    var frag = location.hash.slice(1);
+    if (!/^[A-Za-z0-9_-]{40,}$/.test(frag)) { err(L('nokey')); form.hidden = true; return; }
+    // Den Schlüssel sofort aus der Adressleiste nehmen, damit er nicht im Verlauf oder in Bildschirmfotos landet
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    key = b64d(frag);
+}
+if (!window.crypto || !crypto.subtle) { err(L('https')); form.hidden = true; return; }
 async function derive(pass, salt) {
     var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
-    return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: 310000 }, base, 512));
+    return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: v2 ? 600000 : 310000 }, base, 512));
 }
 form.addEventListener('submit', async function (ev) {
     ev.preventDefault();
@@ -25,7 +31,11 @@ form.addEventListener('submit', async function (ev) {
     b.disabled = true;
     try {
         var raw = key, auth = '';
-        if (box.getAttribute('data-pass') === '1') {
+        if (v2) {
+            var bits2 = await derive(form.querySelector('input[name=pass]').value, b64d(box.getAttribute('data-salt')));
+            raw = bits2.slice(0, 32);
+            auth = hex(bits2.slice(32));
+        } else if (box.getAttribute('data-pass') === '1') {
             var bits = await derive(form.querySelector('input[name=pass]').value, b64d(box.getAttribute('data-salt')));
             var both = new Uint8Array(64);
             both.set(key.slice(0, 32), 0);

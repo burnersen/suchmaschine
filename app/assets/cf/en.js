@@ -160,6 +160,7 @@ CF.EN = {
     'Bild %s von %s · Durchgang %s · %s Bytes%s': 'Frame %s of %s · round %s · %s bytes%s',
     'Bild hierher ziehen, klicken oder Screenshot einfügen (Strg+V)': 'Drag an image here, click, or paste a screenshot (Ctrl+V)',
     'Bild kopiert': 'Image copied',
+    'Drucken hat nicht geklappt. Bitte als PNG oder SVG laden und von dort drucken.': 'Printing did not work. Please download as PNG or SVG and print from there.',
     'Bild wird gelesen …': 'Reading image …',
     'Bild wählen': 'Choose image',
     'Binär': 'Binary',

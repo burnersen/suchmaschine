@@ -48,26 +48,30 @@ function smRun(): void
 
     // Hintergrundarbeit für die Bangs (Liste aktualisieren, Erreichbarkeit prüfen), angestoßen per JavaScript, ohne Anmeldung
     if ($a === 'bangtick') smServeBangTick();
+    // Druck-Stylesheet der QR-Werkzeuge (Papierformat per @page, eingebettete Stile verbietet die CSP)
+    if ($a === 'printcss') smServePrintCss();
     // Lesezeichen „Lesen & Drucken“: Seite aus dem Browser hochladen (kommt von der fremden Seite, darum ohne Formular-Prüfung,
     // erlaubt nur mit dem persönlichen Schlüssel des Kontos)
     if ($a === 'readin' && $post) smServeReadIn();
 
     $me = smUser();
 
-    // Login per geheimem Token in der Adresse (?token=…, auch zusammen mit &q=… aus der Adressleiste).
-    // Danach sofort weiter auf dieselbe Adresse ohne Token, damit er nicht in Verlauf oder Lesezeichen hängen bleibt.
-    if (isset($_GET['token']) && is_string($_GET['token']) && !$post) {
+    // Login per geheimem Token: …/?a=login#token=… (der Teil nach # erreicht nie den Server und landet so in keinem Protokoll,
+    // ein kleines Skript schickt ihn per POST an ?a=tokenlogin) oder wie bisher …/?token=… (auch zusammen mit &q=… aus der Adressleiste).
+    // Danach sofort weiter auf die Adresse ohne Token, damit er nicht in Verlauf oder Lesezeichen hängen bleibt.
+    $tokPost = $a === 'tokenlogin' && $post && is_string($_POST['token'] ?? null);
+    if ($tokPost || (isset($_GET['token']) && is_string($_GET['token']) && !$post)) {
         $clean = $_GET;
-        unset($clean['token']);
+        unset($clean['token'], $clean['a']);
         $to = smBase() . ($clean ? '?' . http_build_query($clean) : '');
         // Nur direkt aufgerufen (Adressleiste, Lesezeichen, Browser-Suche), nicht über einen Link einer fremden Seite.
         // Sonst könnte eine fremde Seite dich unbemerkt in ein anderes Konto einloggen (Login-CSRF).
         $site = (string)($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '');
-        if ($site === 'cross-site' || $site === 'same-site') {
+        if ($tokPost ? !smSameOrigin() : ($site === 'cross-site' || $site === 'same-site')) {
             smFlash('error', t('Aus Sicherheitsgründen funktioniert die Token-Adresse nur direkt aus der Adressleiste, als Lesezeichen oder als Browser-Suche, nicht über einen Link auf einer anderen Seite.'));
             smRedirect($to);
         }
-        [$uid, $terr] = smTokenLogin(trim($_GET['token']));
+        [$uid, $terr] = smTokenLogin(trim($tokPost ? $_POST['token'] : $_GET['token']));
         if ($uid === 0) {
             smFlash('error', $terr);
             smRedirect($to);
@@ -146,6 +150,8 @@ function smRun(): void
             // Gäste wählen ihre Suchmaschine (gemerkt nur im Browser), Konten in den Einstellungen
             if ($post && !$me) {
                 $u = (string)($_POST['fallback'] ?? '');
+                // Wer den Standard wählt, bekommt kein Cookie: so gilt jede spätere Änderung des Administrators sofort
+                if ($u === smFallbackDefault()) $u = '';
                 $path = (string)parse_url(smBase(), PHP_URL_PATH);
                 setcookie('smfb', smFallbackValid($u, true) ? $u : '', ['expires' => smFallbackValid($u, true) ? time() + 31536000 : time() - 3600,
                     'path' => $path !== '' ? $path : '/', 'samesite' => 'Lax', 'secure' => smIsHttps(), 'httponly' => true]);

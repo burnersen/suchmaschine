@@ -15,7 +15,7 @@ function smPageSettings(array $me, bool $post): void
     if ($tab === 'look' && ($_GET['default'] ?? '') === '1' && $me['is_admin'] && !$post) smRedirect(smUrl(['a' => 'settings', 'tab' => 'look', 'for' => 'all']));
     $for = ($_GET['for'] ?? '') === 'all' && $me['is_admin'] && in_array($tab, ['look', 'bangs'], true) ? 'all' : '';
     $back = ['for' => $for !== '' ? $for : null];
-    if ($tab === 'bangs') foreach (['bq', 'bf'] as $k) if (isset($_GET[$k]) && is_string($_GET[$k]) && $_GET[$k] !== '') $back[$k] = mb_substr($_GET[$k], 0, 60);
+    if ($tab === 'bangs') foreach (['bq', 'bf', 'bl', 'bp'] as $k) if (isset($_GET[$k]) && is_string($_GET[$k]) && $_GET[$k] !== '') $back[$k] = mb_substr($_GET[$k], 0, 60);
 
     if ($post) {
         $do = (string)($_POST['do'] ?? '');
@@ -91,17 +91,44 @@ function smPageSettings(array $me, bool $post): void
                 break;
             case 'bang_save':
             case 'bang_del':
+            case 'bang_bulkdel':
+            case 'bang_dellang':
             case 'bang_revert':
             case 'bang_unhide':
             case 'bang_restore':
-                if ($for === 'all') {
-                    // Für alle: ändert die Schicht des Administrators über der großen Liste
-                    [$g, $err, $ok] = smBangEdit(smBangGlobal(), $do, $_POST, function (string $t): bool { return smBangSys($t) !== null; });
-                    if ($err === '') smBangSetGlobal($g);
+            case 'bang_undo':
+                $scope = $for === 'all' ? 'all' : 'mine';
+                $layer = $for === 'all' ? smBangGlobal() : ['own' => $p['bangs'] ?? [], 'off' => $p['bang_off'] ?? []];
+                if ($do === 'bang_undo') {
+                    $u = smBangUndoGet($me, $scope);
+                    if (!$u) { $err = t('Da gibt es nichts mehr rückgängig zu machen.'); break; }
+                    $l = smBangUndoApply($layer, $u['diff']);
+                    $ok = t('Rückgängig gemacht.');
+                    smBangUndoSet($me, $scope, null);
                 } else {
-                    $G = smBangLayers(null, 'all');
-                    $lower = function (string $t) use ($G): bool { return isset($G['gown'][$t]) || (!isset($G['goff'][$t]) && smBangSys($t) !== null); };
-                    [$l, $err, $ok] = smBangEdit(['own' => $p['bangs'] ?? [], 'off' => $p['bang_off'] ?? []], $do, $_POST, $lower);
+                    if ($for === 'all') {
+                        // Für alle: ändert die Schicht des Administrators über der großen Liste
+                        $lower = function (string $t): bool { return smBangSys($t) !== null; };
+                    } else {
+                        $G = smBangLayers(null, 'all');
+                        $lower = function (string $t) use ($G): bool { return isset($G['gown'][$t]) || (!isset($G['goff'][$t]) && smBangSys($t) !== null); };
+                    }
+                    $in = $_POST;
+                    if ($do === 'bang_dellang') {
+                        // Alle Bangs einer Sprachgruppe auf einmal löschen (z. B. alle anderssprachigen)
+                        $lg = (string)($_POST['bl'] ?? 'xx');
+                        $in['ts'] = smBangAllTriggers($me, $scope, isset(smBangLangs()[$lg]) && $lg !== '' ? $lg : 'xx');
+                        $do2 = 'bang_bulkdel';
+                    } else {
+                        $do2 = $do;
+                    }
+                    [$l, $err, $ok] = smBangEdit($layer, $do2, $in, $lower);
+                    if ($err === '') smBangUndoSet($me, $scope, smBangDiff($layer, $l), $ok);
+                }
+                if ($err !== '') break;
+                if ($for === 'all') {
+                    smBangSetGlobal($l);
+                } else {
                     $p['bangs'] = smCleanBangs($l['own']);
                     $p['bang_off'] = smCleanBangOff($l['off']);
                 }
@@ -114,6 +141,8 @@ function smPageSettings(array $me, bool $post): void
                     smSetSetting('bang_auto', !empty($_POST['bang_auto']) ? '1' : '0');
                     smSetSetting('bang_check', !empty($_POST['bang_check']) ? '1' : '0');
                     smSetSetting('bang_ref', !empty($_POST['bang_ref']) ? '1' : '0');
+                    smSetSetting('bang_autodel', !empty($_POST['bang_autodel']) ? '1' : '0');
+                    if (($n = smBangAutoSweep()) > 0) $ok = t('Gespeichert. %d Bangs nicht erreichbarer Seiten wurden für alle gelöscht.', $n);
                 } elseif ($do === 'bang_refresh') {
                     @set_time_limit(120);
                     $err = smBangRefresh();
@@ -123,6 +152,7 @@ function smPageSettings(array $me, bool $post): void
                     @set_time_limit(120);
                     [$n, $bad] = smBangCheck(60);
                     $ok = t('%d Domains geprüft, davon %d gerade nicht erreichbar.', $n, $bad);
+                    if (($m = smBangAutoSweep()) > 0) $ok .= ' ' . t('%d Bangs automatisch gelöscht.', $m);
                 }
                 break;
             case 'lens_save':
