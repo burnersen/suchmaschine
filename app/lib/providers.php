@@ -766,3 +766,34 @@ function smBookmarklet(): string
     return 'javascript:' . rawurlencode($js);
 }
 
+/** Persönlicher Schlüssel, mit dem das Lesezeichen „Lesen & Drucken“ eine Seite hochladen darf („Konto.Signatur“) */
+function smReadKey(int $uid): string
+{
+    return $uid . '.' . substr(hash_hmac('sha256', 'readin|' . $uid, smImgSecret()), 0, 32);
+}
+
+/** Konto zu einem Schlüssel aus smReadKey() oder 0 */
+function smReadKeyUser(string $k): int
+{
+    if (!preg_match('/^(\d{1,9})\.([a-f0-9]{32})$/', $k, $m)) return 0;
+    return hash_equals(smReadKey((int)$m[1]), $k) ? (int)$m[1] : 0;
+}
+
+/**
+ * Lesezeichen „Lesen & Drucken“. Mit Konto schickt es die Seite mit, die der Browser schon geladen hat (so klappt es auch bei
+ * Seiten, die Server aussperren, z. B. Chefkoch). Skripte, Stile und Grafiken bleiben dabei weg, die strukturierten Daten
+ * (Rezepte) bleiben. Klappt das Hochladen nicht, holt der Server die Seite selbst. Ohne Konto: nur die Adresse.
+ */
+function smReadBookmarklet(?array $me = null): string
+{
+    $o = json_encode(smOrigin(), JSON_UNESCAPED_SLASHES);
+    $go = 'function go(){location.href=' . $o . '+"?a=read&u="+encodeURIComponent(location.href)}';
+    if (!$me) return 'javascript:' . rawurlencode('(function(){' . $go . 'go()})()');
+    $js = '(function(){' . $go . 'try{var d=document.documentElement.cloneNode(true);'
+        . 'd.querySelectorAll(\'script:not([type="application/ld+json"]),style,svg,noscript,iframe,template,link\').forEach(function(e){e.remove()});'
+        . 'var h="<!DOCTYPE html>"+d.outerHTML;if(h.length>3e6)h=h.slice(0,3e6);'
+        . 'var f=document.createElement("form");f.method="post";f.action=' . $o . '+"?a=readin";f.acceptCharset="UTF-8";f.style.display="none";'
+        . '[["u",location.href],["k",' . json_encode(smReadKey((int)$me['id'])) . '],["html",h]].forEach(function(p){var i=document.createElement("textarea");i.name=p[0];i.value=p[1];f.appendChild(i)});'
+        . 'document.body.appendChild(f);f.submit();setTimeout(go,4000)}catch(e){go()}})()';
+    return 'javascript:' . rawurlencode($js);
+}

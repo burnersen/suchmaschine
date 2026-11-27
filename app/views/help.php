@@ -42,6 +42,7 @@ $combos = $de ? [
     <nav class="toc">
         <a href="#ueberblick"><?= h(t('Überblick')) ?></a>
         <a href="#dienste"><?= h(t('Suchdienst')) ?></a>
+        <a href="#lesen"><?= h(t('Lesen & Drucken')) ?></a>
         <a href="#bildergross"><?= h(t('Bilder groß')) ?></a>
         <a href="#sofort"><?= h(t('Sofort-Antworten')) ?></a>
         <a href="#werkzeuge"><?= h(t('Werkzeuge')) ?></a>
@@ -87,6 +88,26 @@ $combos = $de ? [
             <li><?= h(t('Jeder Brave-Dienst hat ein eigenes Limit knapp unter dem freien Guthaben. Ist es erreicht, hält die Suchmaschine an, bevor Kosten entstehen.')) ?></li>
             <li><?= h(t('Die KI-Antwort holt die Suchmaschine nur auf Knopfdruck (oder automatisch, wenn du das einstellst). Sie kostet mehr als eine normale Suche.')) ?></li>
         </ul>
+    </section>
+
+    <section class="panel" id="lesen">
+        <h2><?= h(t('Seiten lesen und drucken (z. B. Rezepte)')) ?></h2>
+        <p><?= h(t('Jede Seite lässt sich hier ohne Werbung lesen, drucken oder als PDF speichern. Bei Rezepten (Chefkoch und fast alle anderen Rezeptseiten) kommt nur das Rezept: Bild, Zutaten, Zubereitung. Mit + und − rechnest du die Zutaten auf andere Portionen um, Ausdruck und PDF rechnen mit. Dafür brauchst du ein Konto.')) ?></p>
+        <h3><?= h(t('Drei Wege dorthin')) ?></h3>
+        <ol class="bullets">
+            <li><?= h(t('Link einfügen: Adresse kopieren (z. B. von Chefkoch) und oben ins Suchfeld einfügen, Enter. Fertig.')) ?></li>
+            <li><?= h(t('Bei einem Treffer hier: Menü ⋮ → „Ohne Werbung lesen“.')) ?></li>
+            <li><?= h(t('Lesezeichen „Lesen & Drucken“: Bist du gerade auf der Seite (z. B. in Safari auf Chefkoch), antippen, und sie öffnet sich hier im Lesemodus. Einrichten genau wie bei „Bilder groß“ unten, nur mit diesem Knopf bzw. Code.')) ?></li>
+        </ol>
+<?php if ($me): ?>
+        <p><a class="btn btn--primary" href="<?= h(smReadBookmarklet($me)) ?>" data-bookmarklet title="<?= h(t('In die Lesezeichenleiste ziehen')) ?>">📖 <?= h(t('Lesen & Drucken')) ?></a>
+            <button type="button" class="btn" data-copy-text="<?= h(smReadBookmarklet($me)) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Lesezeichen-Code kopieren')) ?></button></p>
+        <p class="muted small"><?= h(t('Dieses Lesezeichen ist persönlich für dein Konto, bitte nicht weitergeben. Es schickt die Seite mit, die dein Browser schon geladen hat. Darum klappt es auch bei Seiten, die Server aussperren (z. B. Chefkoch oder REWE).')) ?></p>
+<?php else: ?>
+        <p class="muted small"><?= h(t('Nach dem Anmelden findest du hier dein persönliches Lesezeichen.')) ?></p>
+<?php endif; ?>
+        <p><a class="btn" href="<?= h(smUrl(['a' => 'recipes'])) ?>">🍳 <?= h(t('Zum Bereich Rezepte (mit Liste der getesteten Seiten)')) ?></a></p>
+        <ul class="bullets"><li><?= h(t('Als App auf Android oder am PC installiert, taucht die Suchmaschine auch im Teilen-Menü auf: Link teilen, „Ohne Werbung lesen und drucken“ wählen.')) ?></li><li><?= h(t('Bezahlschranken umgeht der Lesemodus nicht. Er zeigt, was frei zugänglich ist.')) ?></li></ul>
     </section>
 
     <section class="panel" id="bildergross">

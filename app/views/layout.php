@@ -75,6 +75,7 @@ $flash = smFlash();
                     <span><strong><?= h($me['name']) ?></strong><?php if ($me['is_admin']): ?><br><small><?= h(t('Administrator')) ?></small><?php endif; ?></span></div>
                 <a href="<?= h(smUrl(['a' => 'settings'])) ?>"><?= h(t('Einstellungen')) ?></a>
                 <a href="<?= h(smUrl(['a' => 'tools'])) ?>"><?= h(t('Werkzeuge')) ?></a>
+                <a href="<?= h(smUrl(['a' => 'recipes'])) ?>"><?= h(t('Rezepte')) ?></a>
                 <a href="<?= h(smUrl(['a' => 'help'])) ?>"><?= h(t('Hilfe')) ?></a>
 <?php if ($me['is_admin']): ?>
                 <a href="<?= h(smUrl(['a' => 'admin'])) ?>"><?= h(t('Verwaltung')) ?></a>
