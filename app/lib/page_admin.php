@@ -240,6 +240,9 @@ function smSaveProviders(): string
     smSetSetting('balance', empty($_POST['balance']) ? '0' : '1');
     smSetSetting('answers', empty($_POST['answers']) ? '0' : '1');
     smSetSetting('wiki', empty($_POST['wiki']) ? '0' : '1');
+    smSetSetting('stream', empty($_POST['stream']) ? '0' : '1');
+    smSetSetting('suggest', empty($_POST['suggest']) ? '0' : '1');
+    smSetSetting('race', (string)max(0, min(20, (int)($_POST['race'] ?? 3))));
     $multi = array_values(array_intersect(array_keys(smProviders()), (array)($_POST['multi'] ?? [])));
     smSetSetting('multi_set', implode(',', $multi));
     smSetSetting('fallback_auto', empty($_POST['fallback_auto']) ? '0' : '1');

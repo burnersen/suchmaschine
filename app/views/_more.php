@@ -9,9 +9,9 @@ $moreLabel = '';
 if (!empty($res['more']) && $page < 10) {
     $moreUrl = smUrl(['p' => $page + 1] + $base);
     $moreLabel = $tab === 'images' ? t('Weitere Bilder') : t('Weitere Treffer');
-} elseif ($tab === 'news' && $flt['auto'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== '') {
-    $moreUrl = smUrl(['f' => $nx, 'xf' => $fresh, 'p' => null] + $base);
-    $moreLabel = t('Ältere News: %s', smFreshness()[$nx]);
+} elseif ($nt = smNextTier($tab, $flt, (string)$fresh, $res)) {
+    $moreUrl = smUrl($nt[0] + $base);
+    $moreLabel = $nt[1];
 }
 if ($moreUrl !== ''): ?>
     <div class="more" data-more="<?= h($moreUrl . (strpos($moreUrl, '?') === false ? '?' : '&') . 'part=1') ?>"<?= $tab === 'images' ? ' data-more-grid' : '' ?> data-error="<?= h(t('Weitere Treffer konnten nicht geladen werden.')) ?>">
@@ -22,6 +22,6 @@ if ($moreUrl !== ''): ?>
             <span class="spinner"></span>
         </div>
     </div>
-<?php elseif ($page > 1 || count($res['results']) > 5 || $flt['xf'] !== ''): ?>
+<?php elseif ($page > 1 || count($res['results']) > 5 || $flt['xf'] !== '' || !empty($base['iq'])): ?>
     <p class="more__end"><?= h(t('Das waren alle Treffer.')) ?></p>
 <?php endif;

@@ -54,9 +54,10 @@ function smBdTbs(array $p): string
         $md = function (string $d): string { return $d === '' ? '' : date('n/j/Y', (int)strtotime($d)); };
         $tbs[] = 'cdr:1,cd_min:' . $md((string)$p['from']) . ',cd_max:' . $md((string)$p['to']);
     } elseif ($older > 0) {
+        // Nächste Zeitstufe ohne die schon gezeigte: bis vor $older Tagen, ab dem Anfang der Stufe (bei „älter als ein Jahr“ ohne Anfang)
         $days = ['pd' => 1, 'pw' => 7, 'pm' => 31, 'py' => 365][$p['fresh']] ?? 0;
         $hour = intdiv(time(), 3600) * 3600;
-        $tbs[] = 'cdr:1,cd_min:' . date('n/j/Y', $hour - max($days, $older + 1) * 86400) . ',cd_max:' . date('n/j/Y', $hour - $older * 86400);
+        $tbs[] = 'cdr:1,cd_min:' . ($days > 0 ? date('n/j/Y', $hour - max($days, $older + 1) * 86400) : '') . ',cd_max:' . date('n/j/Y', $hour - $older * 86400);
     } elseif (($q = ['ph' => 'h', 'pd' => 'd', 'pw' => 'w', 'pm' => 'm', 'py' => 'y'][$p['fresh']] ?? '') !== '') {
         $tbs[] = 'qdr:' . $q;
     }
@@ -64,6 +65,8 @@ function smBdTbs(array $p): string
     if ($p['kind'] === 'images') {
         $im = (array)($p['img'] ?? []);
         $size = ['xl' => 'isz:lt,islt:2mp', 'large' => 'isz:l', 'medium' => 'isz:m', 'small' => 'isz:i'][$im['is'] ?? ''] ?? '';
+        // Beste Qualität zuerst: Stufen ab 4 MP, ab 2 MP, groß, alle
+        if ($size === '') $size = ['q4' => 'isz:lt,islt:4mp', 'q2' => 'isz:lt,islt:2mp', 'ql' => 'isz:l'][$im['iq'] ?? ''] ?? '';
         if ($size !== '') $tbs[] = $size;
         if (($ar = ['land' => 'w', 'port' => 't', 'square' => 's'][$im['io'] ?? ''] ?? '') !== '') $tbs[] = 'iar:' . $ar;
         $ic = (string)($im['ic'] ?? '');
@@ -100,7 +103,11 @@ function smBdGoogleUrl(array $p): string
     $tbm = ['images' => 'isch', 'news' => 'nws', 'videos' => 'vid'][$p['kind']] ?? '';
     if ($tbm !== '') $g['tbm'] = $tbm;
     if ($p['kind'] !== 'images' && (int)$p['page'] > 1) $g['start'] = ((int)$p['page'] - 1) * 10;
-    if (($tbs = smBdTbs($p)) !== '') $g['tbs'] = $tbs;
+    if (($tbs = smBdTbs($p)) !== '') {
+        $g['tbs'] = $tbs;
+        // Mit Zeitfilter zeigt Google sonst eine andere Seitenart, die sich nicht zerlegen lässt: dann nur den Reiter „Web“
+        if ($p['kind'] === 'web') $g['udm'] = '14';
+    }
     if ($p['safe'] === 'strict') $g['safe'] = 'active';
     elseif ($p['safe'] === 'off') $g['safe'] = 'off';
     if (!empty($p['exact']) || !empty($p['verb'])) $g['nfpr'] = '1';
@@ -451,27 +458,18 @@ function smBdImages(array $d): array
     return ['results' => $out, 'more' => false, 'altered' => smBdAltered($d)];
 }
 
-/** Alle Google-Weiterleitungen eines Ergebnisses auf einmal auflösen, Reste über den eigenen Server leiten */
+/**
+ * Google-Weiterleitungen eines Ergebnisses über den eigenen Server leiten. Aufgelöst wird erst beim Klick (?a=go):
+ * Das spart bei jeder Suche eine halbe bis eine Sekunde, und Google sieht trotzdem nicht, wer was anklickt.
+ */
 function smBdFixLinks(array $out): array
 {
-    $urls = [];
-    $walk = function (&$x) use (&$walk, &$urls) {
-        if (is_array($x)) { foreach ($x as &$v) $walk($v); unset($v); }
-        elseif (is_string($x) && smBdIsRedirect($x)) $urls[] = $x;
-    };
-    $walk($out);
-    if (!$urls) return $out;
-    $map = smBdResolve($urls);
-    $fix = function (&$x, $key = '') use (&$fix, $map) {
+    $fix = function (&$x) use (&$fix) {
         if (is_array($x)) {
-            foreach ($x as $k => &$v) $fix($v, (string)$k);
+            foreach ($x as &$v) $fix($v);
             unset($v);
-            // Domain nachtragen, wenn sie vorher fehlte
-            if (isset($x['url'], $x['host']) && $x['host'] === '' && is_string($x['url']) && preg_match('~^https?://~', $x['url'])) {
-                $x['host'] = smHost((string)parse_url($x['url'], PHP_URL_HOST));
-            }
         } elseif (is_string($x) && smBdIsRedirect($x)) {
-            $x = $map[$x] ?? smBdGoUrl($x);
+            $x = smBdGoUrl($x);
         }
     };
     $fix($out);
@@ -601,4 +599,41 @@ function smBdStock(array $fs, string $q): ?array
     return ['title' => $title, 'symbol' => $sym, 'exchange' => smPlain((string)($fs['exchange'] ?? '')), 'price' => $price,
             'currency' => preg_match('/^[A-Z]{3}$/', $cur) ? $cur : '', 'abs' => $abs, 'pct' => $pct,
             'up' => !preg_match('/^[-−]/u', $abs !== '' ? $abs : $pct), 'period' => smPlain((string)($ch['period'] ?? '')), 'rows' => $rows];
+}
+
+/* ---------- Suchvorschläge ---------- */
+
+/**
+ * ?a=suggest&q=…: Vorschläge von Google fürs Suchfeld (JSON). Kostenlos, verbraucht keine Anfragen bei Bright Data oder Brave.
+ * Der eigene Server fragt, Google sieht also nur den Server. Jeder Vorschlag wird einen Tag zwischengespeichert.
+ */
+function smServeSuggest(): void
+{
+    $q = trim(mb_substr(is_string($_GET['q'] ?? null) ? $_GET['q'] : '', 0, 100));
+    $out = [];
+    if (smSetting('suggest') === '1' && mb_strlen($q) >= 2 && $q[0] !== '!') {
+        $hl = smLang() === 'de' ? 'de' : 'en';
+        $ck = 'sugg|' . $hl . '|' . mb_strtolower($q);
+        $hit = smCacheGet($ck);
+        if ($hit !== null) {
+            $out = (array)($hit['l'] ?? []);
+        } else {
+            $url = (getenv('SM_SUGGEST_BASE') ?: 'https://suggestqueries.google.com/complete/search')
+                 . '?' . http_build_query(['client' => 'firefox', 'hl' => $hl, 'ie' => 'utf-8', 'oe' => 'utf-8', 'q' => $q]);
+            $r = smHttpMulti(['x' => ['url' => $url, 'method' => 'GET', 'headers' => ['Accept: application/json']]], 3)['x'];
+            $d = json_decode($r['body'], true);
+            if ($r['status'] === 200 && is_array($d) && is_array($d[1] ?? null)) {
+                foreach ($d[1] as $s) {
+                    if (is_string($s) && ($s = trim(smPlain($s))) !== '' && mb_strlen($s) <= 120) $out[] = $s;
+                    if (count($out) >= 8) break;
+                }
+                smCacheSet($ck, ['l' => $out], 86400);
+            }
+        }
+    }
+    smHeaders();
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: private, max-age=600');
+    echo json_encode(['list' => array_values($out)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 }

@@ -164,6 +164,12 @@ $without = array_values(array_diff($order, $withKey));
                 <span><?= h(t('KI-Übersicht von Google zeigen')) ?><br><small class="muted"><?= h(t('Hat Google zu einer Suche eine KI-Übersicht, steht sie über den Treffern. Kostet nichts extra.')) ?></small></span></label>
             <label class="switch"><input type="checkbox" name="wiki" value="1"<?= smSetting('wiki') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
                 <span><?= h(t('Wikipedia-Kurzinfo ergänzen')) ?><br><small class="muted"><?= h(t('Liefert Google keine eigene Infobox, holt der Server eine kostenlose Kurzinfo von Wikipedia. Wikipedia sieht dann den Suchbegriff, aber nur den Server, nicht den Besucher.')) ?></small></span></label>
+            <label class="switch"><input type="checkbox" name="stream" value="1"<?= smSetting('stream') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Seite sofort zeigen')) ?><br><small class="muted"><?= h(t('Suchfeld und Filter erscheinen sofort, die Treffer kommen nach, sobald sie da sind. Puffert dein Webserver die Antwort, merkt man davon nichts, schadet aber auch nicht.')) ?></small></span></label>
+            <label class="switch"><input type="checkbox" name="suggest" value="1"<?= smSetting('suggest') === '1' ? ' checked' : '' ?>><span class="switch__ui"></span>
+                <span><?= h(t('Suchvorschläge von Google')) ?><br><small class="muted"><?= h(t('Beim Tippen schlägt Google passende Suchen vor. Kostenlos, verbraucht keine Anfragen. Dein Server fragt Google, Google sieht also, was getippt wird, aber nicht von wem.')) ?></small></span></label>
+            <label class="field field--short"><span><?= h(t('Wettlauf nach (Sekunden)')) ?></span><input type="number" name="race" min="0" max="20" value="<?= (int)smSetting('race') ?>">
+                <small class="muted"><?= h(t('Hat der erste Dienst nach so vielen Sekunden noch nicht geantwortet, fragt die Suchmaschine zusätzlich den nächsten, und die schnellere Antwort gewinnt. Kostet dann bei beiden eine Suche. Bei Bildern doppelt so lange. 0 = aus.')) ?></small></label>
             <fieldset class="field"><legend><?= h(t('Für „Alle zusammen“ (!multi) fragen')) ?></legend>
                 <div class="checks">
 <?php $ms = explode(',', smSetting('multi_set')); foreach ($withKey as $id): ?>

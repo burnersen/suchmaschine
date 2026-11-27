@@ -247,6 +247,7 @@ same('Google: Region', 'de', $gq['gl'] ?? null);
 $gp = smSearchParams('web', 'test', ['page' => 3, 'from' => '2024-03-01', 'to' => '2024-06-30', 'verb' => true, 'lr' => 'en-gb']);
 parse_str((string)parse_url(smBdGoogleUrl($gp), PHP_URL_QUERY), $gq);
 same('Google: eigener Zeitraum und Wortgenau', 'cdr:1,cd_min:3/1/2024,cd_max:6/30/2024,li:1', $gq['tbs'] ?? null);
+same('Google: mit Zeitfilter nur der Reiter Web', '14', $gq['udm'] ?? null);
 same('Google: Seite 3 beginnt bei 20', '20', $gq['start'] ?? null);
 same('Google: Sprache ausdrücklich gewählt', 'lang_en', $gq['lr'] ?? null);
 $gp = smSearchParams('videos', 'x', ['vdur' => 'l', 'freshness' => 'ph']);
@@ -291,6 +292,32 @@ same('Google: Domain trotzdem aus der Anzeige-Adresse', 'zeit.de', $web['results
 same('Google: Öffnungszeiten in der Infobox', ['Öffnungszeiten', 'Geöffnet · Schließt um 19:00'], $web['infobox']['attrs'][1] ?? null);
 same('Google: weitere Seiten', true, $web['more'] ?? null);
 same('Google: ähnliche Suchen', ['merkel heute'], $web['related'] ?? null);
+/* ---------- Neueste zuerst mit Zeitstufen, Bilder nach Qualität ---------- */
+same('Zeitstufen: nach dem Jahr kommt alles Ältere', ['pw', 'all', ''], [smNextFresh('pd'), smNextFresh('py'), smNextFresh('all')]);
+$tp = ['news_fresh' => 'pd', 'news_expand' => true, 'sort_web' => 'date', 'sort_news' => 'date', 'sort_videos' => 'date'] + smPrefs(null);
+$_GET = [];
+$tf = smSearchFilters('web', $tp);
+same('Alle: Neueste zuerst startet mit 24 Stunden und erweitert', ['pd', true, true], [$tf['fresh'], $tf['auto'], $tf['casc']]);
+$_GET = ['sort' => 'rel'];
+$tf = smSearchFilters('videos', $tp);
+same('Videos nach Relevanz: kein Zeitraum', ['', false], [$tf['fresh'], $tf['casc']]);
+$_GET = ['f' => 'all', 'xf' => 'py'];
+$tf = smSearchFilters('web', $tp);
+same('Letzte Stufe: älter als ein Jahr', ['', 'all', 'py'], [$tf['fresh'], $tf['f_q'], $tf['xf']]);
+same('Nächste Stufe: Woche nach 24 Stunden', ['f' => 'pw', 'xf' => 'pd', 'p' => null], smNextTier('news', ['casc' => true, 'auto' => true], 'pd', null)[0] ?? null);
+$_GET = [];
+same('Bilder: beste Qualität zuerst (Stufe ab 4 MP)', 'q4', smSearchFilters('images', $tp)['iq']);
+$_GET = ['isort' => 'rel'];
+same('Bilder nach Relevanz: keine Stufen', '', smSearchFilters('images', $tp)['iq']);
+$_GET = [];
+same('Bilder: nächste Stufe', ['iq' => 'q2', 'p' => null], smNextTier('images', [], '', ['iq_next' => 'q2'])[0] ?? null);
+parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('images', 'x', ['iq' => 'q4'])), PHP_URL_QUERY), $gq);
+same('Google: Bilder ab 4 MP', 'isz:lt,islt:4mp', $gq['tbs'] ?? null);
+parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('web', 'x', ['older' => 365])), PHP_URL_QUERY), $gq);
+same('Google: älter als ein Jahr ohne Anfang', 'cdr:1,cd_min:,cd_max:' . date('n/j/Y', intdiv(time(), 3600) * 3600 - 365 * 86400), $gq['tbs'] ?? null);
+parse_str((string)parse_url(smBdGoogleUrl(smSearchParams('videos', 'x', ['freshness' => 'pw', 'older' => 1])), PHP_URL_QUERY), $gq);
+check('Google: Woche ohne den letzten Tag', strpos($gq['tbs'] ?? '', 'cdr:1,cd_min:') === 0 && strpos($gq['tbs'] ?? '', 'cd_max:' . date('n/j/Y', intdiv(time(), 3600) * 3600 - 86400)) !== false, $gq['tbs'] ?? '');
+
 /* ---------- Aussehen ---------- */
 $lk = smLookClean(['fs' => 999, 'mode' => 'x', 'pl' => 'gibtsnicht']);
 same('Aussehen: Größe begrenzt', 150, $lk['fs']);

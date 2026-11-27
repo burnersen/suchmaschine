@@ -19,8 +19,9 @@ if ($page > 1 || $hasNext): ?>
 <?php endif; ?>
     </nav>
 <?php endif;
-// News am Ende des Zeitraums: weiter mit älteren
-if (!$hasNext && $tab === 'news' && $flt['auto'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== ''): ?>
-    <p class="more__end"><?= h(t('Das waren die News aus dem Zeitraum „%s“.', smFreshness()[$fresh])) ?>
-        <a class="btn btn--small" href="<?= h(smUrl(['f' => $nx, 'xf' => $fresh, 'p' => null] + $base)) ?>" data-load><?= h(t('Ältere News: %s', smFreshness()[$nx])) ?> →</a></p>
+// Am Ende einer Stufe: weiter mit der nächsten (ältere Treffer, kleinere Bilder)
+if (!$hasNext && ($nt = smNextTier($tab, $flt, (string)$fresh, $res))): ?>
+    <nav class="pager" aria-label="<?= h(t('Seiten')) ?>">
+        <a class="pager__step" href="<?= h(smUrl($nt[0] + $base)) ?>" rel="next" data-load><?= h($nt[1]) ?> ›</a>
+    </nav>
 <?php endif;

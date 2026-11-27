@@ -1252,3 +1252,7 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .stock__rows dd { margin: 0; font-variant-numeric: tabular-nums; }
 .answer__links { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .related__list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+/* Seite sofort zeigen: Hinweis, solange die Treffer noch unterwegs sind (verschwindet, sobald die Trefferliste dahinter steht) */
+.serp-wait { display: flex; align-items: center; gap: 10px; padding: 28px 16px; color: var(--text-3); font-size: 15px; }
+@media (min-width: 1000px) { .serp-wait { padding-left: var(--gutter); } }
+.serp-wait:not(:last-child) { display: none; }

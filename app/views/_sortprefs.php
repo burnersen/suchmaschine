@@ -18,13 +18,20 @@ $newsFresh = ['pd' => t('Letzte 24 Stunden'), 'pw' => t('Letzte Woche'), 'pm' =>
 <?php endforeach; ?>
                     </div>
                 </fieldset>
+                <fieldset class="field"><legend><?= h(t('Sortierung bei Videos')) ?></legend>
+                    <div class="seg">
+<?php foreach ($sortOpts as $k => $v): ?>
+                        <label><input type="radio" name="sort_videos" value="<?= $k ?>"<?= $k === $sp['sort_videos'] ? ' checked' : '' ?>><span><?= h($v) ?></span></label>
+<?php endforeach; ?>
+                    </div>
+                </fieldset>
             </div>
-            <small class="muted"><?= h(t('„Neueste zuerst“ sortiert die Treffer jeder Seite nach Datum, Treffer ohne Datum stehen am Ende. Über „Sortierung“ in der Trefferliste lässt sich das jederzeit umschalten.')) ?></small>
+            <small class="muted"><?= h(t('„Neueste zuerst“ zeigt erst die Treffer aus dem Start-Zeitraum, nach Datum sortiert, und macht danach mit älteren weiter. Über „Sortierung“ in der Trefferliste lässt sich das jederzeit umschalten.')) ?></small>
             <div class="form__row">
-                <label class="field"><span><?= h(t('News-Zeitraum')) ?></span>
+                <label class="field"><span><?= h(t('Start-Zeitraum bei „Neueste zuerst“')) ?></span>
                     <select name="news_fresh">
 <?php foreach ($newsFresh as $k => $v): ?><option value="<?= $k ?>"<?= $k === $sp['news_fresh'] ? ' selected' : '' ?>><?= h($v) ?></option><?php endforeach; ?>
                     </select></label>
             </div>
             <label class="switch"><input type="checkbox" name="news_expand" value="1"<?= $sp['news_expand'] ? ' checked' : '' ?>><span class="switch__ui"></span>
-                <span><?= h(t('News-Zeitraum automatisch erweitern')) ?><br><small class="muted"><?= h(t('Am Ende der Liste geht es mit älteren News weiter: erst die letzte Woche, dann der letzte Monat, dann das letzte Jahr. Gibt es gar keine aktuellen News, wird gleich erweitert.')) ?></small></span></label>
+                <span><?= h(t('Zeitraum automatisch erweitern')) ?><br><small class="muted"><?= h(t('Am Ende der Liste geht es von selbst mit älteren Treffern weiter: erst die letzte Woche, dann der letzte Monat, das letzte Jahr und alles davor. Ist ein Zeitraum leer, wird er übersprungen. Gilt für Alle, News und Videos.')) ?></small></span></label>

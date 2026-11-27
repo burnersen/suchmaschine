@@ -432,13 +432,13 @@ function smSearchParams(string $kind, string $q, array $o): array
         'exact' => !empty($o['exact']), 'count' => !empty($o['endless']) ? 20 : max(5, min(20, (int)smSetting('per_page'))),
         'answer' => $kind === 'web' && smSetting('answers') === '1' && max(1, (int)($o['page'] ?? 1)) === 1,
         'ui' => smLang(),
-        // Ältere News: nur Meldungen, die mindestens so viele Tage alt sind (genauer Zeitraum bei Google)
-        'older' => $kind === 'news' ? max(0, min(365, (int)($o['older'] ?? 0))) : 0,
+        // Zeitstufen bei „Neueste zuerst“: nur Treffer, die mindestens so viele Tage alt sind (genauer Zeitraum bei Google)
+        'older' => $kind !== 'images' ? max(0, min(365, (int)($o['older'] ?? 0))) : 0,
         // Eigener Zeitraum (Y-m-d), Wortgenau, ausdrücklich gewählte Sprache
         'from' => (string)($o['from'] ?? ''), 'to' => (string)($o['to'] ?? ''), 'verb' => !empty($o['verb']), 'lr' => (string)($o['lr'] ?? ''),
         // Bildfilter (bei Google direkt in der Suche) und Videolänge
         'img' => $kind === 'images' ? array_filter(['io' => (string)($o['io'] ?? ''), 'is' => (string)($o['is'] ?? ''), 'ic' => (string)($o['ic'] ?? ''),
-                 'it' => (string)($o['it'] ?? ''), 'il' => (string)($o['il'] ?? '')]) : [],
+                 'it' => (string)($o['it'] ?? ''), 'il' => (string)($o['il'] ?? ''), 'iq' => (string)($o['iq'] ?? '')]) : [],
         'vdur' => $kind === 'videos' ? (string)($o['vdur'] ?? '') : '',
     ];
 }
@@ -472,12 +472,24 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
 
     [$list, $skip] = smProvPick($kind, $userId, $forced, $params['page'], $params['older'], smNeedsGoogle($params));
     $errors = [];
-    foreach ($list as $id) {
-        try {
-            $out = smProvRun($id, $params, $userId);
-        } catch (SmSearchError $e) {
-            $errors[$id] = $e->getMessage();
-            continue;
+    // Wettlauf: Antwortet der erste Dienst nicht rasch, fragt die Suchmaschine den zweiten dazu (Bilder dürfen doppelt so lange)
+    $race = (int)smSetting('race');
+    $first = null;
+    if ($forced === null && $race > 0 && count($list) >= 2) {
+        [$wid, $wout, $errors, $bStarted] = smProvRace($list[0], $list[1], $params, $userId, $kind === 'images' ? $race * 2 : $race);
+        $list = array_slice($list, $bStarted ? 2 : 1);   // wurde der zweite gar nicht gefragt, kommt er jetzt normal dran
+        if ($wid !== null) $first = [$wid, $wout];
+    }
+    foreach (array_merge($first ? [$first[0]] : [], $list) as $id) {
+        if ($first && $id === $first[0]) {
+            $out = $first[1];
+        } else {
+            try {
+                $out = smProvRun($id, $params, $userId);
+            } catch (SmSearchError $e) {
+                $errors[$id] = $e->getMessage();
+                continue;
+            }
         }
         $out['source'] = $id;
         $out['sources'] = [$id];
@@ -565,22 +577,53 @@ function smProvRunMany(array $ids, array $params, int $userId): array
     if (isset($res['brightdata']) && smBdRetry($res['brightdata'])) {
         $res['brightdata'] = smHttpMulti(['brightdata' => $reqs['brightdata']], 20)['brightdata'];
     }
-    foreach ($res as $id => $r) {
-        $cost = $reqs[$id]['cost'];
-        $data = json_decode((string)$r['body'], true);
-        if ($r['status'] !== 200 || !is_array($data)) {
-            smUsageAdd($id, $params['kind'], $userId, -$cost, -1);
-            [$msg, $pause] = smProvErrorText($id, $r, is_array($data) ? $data : null);
-            smProvFail($id, $msg, $pause);
-            error_log('Suchmaschine: ' . $id . ' HTTP ' . $r['status'] . ' ' . $r['error'] . ' ' . substr((string)$r['body'], 0, 300));
-            $out[$id] = ['error' => $msg];
-            continue;
-        }
-        smProvOk($id, $r['ms']);
-        if ($id === 'brave') smProvBraveHeaders($r['headers']);
-        $out[$id] = smProvNormalize($id, $params, $data);
-    }
+    foreach ($res as $id => $r) $out[$id] = smProvHandle($id, $r, $params, $userId, $reqs[$id]['cost']);
     return $out;
+}
+
+/** Antwort eines Dienstes auswerten: Fehler gutschreiben und merken, sonst Treffer vereinheitlichen */
+function smProvHandle(string $id, array $r, array $params, int $userId, float $cost): array
+{
+    $data = json_decode((string)$r['body'], true);
+    if ($r['status'] !== 200 || !is_array($data)) {
+        smUsageAdd($id, $params['kind'], $userId, -$cost, -1);
+        [$msg, $pause] = smProvErrorText($id, $r, is_array($data) ? $data : null);
+        smProvFail($id, $msg, $pause);
+        error_log('Suchmaschine: ' . $id . ' HTTP ' . $r['status'] . ' ' . $r['error'] . ' ' . substr((string)$r['body'], 0, 300));
+        return ['error' => $msg];
+    }
+    smProvOk($id, $r['ms']);
+    if ($id === 'brave') smProvBraveHeaders($r['headers']);
+    return smProvNormalize($id, $params, $data);
+}
+
+/**
+ * Wettlauf zwischen den ersten beiden Diensten: $a fängt an, braucht er länger als $delay Sekunden, fragt die Suchmaschine $b dazu.
+ * Die schnellere gute Antwort gewinnt. Liefert [Dienst, Ergebnis, Fehler je Dienst]. Der abgebrochene Verlierer bleibt gezählt
+ * (die Anfrage ist beim Dienst ja angekommen).
+ */
+function smProvRace(string $a, string $b, array $params, int $userId, float $delay): array
+{
+    $errors = [];
+    $costA = (float)smProvGet($a, 'cost');
+    if (!smProvReserve($a, $params['kind'], $userId, $costA)) {
+        $errors[$a] = smBlockText($a, smProvBlock($a, $params['kind'], $userId) ?: 'limit');
+        return [null, null, $errors, false];
+    }
+    $costB = (float)smProvGet($b, 'cost');
+    $timeout = function (string $id) { return $id === 'brightdata' ? 30 : 15; };
+    $results = [];
+    $good = function (string $id, array $r) use (&$results, $params, $userId, $costA, $costB, $a) {
+        $results[$id] = smProvHandle($id, $r, $params, $userId, $id === $a ? $costA : $costB);
+        return !isset($results[$id]['error']);
+    };
+    $startB = function () use ($b, $params, $userId, $costB) {
+        if (smProvBlock($b, $params['kind'], $userId) !== '' || !smProvReserve($b, $params['kind'], $userId, $costB)) return null;
+        return smProvRequest($b, $params, trim(smProvGet($b, 'key')));
+    };
+    [$win, , $bStarted] = smHttpRace($a, smProvRequest($a, $params, trim(smProvGet($a, 'key'))), $timeout($a), $b, $startB, $timeout($b), $delay, $good);
+    foreach ($results as $id => $r) if (isset($r['error'])) $errors[$id] = $r['error'];
+    return [$win, $win !== null ? $results[$win] : null, $errors, $bStarted];
 }
 
 /** Vorübergehender Fehler bei Bright Data, der einen zweiten Versuch lohnt? */
@@ -673,6 +716,43 @@ function smUrlKey(string $url): string
 
 /* ---------- HTTP: mehrere Anfragen gleichzeitig ---------- */
 
+/** Ein curl-Griff für eine Anfrage. Kopfzeilen zum Kontingent (Brave: X-RateLimit-…) landen in $hdr. */
+function smCurlNew(array $r, int $timeout, array &$hdr)
+{
+    $ch = curl_init($r['url']);
+    $opt = [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_ENCODING => '', CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => $timeout,
+        CURLOPT_HTTPHEADER => $r['headers'], CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+        CURLOPT_USERAGENT => 'Suchmaschine/' . SM_VERSION . ' (+https://github.com/' . SM_REPO . ')',
+    ];
+    if (($r['method'] ?? 'GET') === 'POST') {
+        $opt[CURLOPT_POST] = true;
+        $opt[CURLOPT_POSTFIELDS] = $r['body'];
+    }
+    $hdr = [];
+    $opt[CURLOPT_HEADERFUNCTION] = function ($c, $line) use (&$hdr) {
+        $p = strpos($line, ':');
+        if ($p !== false) {
+            $k = strtolower(trim(substr($line, 0, $p)));
+            if (strpos($k, 'x-ratelimit-') === 0 || $k === 'retry-after') $hdr[$k] = trim(substr($line, $p + 1));
+        }
+        return strlen($line);
+    };
+    curl_setopt_array($ch, $opt);
+    return $ch;
+}
+
+/** Ergebnis eines fertigen curl-Griffs */
+function smCurlResult($ch, float $t0, array $hdr): array
+{
+    return [
+        'status' => (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'body' => (string)curl_multi_getcontent($ch),
+        'errno' => curl_errno($ch), 'error' => curl_error($ch), 'headers' => $hdr,
+        'ms' => (int)round((float)curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000) ?: (int)round((microtime(true) - $t0) * 1000),
+    ];
+}
+
 /** $reqs: id => ['url', 'method', 'headers', 'body']. Liefert id => ['status', 'body', 'errno', 'error', 'ms']. */
 function smHttpMulti(array $reqs, int $timeout): array
 {
@@ -681,28 +761,8 @@ function smHttpMulti(array $reqs, int $timeout): array
     $hs = [];
     $hdr = [];
     foreach ($reqs as $id => $r) {
-        $ch = curl_init($r['url']);
-        $opt = [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_ENCODING => '', CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_HTTPHEADER => $r['headers'], CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-            CURLOPT_USERAGENT => 'Suchmaschine/' . SM_VERSION . ' (+https://github.com/' . SM_REPO . ')',
-        ];
-        if (($r['method'] ?? 'GET') === 'POST') {
-            $opt[CURLOPT_POST] = true;
-            $opt[CURLOPT_POSTFIELDS] = $r['body'];
-        }
-        // Kopfzeilen zum Kontingent mitlesen (Brave: X-RateLimit-…)
         $hdr[$id] = [];
-        $opt[CURLOPT_HEADERFUNCTION] = function ($c, $line) use (&$hdr, $id) {
-            $p = strpos($line, ':');
-            if ($p !== false) {
-                $k = strtolower(trim(substr($line, 0, $p)));
-                if (strpos($k, 'x-ratelimit-') === 0 || $k === 'retry-after') $hdr[$id][$k] = trim(substr($line, $p + 1));
-            }
-            return strlen($line);
-        };
-        curl_setopt_array($ch, $opt);
+        $ch = smCurlNew($r, $timeout, $hdr[$id]);
         curl_multi_add_handle($mh, $ch);
         $hs[$id] = [$ch, microtime(true)];
     }
@@ -712,17 +772,60 @@ function smHttpMulti(array $reqs, int $timeout): array
     } while ($running && $st === CURLM_OK);
     $out = [];
     foreach ($hs as $id => [$ch, $t0]) {
-        $body = curl_multi_getcontent($ch);
-        $out[$id] = [
-            'status' => (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'body' => (string)$body,
-            'errno' => curl_errno($ch), 'error' => curl_error($ch), 'headers' => $hdr[$id] ?? [],
-            'ms' => (int)round((float)curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000) ?: (int)round((microtime(true) - $t0) * 1000),
-        ];
+        $out[$id] = smCurlResult($ch, $t0, $hdr[$id]);
         curl_multi_remove_handle($mh, $ch);
         curl_close($ch);
     }
     curl_multi_close($mh);
     return $out;
+}
+
+/**
+ * Wettlauf: Anfrage $a startet sofort. Ist sie nach $delay Sekunden noch nicht zurück, startet $b dazu ($startB() bucht vorher
+ * und liefert die Anfrage oder null, wenn $b nicht darf). $good(id, Antwort) prüft eine fertige Antwort. Die erste gute gewinnt,
+ * die andere wird abgebrochen. Liefert [Gewinner oder null, id => Antwort aller fertigen, ob $b gestartet wurde].
+ */
+function smHttpRace(string $a, array $reqA, int $timeoutA, string $b, callable $startB, int $timeoutB, float $delay, callable $good): array
+{
+    $mh = curl_multi_init();
+    $hdr = [$a => [], $b => []];
+    $hs = [$a => [smCurlNew($reqA, $timeoutA, $hdr[$a]), microtime(true)]];
+    curl_multi_add_handle($mh, $hs[$a][0]);
+    $t0 = microtime(true);
+    $done = [];
+    $winner = null;
+    $bStarted = false;
+    $bTried = false;
+    while (true) {
+        $st = curl_multi_exec($mh, $running);
+        while ($info = curl_multi_info_read($mh)) {
+            foreach ($hs as $id => [$ch, $ts]) {
+                if ($ch !== $info['handle']) continue;
+                $done[$id] = smCurlResult($ch, $ts, $hdr[$id]);
+                curl_multi_remove_handle($mh, $ch);
+                curl_close($ch);
+                unset($hs[$id]);
+                if ($winner === null && $good($id, $done[$id])) $winner = $id;
+            }
+        }
+        if ($winner !== null) break;
+        // B dazunehmen: nach der Wartezeit, oder sofort, wenn A schon gescheitert ist
+        if (!$bTried && (isset($done[$a]) || microtime(true) - $t0 >= $delay)) {
+            $bTried = true;
+            $reqB = $startB();
+            if ($reqB !== null) {
+                $hs[$b] = [smCurlNew($reqB, $timeoutB, $hdr[$b]), microtime(true)];
+                curl_multi_add_handle($mh, $hs[$b][0]);
+                $bStarted = true;
+                continue;
+            }
+        }
+        if (!$hs || $st !== CURLM_OK) break;
+        curl_multi_select($mh, 0.2);
+    }
+    foreach ($hs as [$ch]) { curl_multi_remove_handle($mh, $ch); curl_close($ch); }   // Verlierer abbrechen
+    curl_multi_close($mh);
+    return [$winner, $done, $bStarted];
 }
 
 /** Basisadresse eines Dienstes. Nur zum Testen per Umgebungsvariable umlenkbar (SM_API_BASE_TAVILY …). */

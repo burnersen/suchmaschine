@@ -12,6 +12,26 @@ function smTabs(): array
  * (Sortierung, News-Zeitraum). Die Felder mit _q sind das, was wirklich in der Adresse steht: nur das zählt als Abweichung
  * für „Alle Filter zurücksetzen“ und wandert in die Links.
  */
+/**
+ * Wohin es nach der letzten Seite einer Stufe weitergeht: [Adresse-Parameter, Beschriftung] oder null.
+ * Zeitstufen bei „Neueste zuerst“ (Alle, News, Videos), Qualitätsstufen bei Bildern (nur Google).
+ */
+function smNextTier(string $tab, array $flt, string $fresh, ?array $res): ?array
+{
+    if ($tab === 'images') {
+        $nx = (string)($res['iq_next'] ?? '');
+        return $nx !== '' ? [['iq' => $nx, 'p' => null], t('Weitere Bilder')] : null;
+    }
+    if (empty($flt['casc']) || empty($flt['auto']) || $fresh === '' || ($nx = smNextFresh($fresh)) === '') return null;
+    return [['f' => $nx, 'xf' => $fresh, 'p' => null], $tab === 'news' ? t('Ältere News: %s', smTierLabel($nx)) : t('Ältere Treffer: %s', smTierLabel($nx))];
+}
+
+/** Qualitätsstufen der Bildersuche bei Google, beste zuerst */
+function smImageTiers(): array
+{
+    return ['q4', 'q2', 'ql', 'qa'];
+}
+
 function smSearchFilters(string $tab, ?array $prefs = null): array
 {
     $g = function (string $k): string { return isset($_GET[$k]) && is_string($_GET[$k]) ? $_GET[$k] : ''; };
@@ -24,18 +44,27 @@ function smSearchFilters(string $tab, ?array $prefs = null): array
     $td = $day($g('td'));
     if ($fd !== '' && $td !== '' && $fd > $td) [$fd, $td] = [$td, $fd];
     $range = $fd !== '' || $td !== '';
-    $fq = !$range && $g('f') !== '' && (isset(smFreshness()[$g('f')]) || ($tab === 'news' && $g('f') === 'all')) ? $g('f') : '';
+    // Sortierung: Alle, News und Videos können nach Datum. Dann gilt „Neueste zuerst“ mit Zeitstufen
+    // (Start-Zeitraum, am Ende von selbst der nächste: 24 Stunden → Woche → Monat → Jahr → älter).
+    $dated = in_array($tab, ['web', 'news', 'videos'], true);
+    $sq = $dated && in_array($g('sort'), ['date', 'rel'], true) ? $g('sort') : '';
+    $sort = $dated ? ($sq !== '' ? $sq : $prefs['sort_' . $tab]) : 'rel';
+    $casc = $dated && ($tab === 'news' || $sort === 'date');
+    $fq = !$range && $g('f') !== '' && (isset(smFreshness()[$g('f')]) || ($casc && $g('f') === 'all')) ? $g('f') : '';
     $fresh = $fq === 'all' ? '' : $fq;
+    $def = $casc && $prefs['news_fresh'] !== 'all' ? $prefs['news_fresh'] : '';
     $auto = false;
-    if ($tab === 'news' && $fq === '' && !$range) {
-        $fresh = $prefs['news_fresh'] === 'all' ? '' : $prefs['news_fresh'];
+    if ($casc && $fq === '' && !$range) {
+        $fresh = $def;
         $auto = $prefs['news_expand'] && $fresh !== '';
     }
-    // xf: Fortsetzung beim Erweitern, Treffer aus diesem (schon gezeigten) Zeitraum weglassen
-    $xf = $tab === 'news' && $fq !== '' && $fq !== 'all' && in_array($g('xf'), ['ph', 'pd', 'pw', 'pm'], true) ? $g('xf') : '';
+    // xf: Fortsetzung in der nächsten Zeitstufe, die schon gezeigte (jüngere) Stufe weglassen
+    $xf = $casc && $fq !== '' && in_array($g('xf'), ['ph', 'pd', 'pw', 'pm', 'py'], true) && smNextFresh($g('xf')) === $fq ? $g('xf') : '';
     if ($xf !== '' && $prefs['news_expand']) $auto = true;
-    $sq = in_array($tab, ['web', 'news'], true) && in_array($g('sort'), ['date', 'rel'], true) ? $g('sort') : '';
-    $sort = in_array($tab, ['web', 'news'], true) ? ($sq !== '' ? $sq : $prefs['sort_' . $tab]) : 'rel';
+    // Bilder: beste Qualität zuerst. Bei Google in Stufen (ab 4 MP, ab 2 MP, groß, alle), bei Brave nach Auflösung sortiert.
+    $isort = $tab === 'images' && $g('isort') === 'rel' ? 'rel' : '';
+    $isz = $tab === 'images' && isset(smImageSizes()[$g('is')]) ? $g('is') : '';
+    $iq = $tab === 'images' && $isort === '' && $isz === '' ? (in_array($g('iq'), smImageTiers(), true) ? $g('iq') : smImageTiers()[0]) : '';
     $f = [
         'fresh'  => $fresh,
         'f_q'    => $fq,
@@ -43,12 +72,15 @@ function smSearchFilters(string $tab, ?array $prefs = null): array
         'auto'   => $auto,
         'sort'   => $sort === 'date' ? 'date' : '',
         'sort_q' => $sq,
+        'casc'   => $casc,
+        'def'    => $def,
         'ft'    => $tab === 'web' ? smCleanFileType($g('ft')) : '',
         'dl'    => $tab === 'web' && $g('dl') === '0' ? '0' : '',
         'src'   => isset(smProviders()[$g('src')]) || $g('src') === 'multi' ? $g('src') : '',
         'io'    => $tab === 'images' && isset(smImageOrientations()[$g('io')]) ? $g('io') : '',
-        'is'    => $tab === 'images' && isset(smImageSizes()[$g('is')]) ? $g('is') : '',
-        'isort' => $tab === 'images' && $g('isort') === 'res' ? 'res' : '',
+        'is'    => $isz,
+        'isort' => $isort,
+        'iq'    => $iq,
         // Filter, die Google direkt in der Suche anwendet (Brave: soweit möglich danach)
         'fd'    => $fd,
         'td'    => $td,
@@ -109,91 +141,143 @@ function smPageSearch(?array $me): void
         }
     }
 
-    $res = null;
-    $error = '';
-    try {
-        if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
-        if (!$me && $flt['src'] === 'multi') throw new SmSearchError(t('„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.'));
-        $apiQ = smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null);
-        $xdays = ['ph' => 0, 'pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']] ?? 0;
-        $opt = ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src'],
-                'older' => $xdays >= 7 ? $xdays : 0, 'from' => $flt['fd'], 'to' => $flt['td'], 'verb' => $flt['vb'] === '1', 'lr' => $flt['sl'],
-                'io' => $flt['io'], 'is' => $flt['is'], 'ic' => $flt['ic'], 'it' => $flt['it'], 'il' => $flt['il'], 'vdur' => $flt['vd']]
-            + ($flt['cr'] !== '' ? ['country' => $flt['cr']] : []) + $prefs;
-        $res = smSearch($tab, $apiQ, $opt, $me ? $me['id'] : 0);
-        // News: gar nichts im eingestellten Zeitraum? Dann gleich den nächstgrößeren nehmen (kostet nur in diesem Fall eine Suche mehr)
-        $from = $fresh;
-        while ($tab === 'news' && $flt['auto'] && $flt['xf'] === '' && $page === 1 && !$part && !$res['results'] && ($nx = smNextFresh($fresh)) !== '') {
-            $fresh = $nx;
-            $res = smSearch($tab, $apiQ, ['freshness' => $fresh] + $opt, $me ? $me['id'] : 0);
+    $uid = $me ? (int)$me['id'] : 0;
+    // Die eigentliche Suche. Läuft bei normalen Seitenaufrufen erst, nachdem Kopf, Suchfeld und Filter schon beim Browser sind.
+    $run = function () use ($me, $uid, $q, $tab, $prefs, $part, $lens, $lenses, $exact, $ft, $flt, $page, $fresh): array {
+        $res = null;
+        $error = '';
+        $vars = [];
+        $redirect = '';
+        try {
+            if (!$me && !smPublicQuota()) throw new SmSearchError(t('Für diese Stunde sind genug Suchen ohne Anmeldung gelaufen. Bitte später wieder, oder anmelden.'));
+            if (!$me && $flt['src'] === 'multi') throw new SmSearchError(t('„Alle zusammen“ gibt es nur mit Konto, weil es bei jedem Dienst eine Suche kostet.'));
+            $apiQ = smApiQuery($q, $ft, $lens !== '' ? $lenses[$lens] : null);
+            $opt = ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless', 'src' => $flt['src'],
+                    'older' => smTierDays($flt['xf']), 'from' => $flt['fd'], 'to' => $flt['td'], 'verb' => $flt['vb'] === '1', 'lr' => $flt['sl'],
+                    'io' => $flt['io'], 'is' => $flt['is'], 'ic' => $flt['ic'], 'it' => $flt['it'], 'il' => $flt['il'], 'vdur' => $flt['vd'], 'iq' => $flt['iq']]
+                + ($flt['cr'] !== '' ? ['country' => $flt['cr']] : []) + $prefs;
+            $res = smSearch($tab, $apiQ, $opt, $uid);
+            if ($tab === 'images') {
+                $res = smImageTierRun($res, $apiQ, $opt, $uid, $flt, $page, $part);
+            } else {
+                // Zeitstufen: Ist der Start-Zeitraum leer, gleich den nächsten nehmen (kostet nur in diesem Fall eine Suche mehr)
+                $from = $fresh;
+                while ($flt['casc'] && $flt['auto'] && $flt['xf'] === '' && $page === 1 && !$part && !$res['results'] && ($nx = smNextFresh($fresh)) !== '') {
+                    $fresh = $nx;
+                    $res = smSearch($tab, $apiQ, ['freshness' => $fresh === 'all' ? '' : $fresh, 'older' => $fresh === 'all' ? 365 : 0] + $opt, $uid);
+                }
+                if ($fresh !== $from) {
+                    $flt['fresh'] = $fresh;
+                    $flt['f_q'] = $fresh;
+                    $vars['fresh'] = $fresh;
+                    $vars['widened'] = $from;
+                }
+                // Fortsetzung in der nächsten Stufe: was schon in der jüngeren gezeigt wurde, weglassen
+                if ($flt['xf'] !== '') $res = smDropNewer($res, max(3600, smTierDays($flt['xf']) * 86400));
+                // Bleibt nach dem Aussortieren nichts übrig (oder ist die letzte Seite leer), gleich mit der nächsten Stufe weiter.
+                // So gibt es keine leeren Abschnitte. Höchstens drei Schritte, damit eine leere Suche nicht alles abklappert.
+                for ($hop = 0; $hop < 3 && $flt['casc'] && ($part || $flt['xf'] !== '') && $flt['auto'] && !$res['results'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== ''; $hop++) {
+                    $flt['xf'] = $fresh;
+                    $fresh = $nx;
+                    $page = 1;
+                    $days = smTierDays($flt['xf']);
+                    $res = smSearch($tab, $apiQ, ['freshness' => $fresh === 'all' ? '' : $fresh, 'page' => 1, 'older' => $days] + $opt, $uid);
+                    $res = smDropNewer($res, max(3600, $days * 86400));
+                    $flt['fresh'] = $fresh;
+                    $flt['f_q'] = $fresh;
+                    $vars['fresh'] = $fresh;
+                    $vars['page'] = 1;
+                }
+            }
+            // Eigene Domain-Listen, Sortierung und Filter erst jetzt: der Zwischenspeicher bleibt für alle gleich
+            $res = smApplyDomainLists($res, smDomainLists($me));
+            if ($flt['sort'] === 'date') $res = smSortByDate($res);
+            if ($tab === 'web' && $flt['dl'] !== '0') $res = smDomainLimit($res, 3);
+            // Was Brave nicht selbst filtern kann: letzte Stunde, Videolänge
+            if ($fresh === 'ph') $res = smKeepRecent($res, 3600);
+            if ($tab === 'videos' && $flt['vd'] !== '') $res = smVideoDurFilter($res, $flt['vd']);
+            if ($tab === 'images') {
+                // Alle filtern, dann die gewünschte Seite herausschneiden: 50 pro Seite oder Nachladen, kostet keine weitere Suche
+                $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === '');
+                $all = $res['results'];
+                $pg = (int)($vars['page'] ?? $page);
+                $res['results'] = array_slice($all, ($pg - 1) * 50, 50);
+                $res['more'] = count($all) > $pg * 50;
+                $res['img_first'] = ($pg - 1) * 50;
+                if (isset($res['iq'])) { $flt['iq'] = $res['iq']; }
+            }
+            // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
+            if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && !in_array($res['source'] ?? '', ['brave', 'multi'], true) && smSetting('wiki') === '1') {
+                $res['infobox'] = smWikiCard($q);
+            }
+        } catch (SmSearchExhausted $e) {
+            $error = $e->getMessage();
+            // Alles leer oder gestört: automatisch zum eingestellten Ausweichziel, damit die Suche immer funktioniert
+            $fb = smFallbackUrl($q);
+            // Ausnahme: Administrator ohne eingerichteten Suchdienst. Der soll sehen, was fehlt, und gleich zur Einrichtung kommen.
+            $setup = $me && $me['is_admin'] && !smProvOrder();
+            if (!$part && !$setup && $tab === 'web' && $flt['src'] === '' && $fb !== '' && smSetting('fallback_auto') === '1') $redirect = $fb;
+        } catch (SmSearchError $e) {
+            $error = $e->getMessage();
+        } catch (Throwable $e) {
+            error_log('Suchmaschine: ' . $e);
+            $error = t('Da ist intern etwas schiefgelaufen. Die Einzelheiten stehen im Fehlerprotokoll des Servers.');
         }
-        if ($fresh !== $from) {
-            $flt['fresh'] = $fresh;
-            $flt['f_q'] = $fresh;
-            $vars['fresh'] = $fresh;
-            $vars['widened'] = $from;
-        }
-        // Fortsetzung beim Erweitern: was schon im kleineren Zeitraum gezeigt wurde, weglassen
-        if ($flt['xf'] !== '') $res = smDropNewer($res, ['ph' => 3600, 'pd' => 86400, 'pw' => 7 * 86400, 'pm' => 31 * 86400][$flt['xf']]);
-        // Nachladen bei News: Bleibt nach dem Aussortieren nichts übrig (oder ist die letzte Seite leer), gleich mit dem nächsten Zeitraum weiter.
-        // So gibt es keine leeren Abschnitte. Höchstens zwei Schritte, damit eine leere Suche nicht alle Dienste abklappert.
-        for ($hop = 0; $hop < 2 && $tab === 'news' && ($part || $flt['xf'] !== '') && $flt['auto'] && !$res['results'] && $fresh !== '' && ($nx = smNextFresh($fresh)) !== ''; $hop++) {
-            $flt['xf'] = $fresh;
-            $fresh = $nx;
-            $page = 1;
-            $xdays = ['ph' => 0, 'pd' => 1, 'pw' => 7, 'pm' => 31][$flt['xf']] ?? 0;
-            $res = smSearch($tab, $apiQ, ['freshness' => $fresh, 'page' => 1, 'older' => $xdays >= 7 ? $xdays : 0] + $opt, $me ? $me['id'] : 0);
-            $res = smDropNewer($res, $xdays > 0 ? $xdays * 86400 : 3600);
-            $flt['fresh'] = $fresh;
-            $flt['f_q'] = $fresh;
-            $vars['fresh'] = $fresh;
-            $vars['page'] = 1;
-        }
-        // Eigene Domain-Listen, Sortierung und Filter erst jetzt: der Zwischenspeicher bleibt für alle gleich
-        $res = smApplyDomainLists($res, smDomainLists($me));
-        if ($flt['sort'] === 'date') $res = smSortByDate($res);
-        if ($tab === 'web' && $flt['dl'] !== '0') $res = smDomainLimit($res, 3);
-        // Was Brave nicht selbst filtern kann: letzte Stunde, Videolänge
-        if ($fresh === 'ph') $res = smKeepRecent($res, 3600);
-        if ($tab === 'videos' && $flt['vd'] !== '') $res = smVideoDurFilter($res, $flt['vd']);
-        if ($tab === 'images') {
-            // Alle (bis 200) filtern, dann die gewünschte Seite herausschneiden: 50 pro Seite oder Nachladen, kostet keine weitere Suche
-            $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === 'res');
-            $all = $res['results'];
-            $res['results'] = array_slice($all, ($page - 1) * 50, 50);
-            $res['more'] = count($all) > $page * 50;
-            $res['img_first'] = ($page - 1) * 50;
-        }
-        // Kurzinfo von Wikipedia, wenn der Suchdienst keine eigene liefert (sieht dann überall gleich aus)
-        if ($tab === 'web' && $page === 1 && !$part && empty($res['infobox']) && !in_array($res['source'] ?? '', ['brave', 'multi'], true) && smSetting('wiki') === '1') {
-            $res['infobox'] = smWikiCard($q);
-        }
-    } catch (SmSearchExhausted $e) {
-        $error = $e->getMessage();
-        // Alles leer oder gestört: automatisch zum eingestellten Ausweichziel, damit die Suche immer funktioniert
-        $fb = smFallbackUrl($q);
-        // Ausnahme: Administrator ohne eingerichteten Suchdienst. Der soll sehen, was fehlt, und gleich zur Einrichtung kommen.
-        $setup = $me && $me['is_admin'] && !smProvOrder();
-        if (!$part && !$setup && $tab === 'web' && $flt['src'] === '' && $fb !== '' && smSetting('fallback_auto') === '1') {
-            smExternalRedirect($fb, $q, $error . ' ' . t('Du wirst zu %s weitergeleitet …', smFallbackName()), 3);
-        }
-    } catch (SmSearchError $e) {
-        $error = $e->getMessage();
-    } catch (Throwable $e) {
-        error_log('Suchmaschine: ' . $e);
-        $error = t('Da ist intern etwas schiefgelaufen. Die Einzelheiten stehen im Fehlerprotokoll des Servers.');
-    }
+        return $vars + ['res' => $res, 'error' => $error, 'flt' => $flt, 'fallback_go' => $redirect];
+    };
 
-    $vars['res'] = $res;
-    $vars['error'] = $error;
-    $vars['flt'] = $flt;
     if ($part) {
         // Endlos-Scrollen: nur die nächsten Treffer, ohne Seitengerüst
-        if ($error !== '') http_response_code(502);
+        $vars = $run() + $vars;
+        if ($vars['error'] !== '') http_response_code(502);
         smRender('part', $vars, false);
         return;
     }
+    // Seite sofort zeigen: Kopf, Suchfeld und Filter gehen gleich raus, die Treffer folgen, sobald sie da sind.
+    // Ohne Zwischenpuffer des Servers sieht man so sofort, dass gesucht wird.
+    if (smSetting('stream') === '1') {
+        smRenderStream('results', $vars + ['title' => $q . ' – ' . smSiteName(), 'stream' => true], $run);
+        return;
+    }
+    $vars = $run() + $vars;
+    if ($vars['fallback_go'] !== '') {
+        smExternalRedirect($vars['fallback_go'], $q, $vars['error'] . ' ' . t('Du wirst zu %s weitergeleitet …', smFallbackName()), 3);
+    }
     smRender('results', $vars + ['title' => $q . ' – ' . smSiteName()]);
+}
+
+/**
+ * Bilder in Qualitätsstufen (nur Google): erst ab 4 MP, dann ab 2 MP, dann groß, dann alle. Jede Stufe ohne die Bilder der Stufen davor.
+ * Ist eine Stufe (nach dem Aussortieren) leer, geht es gleich mit der nächsten weiter. Brave sortiert stattdessen nach Auflösung.
+ */
+function smImageTierRun(array $res, string $apiQ, array $opt, int $uid, array $flt, int $page, bool $part): array
+{
+    if ($flt['iq'] === '') return $res;
+    $tiers = smImageTiers();
+    $tier = array_search($flt['iq'], $tiers, true);
+    $key = 'iseen|' . $uid . '|' . md5(json_encode([$apiQ, $opt['country'] ?? '', $opt['safesearch'] ?? '', $opt['io'], $opt['ic'], $opt['it'], $opt['il'], $opt['freshness'], $opt['lr']]));
+    for ($hop = 0; $hop < 3; $hop++) {
+        if (($res['source'] ?? '') !== 'brightdata') { $res['iq_next'] = ''; return $res; }   // Brave kennt keine Stufen
+        $seen = smCacheGet($key) ?? [];
+        $before = [];
+        for ($t = 0; $t < $tier; $t++) foreach ((array)($seen[$t] ?? []) as $h) $before[$h] = true;
+        $mine = [];
+        $keep = [];
+        foreach ($res['results'] as $im) {
+            $h = substr(md5((string)($im['src'] !== '' ? $im['src'] : $im['thumb'])), 0, 12);
+            $mine[] = $h;
+            if (!isset($before[$h])) $keep[] = $im;
+        }
+        $seen[$tier] = $mine;
+        smCacheSet($key, $seen, 7200);
+        $res['results'] = $keep;
+        $res['iq'] = $tiers[$tier];
+        $res['iq_next'] = $tiers[$tier + 1] ?? '';
+        if ($keep || $res['iq_next'] === '' || $page > 1) return $res;
+        $tier++;
+        $res = smSearch('images', $apiQ, ['iq' => $tiers[$tier], 'page' => 1] + $opt, $uid);
+    }
+    return $res;
 }
 
 /** „Auf gut Glück“: direkt zum ersten Treffer */

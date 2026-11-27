@@ -10,7 +10,9 @@ bei normaler privater Nutzung komplett in den kostenlosen Monatskontingenten.</p
 
 <p align="center"><img src="docs/de/ergebnisse.png" alt="Ergebnisseite mit Treffern, Top-Meldungen und Kurzinfo" width="820"></p>
 
-> 🚀 **Neu: Version 2.2, Google-Ergebnisse.** Über Bright Data kommen echte Google-Ergebnisse für Web, Bilder, News und Videos, 5.000 Anfragen im Monat kostenlos. Dazu Live-Infos (Spielstände, Kurse, Öffnungszeiten, KI-Übersicht) und Filter wie bei Google. [Alles, was neu ist](#neu-in-22-google-ergebnisse-über-bright-data)
+> ⚡ **Neu in 2.3:** Die Seite steht sofort da, Google und Brave laufen um die Wette, **Neueste zuerst** überall mit automatischen Zeitstufen, Bilder in **bester Qualität zuerst** und **Suchvorschläge** beim Tippen. [Mehr dazu](#neu-in-23-schneller-neueste-zuerst-beste-bilder)
+>
+> 🚀 **Version 2.2, Google-Ergebnisse.** Über Bright Data kommen echte Google-Ergebnisse für Web, Bilder, News und Videos, 5.000 Anfragen im Monat kostenlos. Dazu Live-Infos (Spielstände, Kurse, Öffnungszeiten, KI-Übersicht) und Filter wie bei Google. [Alles, was neu ist](#neu-in-22-google-ergebnisse-über-bright-data)
 
 Einfach `suchmaschine-install.php` hochladen, im Browser aufrufen, Konto anlegen, einen oder mehrere API-Keys einfügen. Das ist die ganze Installation.
 
@@ -47,7 +49,7 @@ Auf dem Server laufen PHP und SQLite, im Browser schlichtes JavaScript und CSS. 
   <img src="docs/de/handy-bilder.png" width="200" alt="Handy: Bilder">
 </p>
 
-[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 2.2](#neu-in-22-google-ergebnisse-über-bright-data) · [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
+[Kosten](#was-kostet-das) · [Suchdienste einrichten](#suchdienste-einrichten-api-keys-holen) · [Funktionen](#funktionen) · [Neu in 2.3](#neu-in-23-schneller-neueste-zuerst-beste-bilder) · [Neu in 2.2](#neu-in-22-google-ergebnisse-über-bright-data) · [Neu in 2.0](#neu-in-20-das-große-werkzeug-upgrade) · [Neu in 1.5](#neu-in-15) · [Neu in 1.4](#neu-in-14) · [Lesemodus und PDF](#lesemodus-und-pdf) · [Neu in 1.3](#neu-in-13) · [Neu in 1.2](#neu-in-12) · [Konten und Token-Login](#konten-und-token-login) · [Tastenkürzel](#tastenkürzel) · [Voraussetzungen](#voraussetzungen) · [Installation](#installation) · [Daten schützen](#daten-schützen) · [Aktualisieren](#aktualisieren) · [Sichern](#sichern) · [Aufbau](#aufbau) · [Selbst bauen](#selbst-bauen) · [Gut zu wissen](#gut-zu-wissen) · [Haftungsausschluss](#haftungsausschluss) · [Lizenz](#lizenz)
 
 ## Was kostet das?
 
@@ -114,6 +116,18 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden **über 10.800 Bangs** aus der offenen Liste von [Kagi](https://github.com/kagisearch/bangs) (MIT-Lizenz) plus deutsche Extras. Beim Tippen von `!` (oder über den `!`-Knopf) schlägt das Suchfeld passende Bangs vor und zeigt, wohin es geht. Unter *Einstellungen → Bangs* lässt sich jedes Bang suchen, bearbeiten, löschen und der Grundzustand wiederherstellen; Administratoren können das auch für alle. Die Liste aktualisiert sich wöchentlich selbst, und die Zielseiten werden nach und nach auf Erreichbarkeit geprüft, beides ohne Suchanfragen und abschaltbar. Funktioniert auch aus der Adressleiste des Browsers.
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
+
+## Neu in 2.3: schneller, neueste zuerst, beste Bilder
+
+- **Seite sofort zeigen:** Nach Enter stehen Suchfeld und Filter sofort da, die Treffer kommen nach, sobald sie da sind. Abschaltbar unter *Verwaltung → Suchdienste*.
+- **Wettlauf:** Antwortet Google nicht innerhalb von 3 Sekunden (bei Bildern 6), fragt die Suchmaschine Brave dazu, und die schnellere Antwort gewinnt. Die Wartezeit ist einstellbar (0 = aus). Kostet nur in diesem Fall eine Brave-Suche zusätzlich.
+- **Links erst beim Klick auflösen:** Googles Weiterleitungen löst dein Server jetzt erst beim Klick auf. Das spart bei jeder Suche eine halbe bis eine Sekunde.
+- **Neueste zuerst überall:** Alle, News und Videos zeigen erst die Treffer der letzten 24 Stunden, nach Datum sortiert. Am Ende geht es von selbst weiter mit der letzten Woche, dem letzten Monat, dem letzten Jahr und allem davor, beim Scrollen wie beim Blättern. Leere Zeiträume werden übersprungen, schon Gezeigtes kommt nicht doppelt. Start-Zeitraum und Erweitern stellst du unter *Einstellungen → Suche* ein, „Relevanz“ geht weiterhin über „Sortierung“.
+- **Bilder: beste Qualität zuerst.** Bei Google in Stufen: erst Bilder ab 4 Megapixel, dann ab 2 Megapixel, dann große, dann alle, ohne Doppelte. Bei Brave nach Auflösung sortiert. Umschaltbar auf „Relevanz“.
+- **Suchvorschläge von Google** beim Tippen, unter deinen eigenen letzten Suchen. Kostenlos, verbraucht keine Anfragen, läuft über deinen Server. Abschaltbar.
+- **Filter ohne OK-Knopf:** Sprache, Region und eigener Zeitraum wirken sofort nach der Auswahl.
+- **Behoben:** Mit Zeitfilter lieferte Google über Bright Data bei der Websuche manchmal gar nichts. Jetzt fragt die Suchmaschine dann den reinen Web-Reiter.
+- Das Quell-Badge „Google“ an jedem Treffer gibt es nur noch bei „Alle zusammen“, sonst steht der Dienst in der Leiste darüber.
 
 ## Neu in 2.2: Google-Ergebnisse über Bright Data
 
