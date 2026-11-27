@@ -415,6 +415,20 @@
         var msg = b && b.getAttribute && b.getAttribute('data-confirm-btn') || (f.getAttribute && f.getAttribute('data-confirm'));
         if (msg && !window.confirm(msg)) { ev.preventDefault(); ev.stopImmediatePropagation(); loading(false); }
     }, true);
+    // Merken, dass JavaScript läuft (dann gibt es bei neuen Suchen sofort eine Warteseite)
+    var smPath = ($('[data-theme-toggle]') && $('[data-theme-toggle]').getAttribute('data-path')) || '/';
+    if (document.cookie.indexOf('smjs=1') < 0) document.cookie = 'smjs=1; path=' + smPath + '; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+    // Warteseite: Suche anstoßen, danach die Seite neu laden (kommt dann aus dem Zwischenspeicher)
+    $$('[data-warm]').forEach(function (w) {
+        loading(true);
+        var done = function () { location.replace(location.href); };
+        if (!window.fetch) { done(); return; }
+        fetch(w.getAttribute('data-warm'), { credentials: 'same-origin' }).then(done, function () {
+            document.cookie = 'smsw=1; path=' + smPath + '; max-age=60; SameSite=Lax';
+            done();
+        });
+    });
+
     // Karten über den Treffern (Spiele, Kurse, Infobox …) kommen bei „Neueste zuerst“ kurz nach der Liste
     // Hatte Google gerade einen Aussetzer (503), noch einmal nach 16 Sekunden (Bright Data sperrt eine Suche so lange)
     $$('[data-cards]').forEach(function (slot) {

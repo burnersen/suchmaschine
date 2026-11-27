@@ -57,7 +57,7 @@ function smProvGet(string $id, string $field): string
     switch ($field) {
         case 'limit': return (string)($p['limit'] ?? 0);
         case 'cost':  return (string)($p['cost'] ?? 1);
-        case 'cache': return '1';      // Stunden
+        case 'cache': return '6';      // Stunden
         case 'on':    return '1';
     }
     return '';
@@ -498,6 +498,8 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
         $out['sources'] = [$id];
         $out['notice'] = smNoticeText($id, $skip, $errors);
         $ttl = smProvTtl($id);
+        // News und Treffer der letzten Stunde/24 Stunden veralten schnell: höchstens 1 Stunde
+        if ($kind === 'news' || in_array($params['fresh'], ['ph', 'pd'], true)) $ttl = min($ttl, 3600);
         // Spielstände und Kurse ändern sich laufend: höchstens 5 Minuten speichern
         if (!empty($out['sports']) || !empty($out['stock'])) $ttl = min($ttl, 300);
         smCacheSet($id . '|' . $ck, $out, $ttl);
@@ -506,6 +508,17 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
         return $out;
     }
     throw new SmSearchExhausted(smExhaustedText($kind, $skip, $errors, $forced));
+}
+
+/** Liegt diese Suche schon im Zwischenspeicher? (Dann braucht es keine Warteseite.) */
+function smSearchPeek(string $kind, string $q, array $o): bool
+{
+    $src = (string)($o['src'] ?? '');
+    $ck = json_encode(smSearchParams($kind, $q, $o));
+    if ($src === 'multi') return smCacheGet('multi|' . $ck) !== null;
+    $forced = isset(smProviders()[$src]) ? $src : null;
+    $auto = 'auto' . substr(md5(smSetting('prov_order') . '|' . smSetting('balance')), 0, 8);
+    return smCacheGet(($forced ?? $auto) . '|' . $ck) !== null;
 }
 
 /** „Ergebnisse von Brave – Google: Limit erreicht“ */
@@ -578,7 +591,7 @@ function smProvRunMany(array $ids, array $params, int $userId): array
     $res = smHttpMulti($reqs, isset($reqs['brightdata']) ? 30 : 15);
     // Bright Data antwortet ab und zu mit 502/504 oder leer: einmal neu versuchen, wenn noch Zeit ist (kostet nur Erfolge)
     if (isset($res['brightdata']) && smBdRetry($res['brightdata'])) {
-        $res['brightdata'] = smHttpMulti(['brightdata' => $reqs['brightdata']], 20)['brightdata'];
+        $res['brightdata'] = smHttpMulti(['brightdata' => smProvRequest('brightdata', ['retry' => true] + $params, trim(smProvGet('brightdata', 'key'))) + ['cost' => $reqs['brightdata']['cost']]], 20)['brightdata'];
     }
     foreach ($res as $id => $r) $out[$id] = smProvHandle($id, $r, $params, $userId, $reqs[$id]['cost']);
     return $out;
@@ -627,7 +640,7 @@ function smProvRace(string $a, string $b, array $params, int $userId, float $del
     // Kurzer Aussetzer bei Bright Data (leer, 502 …) in den ersten Sekunden: noch ein Versuch, gleichzeitig mit dem zweiten Dienst
     $retryA = function (array $r) use ($a, $params, $userId, $costA) {
         if ($a !== 'brightdata' || !smBdRetry($r) || !smProvReserve($a, $params['kind'], $userId, $costA)) return null;
-        return smProvRequest($a, $params, trim(smProvGet($a, 'key')));
+        return smProvRequest($a, ['retry' => true] + $params, trim(smProvGet($a, 'key')));
     };
     [$win, , $bStarted] = smHttpRace($a, smProvRequest($a, $params, trim(smProvGet($a, 'key'))), $timeout($a), $b, $startB, $timeout($b), $delay, $good, $retryA);
     foreach ($results as $id => $r) if (isset($r['error'])) $errors[$id] = $r['error'];
@@ -639,7 +652,7 @@ function smBdRetry(array $r): bool
 {
     if ($r['ms'] > 12000) return false;
     return in_array($r['status'], [0, 502, 503, 504], true) && $r['errno'] !== CURLE_OPERATION_TIMEDOUT
-        || ($r['status'] === 200 && trim($r['body']) === '');
+        || ($r['status'] === 200 && (trim($r['body']) === '' || stripos(substr($r['body'], 0, 200), 'recently failed') !== false));
 }
 
 /** Mehrere Dienste gleichzeitig, Treffer abwechselnd gemischt, doppelte Adressen zusammengelegt (mit allen Quellen) */

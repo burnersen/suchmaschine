@@ -103,6 +103,12 @@ Some paid search engine are known for a few ideas that are available here for ev
 - **Lenses** narrow the search to a topic such as forums, programming, wikis or science. Everyone can build **their own lenses** from domains and operators and hide the built-in ones. Pick one on the results page under "Lens".
 - **Back up and restore:** under *Settings → Account* every account downloads its settings including lists, bangs and lenses as a file and restores them when needed, even on another installation. The administrator can also back up the installation settings.
 
+## New in 2.5: visible faster, menu for news and videos
+
+- **Instant waiting page:** after Enter the page with search box, filters and “Searching …” appears at once, even on hosts that send responses in one piece (e.g. Plesk with nginx in front of Apache). The search runs in the background, then the page loads the results from the cache.
+- **Longer cache:** Google results are kept for 6 hours by default (news and the past 24 hours 1 hour, scores and prices 5 minutes).
+- **⋮ menu for news and videos too:** raise, lower, block, search this domain only, read without ads, QR code, copy address.
+
 ## New in 2.4: live cards like Google
 
 - **Cards for every search:** matches, stock and index prices, opening hours, info box (e.g. age and birthday of celebrities) and Google’s AI overview above the results, also with “newest first”. The result list doesn’t wait for them, the cards follow a moment later. That costs one more Google request on the first page.

@@ -1276,3 +1276,9 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .gteam.is-win .gteam__name { font-weight: 700; }
 .gteam__logo { width: 24px; height: 24px; object-fit: contain; flex: none; }
 .gteam__logo--txt { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-2, var(--bg-2)); color: var(--text-2); font-size: 12px; font-weight: 600; }
+
+/* Menü ⋮ auch bei News und Videos: oben rechts über dem Treffer */
+.has-menu { position: relative; }
+.has-menu > .resmenu { position: absolute; top: 6px; right: 0; z-index: 2; }
+.has-menu > .news__link, .has-menu > .video__link { padding-right: 34px; }
+.serp-wait--warm { display: flex !important; }

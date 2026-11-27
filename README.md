@@ -119,6 +119,13 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
 
+## Neu in 2.5: schneller sichtbar, Menü auch bei News und Videos
+
+- **Warteseite sofort:** Nach Enter steht die Seite mit Suchfeld, Filtern und „Suche läuft …“ sofort da, auch bei Hostern, die Antworten sonst erst am Stück schicken (z. B. Plesk mit nginx vor Apache). Die Suche läuft im Hintergrund, danach lädt die Seite die fertigen Treffer aus dem Zwischenspeicher. Wer bei Plesk unter *Apache & nginx Settings* `fastcgi_buffering off;` einträgt, bekommt zusätzlich das Streaming ohne Umweg.
+- **Länger zwischenspeichern:** Google-Ergebnisse bleiben standardmäßig 6 Stunden (News und die letzten 24 Stunden 1 Stunde, Spielstände und Kurse 5 Minuten). Wiederholte Suchen und „Zurück“ sind sofort da und kosten nichts.
+- **Menü ⋮ auch bei News und Videos:** Hochstufen, Herabstufen, Blockieren, nur auf dieser Domain suchen, ohne Werbung lesen, QR-Code, Adresse kopieren.
+- Bei Googles Weiterleitungs-Links funktionieren „Ohne Werbung lesen“, QR-Code und „Adresse kopieren“ jetzt auch.
+
 ## Neu in 2.4: Live-Karten wie bei Google
 
 - **Karten bei jeder Suche:** Spiele, Aktien- und Indexkurse, Öffnungszeiten, Infobox (z. B. Alter und Geburtstag von Promis) und Googles KI-Übersicht stehen über den Treffern, auch bei „Neueste zuerst“. Die Trefferliste wartet nicht darauf, die Karten kommen einen Moment später dazu. Das kostet auf der ersten Seite eine Google-Anfrage mehr.

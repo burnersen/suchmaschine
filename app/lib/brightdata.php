@@ -111,6 +111,8 @@ function smBdGoogleUrl(array $p): string
     if ($p['safe'] === 'strict') $g['safe'] = 'active';
     elseif ($p['safe'] === 'off') $g['safe'] = 'off';
     if (!empty($p['exact']) || !empty($p['verb'])) $g['nfpr'] = '1';
+    // Zweiter Versuch nach einem Aussetzer: eine leicht andere Adresse, sonst sperrt Bright Data dieselbe Suche 15 Sekunden
+    if (!empty($p['retry'])) $g['pws'] = '0';
     // Mit dem Seitenquelltext (für die Sport-Karte, die Bright Data nicht selbst zerlegt)
     $g['brd_json'] = !empty($p['html']) ? 'html' : '1';
     return 'https://www.google.com/search?' . http_build_query($g);
@@ -767,4 +769,15 @@ function smServeSuggest(): void
     header('Cache-Control: private, max-age=600');
     echo json_encode(['list' => array_values($out)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+/** Echte Adresse hinter einem eigenen Weiterleitungs-Link (?a=go&u=…) für den Lesemodus, sonst die Adresse selbst */
+function smBdRealUrl(string $u): string
+{
+    if (strpos($u, 'a=go') === false) return $u;
+    parse_str((string)parse_url($u, PHP_URL_QUERY), $qs);
+    $g = is_string($qs['u'] ?? null) ? $qs['u'] : '';
+    if (!smBdIsRedirect($g)) return $u;
+    $to = smBdUnwrap($g);
+    return $to !== $g ? $to : (smBdResolve([$g], 4)[$g] ?? $u);
 }
