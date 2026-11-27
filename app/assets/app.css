@@ -1252,3 +1252,19 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .recipes__form input[type="url"] { flex: 1 1 260px; min-width: 0; height: 44px; font-size: 16px; }
 .recipes__sites { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* ---------- 3.2: Brave-Pläne wie im Dashboard ---------- */
+.plan__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.plan__head h2 { margin: 0; }
+.plan__head h2 small { font-size: 14px; font-weight: 400; }
+.plan__dash { margin-left: auto; }
+.plan__stats { margin: 12px 0 8px; display: grid; gap: 12px; }
+.plan__row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; }
+.plan__row dt { color: var(--text-2); }
+.plan__row dd { margin: 0; display: flex; gap: 8px; align-items: center; }
+.plan__row .meter, .plan__row small { grid-column: 1 / -1; }
+.plan__num { padding: 2px 10px; border-radius: 999px; background: var(--bg-2); font-variant-numeric: tabular-nums; }
+.plan__pct { padding: 2px 10px; border-radius: 999px; background: var(--line); font-variant-numeric: tabular-nums; }
+.plan__outlook { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 0; border-top: 1px solid var(--line-2); color: var(--text-2); }
+.plan__acts { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.usage .plan { margin: 0 0 18px; }
+

@@ -42,17 +42,9 @@ function smPageAdmin(array $me, bool $post): void
             case 'providers':
                 $err = smSaveProviders();
                 break;
-            case 'ptest':
-                $pid = (string)($_POST['p'] ?? '');
-                if (!isset(smProviders()[$pid]) || trim(smProvGet($pid, 'key')) === '') { $err = t('Unbekannte Aktion.'); break; }
-                $err = smProvTest($pid, smProvGet($pid, 'key'));
-                if ($err === '') { smProvOk($pid, 0); $ok = t('%s: Der API-Key funktioniert.', smProviders()[$pid]['name']); }
-                else smProvFail($pid, $err, 0);
-                break;
-            case 'punpause':
-                $pid = (string)($_POST['p'] ?? '');
-                if (isset(smProviders()[$pid])) smProvUnpause($pid);
-                $ok = t('Pause aufgehoben.');
+            case 'plans':
+                // Verwaltung → Verbrauch: Requests laut Dashboard für alle Pläne
+                $err = smSavePlans();
                 break;
             case 'quota':
                 $uid = (int)($_POST['id'] ?? 0);
@@ -195,68 +187,10 @@ function smParseAmount(string $v): ?float
     return is_numeric($raw) ? (float)$raw : null;
 }
 
-/** Suchdienst speichern: Key (wird vorher getestet), Stichtag, Limit, Kosten, Zwischenspeicher, Ausweich-Suchmaschine */
+/** Verwaltung → Suchdienste speichern: die vier Brave-Pläne, Ausweich-Suchmaschine, Warnschwelle */
 function smSaveProviders(): string
 {
-    $err = '';
-    foreach (smProviders() as $id => $p) {
-        if (!empty($_POST['keydel'][$id])) {
-            smProvSet($id, 'key', '');
-        } else {
-            $key = trim((string)($_POST['key'][$id] ?? ''));
-            if ($key !== '') {
-                if (!preg_match('/^[\x21-\x7e]{8,300}$/', $key)) { $err = t('%s: Der API-Key sieht nicht richtig aus.', $p['name']); continue; }
-                if (($e = smProvTest($id, $key)) !== '') { $err = t('%s: %s Der Key wurde nicht gespeichert.', $p['name'], $e); continue; }
-                smProvSet($id, 'key', $key);
-                smProvUnpause($id);
-                smProvOk($id, 0);
-            }
-        }
-        if (!isset($_POST['limit'][$id])) continue;   // Dienst war nicht im Formular (noch kein Key)
-        // Stichtag nur, wenn er im Formular stand (meldet der Dienst sein Reset-Datum selbst, fehlt das Feld)
-        if (isset($_POST['start'][$id])) {
-            $start = (string)$_POST['start'][$id];
-            smProvSet($id, 'start', preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) && checkdate((int)substr($start, 5, 2), (int)substr($start, 8, 2), (int)substr($start, 0, 4)) ? $start : '');
-        }
-        // Schon verbraucht, bevor die Suchmaschine mitgezählt hat (nur für Dienste, die ihren Verbrauch nicht selbst melden)
-        // Verbrauch laut Dashboard: der Zähler wird auf genau diesen Stand gesetzt (leer = nichts ändern)
-        if (isset($_POST['used'][$id]) && is_string($_POST['used'][$id]) && trim($_POST['used'][$id]) !== '') {
-            $raw = smParseAmount($_POST['used'][$id]);
-            if ($raw === null) { $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $p['name']); }
-            else smProvSetUsed($id, max(0.0, min(10000000.0, $raw)));
-        }
-        smProvSet($id, 'limit', (string)max(0, min(10000000, (int)$_POST['limit'][$id])));
-        $cost = (float)str_replace(',', '.', (string)($_POST['cost'][$id] ?? $p['cost']));
-        smProvSet($id, 'cost', (string)max(0.01, min(1000, $cost)));
-        $cache = (int)($_POST['cache'][$id] ?? 0);
-        smProvSet($id, 'cache', (string)($id === 'brave' ? max(0, min(60, $cache)) : max(0, min(168, $cache))));
-        smProvSet($id, 'on', empty($_POST['on'][$id]) ? '0' : '1');
-    }
-    // Zusatzdienste (Vorschläge, Rechtschreibhilfe, KI-Antwort): eigener Key, vorher getestet, eigenes Monatslimit
-    foreach (smExtras() as $xid => $x) {
-        if (!empty($_POST['xdel'][$xid])) {
-            smExSet($xid, 'key', '');
-        } elseif (($xk = trim((string)($_POST['xkey'][$xid] ?? ''))) !== '') {
-            if (!preg_match('/^[\x21-\x7e]{8,300}$/', $xk)) $err = t('%s: Der API-Key sieht nicht richtig aus.', $x['name']);
-            elseif (($e = smExTest($xid, $xk)) !== '') $err = t('%s: %s Der Key wurde nicht gespeichert.', $x['name'], $e);
-            else { smExSet($xid, 'key', $xk); smExSet($xid, 'pause', '0'); }
-        }
-        if (isset($_POST['xlimit'][$xid]) && is_numeric(str_replace(',', '.', (string)$_POST['xlimit'][$xid]))) {
-            $v = max(0.0, min(10000000.0, (float)str_replace(',', '.', (string)$_POST['xlimit'][$xid])));
-            smExSet($xid, 'limit', $x['money'] ? (string)round($v, 2) : (string)(int)$v);
-        }
-        if (!empty($_POST['xshown'][$xid])) smExSet($xid, 'on', empty($_POST['xon'][$xid]) ? '0' : '1');
-        // Verbrauch laut Dashboard (leer = nichts ändern)
-        $in = function (string $f) use ($xid) { return isset($_POST[$f][$xid]) && is_string($_POST[$f][$xid]) && trim($_POST[$f][$xid]) !== '' ? smParseAmount($_POST[$f][$xid]) : false; };
-        $req = $in('xreq');
-        $usd = $x['money'] ? $in('xused') : false;
-        if ($req === null || $usd === null) $err = t('%s: Der Verbrauch laut Dashboard muss eine Zahl sein.', $x['name']);
-        elseif ($req !== false || $usd !== false) {
-            $req = $req === false ? null : (int)round(max(0.0, min(10000000.0, $req)));
-            // Bei Vorschlägen und Rechtschreibung zählt die Bremse in Anfragen, bei der KI-Antwort in Dollar
-            smExSetUsed($xid, $x['money'] ? ($usd === false ? null : max(0.0, min(100000.0, $usd))) : ($req === null ? null : (float)$req), $req);
-        }
-    }
+    $err = smSavePlans();
     [$fb, $fberr] = smFallbackFromPost();
     if ($fberr !== '') { if ($err === '') $err = $fberr; }
     else smSetSetting('fallback_url', $fb !== '' ? $fb : smFallbackDefault());
