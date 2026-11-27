@@ -425,7 +425,7 @@ function smProvPick(string $kind, int $userId, ?string $forced, int $page, int $
 /** Schlüssel für den Zwischenspeicher: alles, was das Ergebnis beeinflusst */
 function smSearchParams(string $kind, string $q, array $o): array
 {
-    return [
+    $p = [
         'kind' => $kind, 'q' => $q, 'page' => $kind === 'images' ? 1 : max(1, min(10, (int)($o['page'] ?? 1))),
         'country' => (string)($o['country'] ?? 'ALL'), 'lang' => (string)($o['search_lang'] ?? 'en'),
         'safe' => (string)($o['safesearch'] ?? 'moderate'), 'fresh' => isset(smFreshness()[$o['freshness'] ?? '']) ? (string)($o['freshness'] ?? '') : '',
@@ -441,6 +441,9 @@ function smSearchParams(string $kind, string $q, array $o): array
                  'it' => (string)($o['it'] ?? ''), 'il' => (string)($o['il'] ?? ''), 'iq' => (string)($o['iq'] ?? '')]) : [],
         'vdur' => $kind === 'videos' ? (string)($o['vdur'] ?? '') : '',
     ];
+    // Seite 1 bei „Alle“ ohne Zeitfilter: diese Suche liefert auch die Karten (Spiele, Kurse, Infobox …), dafür mit Googles Quelltext
+    $p['html'] = $kind === 'web' && $p['page'] === 1 && $p['fresh'] === '' && $p['older'] === 0 && $p['from'] === '' && $p['to'] === '';
+    return $p;
 }
 
 /** Sind Filter gesetzt, die nur Google kann? */
@@ -473,7 +476,7 @@ function smSearch(string $kind, string $q, array $o, int $userId = 0): array
     [$list, $skip] = smProvPick($kind, $userId, $forced, $params['page'], $params['older'], smNeedsGoogle($params));
     $errors = [];
     // Wettlauf: Antwortet der erste Dienst nicht rasch, fragt die Suchmaschine den zweiten dazu (Bilder dürfen doppelt so lange)
-    $race = (int)smSetting('race');
+    $race = isset($o['race']) && $o['race'] !== '' && $o['race'] !== null ? (int)$o['race'] : (int)smSetting('race');
     $first = null;
     if ($forced === null && $race > 0 && count($list) >= 2) {
         [$wid, $wout, $errors, $bStarted] = smProvRace($list[0], $list[1], $params, $userId, $kind === 'images' ? $race * 2 : $race);
@@ -621,7 +624,12 @@ function smProvRace(string $a, string $b, array $params, int $userId, float $del
         if (smProvBlock($b, $params['kind'], $userId) !== '' || !smProvReserve($b, $params['kind'], $userId, $costB)) return null;
         return smProvRequest($b, $params, trim(smProvGet($b, 'key')));
     };
-    [$win, , $bStarted] = smHttpRace($a, smProvRequest($a, $params, trim(smProvGet($a, 'key'))), $timeout($a), $b, $startB, $timeout($b), $delay, $good);
+    // Kurzer Aussetzer bei Bright Data (leer, 502 …) in den ersten Sekunden: noch ein Versuch, gleichzeitig mit dem zweiten Dienst
+    $retryA = function (array $r) use ($a, $params, $userId, $costA) {
+        if ($a !== 'brightdata' || !smBdRetry($r) || !smProvReserve($a, $params['kind'], $userId, $costA)) return null;
+        return smProvRequest($a, $params, trim(smProvGet($a, 'key')));
+    };
+    [$win, , $bStarted] = smHttpRace($a, smProvRequest($a, $params, trim(smProvGet($a, 'key'))), $timeout($a), $b, $startB, $timeout($b), $delay, $good, $retryA);
     foreach ($results as $id => $r) if (isset($r['error'])) $errors[$id] = $r['error'];
     return [$win, $win !== null ? $results[$win] : null, $errors, $bStarted];
 }
@@ -785,7 +793,7 @@ function smHttpMulti(array $reqs, int $timeout): array
  * und liefert die Anfrage oder null, wenn $b nicht darf). $good(id, Antwort) prüft eine fertige Antwort. Die erste gute gewinnt,
  * die andere wird abgebrochen. Liefert [Gewinner oder null, id => Antwort aller fertigen, ob $b gestartet wurde].
  */
-function smHttpRace(string $a, array $reqA, int $timeoutA, string $b, callable $startB, int $timeoutB, float $delay, callable $good): array
+function smHttpRace(string $a, array $reqA, int $timeoutA, string $b, callable $startB, int $timeoutB, float $delay, callable $good, ?callable $retryA = null): array
 {
     $mh = curl_multi_init();
     $hdr = [$a => [], $b => []];
@@ -805,7 +813,14 @@ function smHttpRace(string $a, array $reqA, int $timeoutA, string $b, callable $
                 curl_multi_remove_handle($mh, $ch);
                 curl_close($ch);
                 unset($hs[$id]);
-                if ($winner === null && $good($id, $done[$id])) $winner = $id;
+                $base = $id === $a . '#2' ? $a : $id;
+                if ($winner === null && $good($base, $done[$id])) { $winner = $base; continue; }
+                // A kam schnell mit einem Aussetzer zurück: gleich noch einmal fragen (B startet parallel)
+                if ($id === $a && $retryA !== null && ($reqR = $retryA($done[$id])) !== null) {
+                    $hdr[$a . '#2'] = [];
+                    $hs[$a . '#2'] = [smCurlNew($reqR, $timeoutA, $hdr[$a . '#2']), microtime(true)];
+                    curl_multi_add_handle($mh, $hs[$a . '#2'][0]);
+                }
             }
         }
         if ($winner !== null) break;
@@ -904,9 +919,9 @@ function smProvErrorText(string $id, array $r, ?array $data): array
     } elseif ($st === 401 || $st === 403 || $st === 407) { $msg = t('%s nimmt den API-Key nicht an.', $name); $pause = 3600; }
     elseif ($st === 402 || $st === 432 || $st === 433) { $msg = t('Das Guthaben bei %s ist aufgebraucht.', $name); $pause = 3600; }
     elseif ($st === 429) { $msg = t('%s bremst gerade (zu viele Anfragen oder Kontingent erschöpft).', $name); $pause = 300; }
-    elseif ($st >= 500) { $msg = t('%s hat gerade technische Probleme.', $name); $pause = $short ? 60 : 600; }
+    elseif ($st >= 500) { $msg = t('%s hat gerade technische Probleme.', $name); $pause = $short ? 15 : 600; }
     elseif ($st === 400 || $st === 422) { $msg = t('%s hat die Anfrage abgelehnt.', $name); $pause = 0; }
-    elseif ($st === 200) { $msg = t('%s hat unverständlich geantwortet.', $name); $pause = $short ? 0 : 600; }
+    elseif ($st === 200) { $msg = $short ? t('%s hat diesmal nichts Brauchbares geliefert.', $name) : t('%s hat unverständlich geantwortet.', $name); $pause = $short ? 0 : 600; }
     else { $msg = t('Unerwartete Antwort von %s (HTTP %d).', $name, $st); $pause = 600; }
     if ($detail !== '') $msg .= ' (' . mb_substr(smPlain($detail), 0, 160) . ')';
     return [$msg, $pause];

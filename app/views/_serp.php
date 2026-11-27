@@ -55,65 +55,9 @@ if (!empty($fallback_go)): ?>
 <?php if ($flt['src'] !== ''): ?><li><a href="<?= h(smUrl(['src' => null] + $base)) ?>"><?= h(t('Mit einem anderen Suchdienst suchen')) ?></a></li><?php endif; ?></ul>
     </div>
 <?php elseif ($tab === 'web'): ?>
-<?php if ($page === 1 && !empty($res['sports'])): $sp = $res['sports']; ?>
-    <section class="lcard lcard--sports" aria-label="<?= h(t('Spiele')) ?>">
-        <h2 class="lcard__title"><?= h($sp['title'] !== '' ? $sp['title'] : t('Spiele')) ?> <span class="lcard__src"><?= h(t('laut Google')) ?></span></h2>
-        <ul class="matches">
-<?php foreach ($sp['events'] as $ev): $live = $ev['status'] !== '' && !preg_match('/endstand|beendet|final|ende|^ft$/i', $ev['status']) && $ev['teams'][0]['score'] !== ''; ?>
-            <li class="match<?= $live ? ' match--live' : '' ?>">
-                <span class="match__meta"><?= $live ? '<b class="live">' . h(t('Live')) . '</b> ' : '' ?><?= h(implode(' · ', array_filter([$ev['league'], $ev['date'], $ev['status']]))) ?></span>
-                <span class="match__row">
-                    <span class="match__name"><?= h($ev['teams'][0]['name']) ?></span>
-                    <b class="match__score"><?= h($ev['teams'][0]['score'] !== '' ? $ev['teams'][0]['score'] . ' : ' . $ev['teams'][1]['score'] : '– : –') ?></b>
-                    <span class="match__name match__name--r"><?= h($ev['teams'][1]['name']) ?></span>
-                </span>
-            </li>
-<?php endforeach; ?>
-        </ul>
-    </section>
-<?php endif; ?>
-<?php if ($page === 1 && !empty($res['stock'])): $st = $res['stock']; ?>
-    <section class="lcard lcard--stock" aria-label="<?= h(t('Kurs')) ?>">
-        <h2 class="lcard__title"><?= h($st['title']) ?> <span class="lcard__src"><?= h(implode(': ', array_filter([$st['exchange'], $st['symbol']]))) ?></span></h2>
-        <p class="stock__price"><b><?= h($st['price']) ?></b> <?= h($st['currency']) ?>
-<?php if ($st['abs'] !== '' || $st['pct'] !== ''): ?>
-            <span class="stock__chg stock__chg--<?= $st['up'] ? 'up' : 'down' ?>"><?= h(trim($st['abs'] . ($st['pct'] !== '' ? ' (' . $st['pct'] . ')' : ''))) ?> <?= h($st['period']) ?></span>
-<?php endif; ?></p>
-<?php if ($st['rows']): ?>
-        <dl class="stock__rows"><?php foreach ($st['rows'] as $row): ?><div><dt><?= h($row[0]) ?></dt><dd><?= h($row[1]) ?></dd></div><?php endforeach; ?></dl>
-<?php endif; ?>
-        <p class="lcard__note"><?= h(t('Kurse können verzögert sein. Keine Anlageberatung.')) ?></p>
-    </section>
-<?php endif; ?>
-<?php if ($page === 1 && !empty($res['answer'])): ?>
-    <section class="answer" aria-label="<?= h(t('KI-Übersicht')) ?>">
-        <h2 class="answer__title"><?= h(t('KI-Übersicht')) ?> <span class="answer__src"><?= h(t('von Google erstellt, bitte nachprüfen')) ?></span></h2>
-        <p class="answer__text" data-clamp><?= h($res['answer']) ?></p>
-<?php if (!empty($res['answer_links'])): ?>
-        <p class="answer__links"><?php foreach ($res['answer_links'] as $al): ?><a class="chip" href="<?= h($al['url']) ?>"<?= $rel . $target ?>><?= h($al['title'] !== '' ? $al['title'] : smHost((string)parse_url($al['url'], PHP_URL_HOST))) ?></a> <?php endforeach; ?></p>
-<?php endif; ?>
-    </section>
-<?php endif; ?>
-<?php if ($page === 1 && !empty($res['infobox'])): $ib = $res['infobox']; ?>
-    <aside class="kp" aria-label="<?= h(t('Kurzinfo')) ?>">
-<?php if ($ib['thumb']): ?><img class="kp__img" src="<?= h($ib['thumb']) ?>" alt="" loading="lazy" referrerpolicy="no-referrer"><?php endif; ?>
-        <h2 class="kp__title"><?= h($ib['title']) ?></h2>
-<?php if ($ib['subtitle']): ?><p class="kp__sub"><?= h($ib['subtitle']) ?></p><?php endif; ?>
-<?php if ($ib['desc']): ?><p class="kp__desc" data-clamp><?= h($ib['desc']) ?>
-<?php if ($ib['url']): ?> <a href="<?= h($ib['url']) ?>"<?= $rel . $target ?>><?= h($ib['source'] ?: smHost((string)parse_url($ib['url'], PHP_URL_HOST))) ?></a><?php endif; ?>
-<?php if (!empty($ib['license'])): ?> <small class="muted"><?= h($ib['license']) ?></small><?php endif; ?></p><?php endif; ?>
-<?php if ($ib['attrs']): ?>
-        <dl class="kp__attrs">
-<?php foreach ($ib['attrs'] as $at): ?><div><dt><?= h($at[0]) ?>:</dt> <dd><?= h($at[1]) ?></dd></div><?php endforeach; ?>
-        </dl>
-<?php endif; ?>
-<?php if ($ib['profiles'] || $ib['website']): ?>
-        <div class="kp__links">
-<?php if ($ib['website']): ?><a class="chip" href="<?= h($ib['website']) ?>"<?= $rel . $target ?>><?= h(t('Website')) ?></a><?php endif; ?>
-<?php foreach ($ib['profiles'] as $pr): ?><a class="chip" href="<?= h($pr['url']) ?>"<?= $rel . $target ?>><?= h($pr['name']) ?></a><?php endforeach; ?>
-        </div>
-<?php endif; ?>
-    </aside>
+<?php if ($page === 1) require __DIR__ . '/_cards.php'; ?>
+<?php if ($page === 1 && !empty($res['cards_url'])): ?>
+    <div class="cards-slot" data-cards="<?= h($res['cards_url']) ?>"></div>
 <?php endif; ?>
     <div class="serp__main">
 <?php foreach ($res['order'] as $o):

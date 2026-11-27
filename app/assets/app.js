@@ -415,6 +415,22 @@
         var msg = b && b.getAttribute && b.getAttribute('data-confirm-btn') || (f.getAttribute && f.getAttribute('data-confirm'));
         if (msg && !window.confirm(msg)) { ev.preventDefault(); ev.stopImmediatePropagation(); loading(false); }
     }, true);
+    // Karten über den Treffern (Spiele, Kurse, Infobox …) kommen bei „Neueste zuerst“ kurz nach der Liste
+    // Hatte Google gerade einen Aussetzer (503), noch einmal nach 16 Sekunden (Bright Data sperrt eine Suche so lange)
+    $$('[data-cards]').forEach(function (slot) {
+        if (!window.fetch) return;
+        function get(again) {
+            fetch(slot.getAttribute('data-cards'), { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+                .then(function (r) {
+                    if (r.status === 503 && again) { setTimeout(function () { get(false); }, 16000); return ''; }
+                    return r.status === 200 ? r.text() : '';
+                })
+                .then(function (html) { if (html.trim()) { slot.innerHTML = html; slot.classList.add('is-in'); } })
+                .catch(function () {});
+        }
+        get(true);
+    });
+
     // Filter in der Trefferliste ohne OK-Knopf: Auswahl wirkt sofort, ein Zeitraum, sobald beide Tage stehen (oder einer, mit Enter)
     $$('.tools__form select').forEach(function (s) {
         s.addEventListener('change', function () { loading(true); s.form.submit(); });

@@ -10,6 +10,8 @@ bei normaler privater Nutzung komplett in den kostenlosen Monatskontingenten.</p
 
 <p align="center"><img src="docs/de/ergebnisse.png" alt="Ergebnisseite mit Treffern, Top-Meldungen und Kurzinfo" width="820"></p>
 
+> ⚽ **Neu in 2.4:** Live-Karten wie bei Google bei jeder Suche, auch mit „Neueste zuerst“: das Spiel von heute mit Wappen und Anstoß, Kurse, Öffnungszeiten, Promi-Alter. [Mehr dazu](#neu-in-24-live-karten-wie-bei-google)
+>
 > ⚡ **Neu in 2.3:** Die Seite steht sofort da, Google und Brave laufen um die Wette, **Neueste zuerst** überall mit automatischen Zeitstufen, Bilder in **bester Qualität zuerst** und **Suchvorschläge** beim Tippen. [Mehr dazu](#neu-in-23-schneller-neueste-zuerst-beste-bilder)
 >
 > 🚀 **Version 2.2, Google-Ergebnisse.** Über Bright Data kommen echte Google-Ergebnisse für Web, Bilder, News und Videos, 5.000 Anfragen im Monat kostenlos. Dazu Live-Infos (Spielstände, Kurse, Öffnungszeiten, KI-Übersicht) und Filter wie bei Google. [Alles, was neu ist](#neu-in-22-google-ergebnisse-über-bright-data)
@@ -116,6 +118,14 @@ Bezahlte Suchmaschinen sind für ein paar Ideen bekannt, die es hier für alle g
 - **Bangs** wie `!w Berlin`, `!gh`, `!yt`, `!osm`, `!so`, `!r`, `!dl`, `!leo` springen direkt zur Suche einer anderen Seite. Sie werden abgefangen, bevor Brave gefragt wird, und **kosten kein Guthaben**. `!i`, `!n` und `!v` wechseln zu Bildern, News und Videos. Mitgeliefert werden **über 10.800 Bangs** aus der offenen Liste von [Kagi](https://github.com/kagisearch/bangs) (MIT-Lizenz) plus deutsche Extras. Beim Tippen von `!` (oder über den `!`-Knopf) schlägt das Suchfeld passende Bangs vor und zeigt, wohin es geht. Unter *Einstellungen → Bangs* lässt sich jedes Bang suchen, bearbeiten, löschen und der Grundzustand wiederherstellen; Administratoren können das auch für alle. Die Liste aktualisiert sich wöchentlich selbst, und die Zielseiten werden nach und nach auf Erreichbarkeit geprüft, beides ohne Suchanfragen und abschaltbar. Funktioniert auch aus der Adressleiste des Browsers.
 - **Linsen** schränken die Suche auf ein Thema ein, etwa Foren, Programmieren, Wikis oder Wissenschaft. Jeder kann **eigene Linsen** aus Domains und Operatoren bauen und die mitgelieferten ausblenden. Auswahl auf der Ergebnisseite unter „Linse“.
 - **Sichern und wiederherstellen:** Unter *Einstellungen → Konto* lädt jedes Konto seine Einstellungen samt Listen, Bangs und Linsen als Datei herunter und spielt sie bei Bedarf wieder ein, auch auf einer anderen Installation. Der Administrator kann zusätzlich die Einstellungen der Installation sichern.
+
+## Neu in 2.4: Live-Karten wie bei Google
+
+- **Karten bei jeder Suche:** Spiele, Aktien- und Indexkurse, Öffnungszeiten, Infobox (z. B. Alter und Geburtstag von Promis) und Googles KI-Übersicht stehen über den Treffern, auch bei „Neueste zuerst“. Die Trefferliste wartet nicht darauf, die Karten kommen einen Moment später dazu. Das kostet auf der ersten Seite eine Google-Anfrage mehr.
+- **Sport-Karte wie bei Google:** oben das Spiel von heute mit Liga, Anstoß, Wappen und Spielstand, darunter die nächsten Spiele und die letzten Ergebnisse mit Sieger. Die Anstoßzeiten stehen immer in deiner Zeitzone.
+- **Google aus deinem Land:** Bright Data ruft Google jetzt aus dem Land ab, das in deinen Sucheinstellungen (Region) steht, bisher war es irgendwo auf der Welt. Ohne Region („Alle Regionen“) bleibt es beim zufälligen Standort.
+- **Wettlauf schlauer:** Kommt von Google eine leere Antwort, fragt die Suchmaschine Google sofort noch einmal und Brave gleichzeitig. Die Wartezeit, bis Brave einspringt, stellt jedes Konto selbst ein unter *Einstellungen → Suche* (z. B. 5 Sekunden).
+- Die KI-Übersicht lässt Googles Rückfrage am Ende weg („Möchtest du mehr … erfahren?“), und eine verwechselte Infobox (z. B. „Dell“ bei „apple aktie“) wird korrigiert.
 
 ## Neu in 2.3: schneller, neueste zuerst, beste Bilder
 
