@@ -35,6 +35,8 @@ function smServePrintCss(): void
 {
     $s = is_string($_GET['s'] ?? null) ? trim($_GET['s']) : 'auto';
     if (!preg_match('/^(A[3-6]|auto|\d{1,3}(\.\d{1,2})?mm \d{1,3}(\.\d{1,2})?mm)$/', $s)) $s = 'auto';
+    // A6 kennt CSS nicht als Namen (nur A3 bis A5): Browser verwerfen die Angabe sonst und nehmen das Standardpapier
+    if ($s === 'A6') $s = '105mm 148mm';
     $m = is_string($_GET['m'] ?? null) ? (int)$_GET['m'] : 0;
     $m = max(0, min(30, $m));
     $one = !empty($_GET['one']);

@@ -274,9 +274,9 @@ function templatesPanel() {
         fill(palBox, PALETTES.map(p => el('button', { type: 'button', class: p[0] === pal ? 'on' : '', style: { background: p[1] }, 'aria-label': p[0], onclick: () => { pal = p[0]; CF.ls.set('printPal', pal); renderTpls(); render(); } })));
     }
     fill(acts,
-        btn(T('Drucken / PDF'), 'btn-primary', () => printPages([current.svg], current.t.page), 'printer'),
-        btn('PNG (300 dpi)', 'btn-second', async () => { const k = 300 / 25.4; CF.download('vorlage-' + tpl + '.png', await CF.Render.svgToPng(current.svg, current.t.size[0] * k, current.t.size[1] * k)); }, 'download'),
-        btn('SVG', 'btn-second', () => CF.download('vorlage-' + tpl + '.svg', new Blob([current.svg], { type: 'image/svg+xml' })), 'download'));
+        btn(T('Drucken / PDF'), 'btn-primary', () => { if (current) printPages([current.svg], current.t.page); }, 'printer'),
+        btn('PNG (300 dpi)', 'btn-second', async () => { if (!current) return; const k = 300 / 25.4; CF.download('vorlage-' + tpl + '.png', await CF.Render.svgToPng(current.svg, current.t.size[0] * k, current.t.size[1] * k)); }, 'download'),
+        btn('SVG', 'btn-second', () => current && CF.download('vorlage-' + tpl + '.svg', new Blob([current.svg], { type: 'image/svg+xml' })), 'download'));
     renderTpls(); renderForm(); render();
     return el('div', { class: 'layout' },
         el('div', { class: 'stack lg' }, CF.card(T('Vorlage'), 'sparkles', el('div', { class: 'stack' }, tplBox, form, field(T('Farbe'), palBox), note))),

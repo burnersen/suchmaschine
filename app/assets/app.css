@@ -1059,6 +1059,11 @@ html:not(.has-js) .lightbox__full { display: none; }
     /* Jahreskalender auf eine Seite: Monate im Raster, kleine Schrift */
     .yearcal { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; font-size: 9pt; }
     .yearcal__m { break-inside: avoid; }
+    /* Der Kasten um den Kalender darf umbrechen und die Überschrift des Werkzeugs fällt weg: sonst rutscht der Kalender
+       als Ganzes auf die nächste Seite und davor bleiben fast leere Blätter */
+    .ia:has(.yearcal) { break-inside: auto !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
+    .page--tools:has(.yearcal) .tool { border: 0 !important; padding: 0 !important; box-shadow: none !important; }
+    .page--tools:has(.yearcal) .tool__top { display: none !important; }
     @page { margin: 12mm; }
     body { background: #fff !important; color: #000 !important; zoom: 1; }
     .reader { max-width: none; margin: 0; padding: 0; }
