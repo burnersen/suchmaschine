@@ -939,7 +939,9 @@ function smToolBang(string $t): ?array
         'calc' => ['rechner', 'x'], 'rechner' => ['rechner', 'x'], 'mwst' => ['prozent', ''], 'vat' => ['prozent', ''], 'timer' => ['timer', 'min'], 'stoppuhr' => ['timer', ''],
         'wetter' => ['wetter', 'ort'], 'weather' => ['wetter', 'ort'], 'ip' => ['ip', ''], 'iban' => ['nummern', 'q'], 'ean' => ['nummern', 'q'], 'isbn' => ['nummern', 'q'],
         'farbe' => ['farben', ''], 'color' => ['farben', ''], 'ts' => ['zeitstempel', ''], 'unix' => ['zeitstempel', ''], 'b64' => ['kodieren', ''], 'base64' => ['kodieren', ''],
-        'tz' => ['weltzeit', ''], 'zeitzone' => ['weltzeit', '']];
+        'tz' => ['weltzeit', ''], 'zeitzone' => ['weltzeit', ''],
+        // Bilder groß: !bilder https://seite … holt die Bilder der Seite, ohne Adresse die Sammlungen
+        'bilder' => ['bilder', 'u'], 'bild' => ['bilder', 'u'], 'pics' => ['bilder', 'u'], 'diashow' => ['bilder', 'u'], 'slideshow' => ['bilder', 'u']];
     if (isset($alias[$t])) return $alias[$t][0] === '' ? ['', ''] : $alias[$t];
     $info = smToolInfo($t);
     if ($info === null) return null;

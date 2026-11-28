@@ -135,8 +135,13 @@ function smPicsExtract(string $html, string $base, int $max = 150): array
         if (($w > 0 && $w < 120) || ($h > 0 && $h < 80)) continue;
         $src = '';
         // <picture>: die größte Quelle der umgebenden <source>-Angaben
-        if ($im->parentNode instanceof DOMElement && strtolower($im->parentNode->nodeName) === 'picture') {
-            foreach ($xp->query('./source', $im->parentNode) as $so) {
+        // (Der HTML-Leser kennt <picture> und <source> nicht und verschachtelt sie teils anders: darum bis zu drei Ebenen nach oben suchen.)
+        $pic = null;
+        for ($up = $im->parentNode, $lv = 0; $up instanceof DOMElement && $lv < 3; $up = $up->parentNode, $lv++) {
+            if (strtolower($up->nodeName) === 'picture') { $pic = $up; break; }
+        }
+        if ($pic) {
+            foreach ($xp->query('.//source', $pic) as $so) {
                 /** @var DOMElement $so */
                 if (preg_match('~image/(avif|jxl)~i', $so->getAttribute('type'))) continue;   // nicht jeder Browser zeigt das
                 $src = $largest($so->getAttribute('srcset') ?: $so->getAttribute('data-srcset'));
@@ -167,23 +172,79 @@ function smPicsExtract(string $html, string $base, int $max = 150): array
 }
 
 /**
- * ?a=pics&u=…: alle Bilder einer Seite im Raster, mit der Großansicht der Bildersuche (Vollbild, Diashow, Wischen).
- * Nur mit Konto, die Bilder kommen über den eigenen Server (Bild-Proxy), gespeichert wird nichts. Zählt zum Stundenlimit des Lesemodus.
+ * ?a=pics: Bilder groß in der eigenen Großansicht (Vollbild, Diashow, Wischen).
+ *   ohne Angabe   Übersicht: Link einfügen, gespeicherte Sammlungen
+ *   &u=Adresse    alle Bilder einer Seite (der Server holt die Seite)
+ *   &set=Kennung  eine Sammlung (vom Lesezeichen „Bilder groß“ geschickt oder aus einer Seite gemerkt)
+ * Nur mit Konto, die Bilder kommen über den eigenen Server (Bild-Proxy). Seitenabrufe zählen zum Stundenlimit des Lesemodus.
  */
-function smPagePics(array $me): void
+function smPagePics(array $me, bool $post = false): void
 {
-    $u = smLink(trim((string)($_GET['u'] ?? '')));
-    if ($u === '' || strlen($u) > 2000) smRedirect(smBase());
-    $vars = ['me' => $me, 'prefs' => smPrefs($me), 'u' => $u, 'imgs' => [], 'error' => '', 'ptitle' => '',
+    $uid = (int)$me['id'];
+    if ($post) {
+        $do = (string)($_POST['do'] ?? '');
+        if ($do === 'del') {
+            smQ('DELETE FROM picsets WHERE id = ? AND user_id = ?', [(string)($_POST['set'] ?? ''), $uid]);
+            smFlash('ok', t('Sammlung gelöscht.'));
+            smRedirect(smUrl(['a' => 'pics']));
+        }
+        if ($do === 'rename' && ($set = smPicsetGet($uid, (string)($_POST['set'] ?? '')))) {
+            $nt = trim(mb_substr(smPlain((string)($_POST['title'] ?? '')), 0, 120));
+            if ($nt !== '') smQ('UPDATE picsets SET title = ? WHERE id = ? AND user_id = ?', [$nt, $set['id'], $uid]);
+            smRedirect(smUrl(['a' => 'pics', 'set' => $set['id']]));
+        }
+        if ($do === 'drop' && ($set = smPicsetGet($uid, (string)($_POST['set'] ?? '')))) {
+            // Ein einzelnes Bild aus der Sammlung nehmen (z. B. vor einer Diashow aussortieren)
+            $list = $set['list'];
+            $i = (int)($_POST['i'] ?? -1);
+            if (isset($list[$i])) {
+                array_splice($list, $i, 1);
+                if ($list) smQ('UPDATE picsets SET data = ?, n = ? WHERE id = ? AND user_id = ?', [json_encode($list, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), count($list), $set['id'], $uid]);
+                else smQ('DELETE FROM picsets WHERE id = ? AND user_id = ?', [$set['id'], $uid]);
+            }
+            smRedirect($list ? smUrl(['a' => 'pics', 'set' => $set['id'], 'edit' => '1']) : smUrl(['a' => 'pics']));
+        }
+        if ($do === 'save') {
+            // Die Bilder der gerade gezeigten Seite als Sammlung merken (aus dem Zwischenspeicher, ohne neuen Abruf)
+            $u = smLink(trim((string)($_POST['u'] ?? '')));
+            $hit = $u !== '' ? smCacheGet('pics|' . $uid . '|' . $u) : null;
+            $id = $hit ? smPicsetCreate($uid, (string)$hit['t'], $u, array_map(function ($im) use ($u) { return ['u' => $im['src'], 't' => $im['title'], 'p' => $u]; }, $hit['imgs'])) : '';
+            if ($id !== '') { smFlash('ok', t('Als Sammlung gemerkt.')); smRedirect(smUrl(['a' => 'pics', 'set' => $id])); }
+            smRedirect(smUrl(['a' => 'pics', 'u' => $u ?: null]));
+        }
+        smRedirect(smUrl(['a' => 'pics']));
+    }
+    $u = trim((string)($_GET['u'] ?? ''));
+    // Eingefügt ohne https:// (aus dem Eingabefeld): ergänzen
+    if ($u !== '' && !preg_match('~^https?://~i', $u) && preg_match('~^[a-z0-9äöüß.-]+\.[a-z]{2,}(/|$)~iu', $u)) $u = 'https://' . $u;
+    $u = smLink($u);
+    if (strlen($u) > 2000) $u = '';
+    $setId = is_string($_GET['set'] ?? null) ? $_GET['set'] : '';
+    $vars = ['me' => $me, 'prefs' => smPrefs($me), 'u' => $u, 'imgs' => [], 'error' => '', 'ptitle' => '', 'set' => null, 'sets' => [],
+             'edit' => ($_GET['edit'] ?? '') === '1',
              'iview' => isset($_GET['view']) && is_string($_GET['view']) && ctype_digit($_GET['view']) ? (int)$_GET['view'] : -1];
+    $title = t('Bilder groß');
     if (!smImgProxyOn()) {
         $vars['error'] = t('Dafür muss „Bilder in voller Auflösung über diesen Server laden“ eingeschaltet sein (Verwaltung → Einstellungen).');
-    } else {
+    } elseif ($setId !== '') {
+        $set = smPicsetGet($uid, $setId);
+        if (!$set) smRedirect(smUrl(['a' => 'pics']));
+        $vars['set'] = $set;
+        $vars['ptitle'] = $set['title'];
+        $title = $set['title'];
+        foreach ($set['list'] as $it) {
+            $full = smImgProxyUrl($it['u']);
+            if ($full === '') continue;
+            $page = $it['p'] !== '' ? $it['p'] : ($set['src'] !== '' ? $set['src'] : $it['u']);
+            $vars['imgs'][] = ['title' => $it['t'], 'page' => $page, 'src' => $it['u'], 'thumb' => ($it['th'] !== '' ? smImgProxyUrl($it['th']) : '') ?: $full,
+                               'host' => smHost((string)parse_url($page, PHP_URL_HOST)), 'w' => 0, 'h' => 0, 'tw' => 0, 'th' => 0, 'favicon' => ''];
+        }
+    } elseif ($u !== '') {
         // Die Liste liegt kurz im Zwischenspeicher: Blättern in der Großansicht ohne JavaScript holt die Seite nicht jedes Mal neu
-        $ck = 'pics|' . $me['id'] . '|' . $u;
+        $ck = 'pics|' . $uid . '|' . $u;
         $hit = smCacheGet($ck);
         if (!$hit) {
-            $k = hash('sha256', 'read|' . $me['id'] . '|' . date('YmdH'));
+            $k = hash('sha256', 'read|' . $uid . '|' . date('YmdH'));
             $row = smQ('SELECT fails FROM throttle WHERE k = ?', [$k])->fetch();
             if ($row && (int)$row['fails'] >= 60) {
                 $vars['error'] = t('Für diese Stunde sind genug Seiten im Lesemodus geöffnet worden. Bitte später wieder.');
@@ -215,7 +276,10 @@ function smPagePics(array $me): void
             }
             $vars['ptitle'] = (string)$hit['t'];
         }
+        $title = t('Bilder dieser Seite');
+    } else {
+        $vars['sets'] = smPicsets($uid);
     }
     header('X-Robots-Tag: noindex, nofollow, noarchive');
-    smRender('pics', $vars + ['title' => t('Bilder dieser Seite') . ' – ' . smSiteName()]);
+    smRender('pics', $vars + ['title' => $title . ' – ' . smSiteName()]);
 }

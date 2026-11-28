@@ -20,6 +20,17 @@ require __DIR__ . '/_vars.php';
         </details>
 <?php endif; ?>
 <?php if ($tab === 'images'): ?>
+<?php if ($me && smImgProxyOn()): $isrcNow = $flt['isrc'] ?? ''; ?>
+        <details class="tools">
+            <summary class="tabs__tab<?= $isrcNow ? ' is-set' : '' ?>"><?= h($isrcNow ? smImgSources()[$isrcNow][0] : t('Quelle')) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+            <div class="tools__panel">
+                <a href="<?= h(smUrl(['isrc' => null, 'p' => null] + $base)) ?>"<?= $isrcNow === '' ? ' class="is-active"' : '' ?> data-load>Brave Search</a>
+<?php foreach (smImgSources() as $k => $sdef2): ?>
+                <a href="<?= h(smUrl(['isrc' => $k, 'p' => null, 'isort' => null] + $base)) ?>"<?= $k === $isrcNow ? ' class="is-active"' : '' ?> data-load title="<?= h($sdef2[1]) ?>"><?= h($sdef2[0]) ?></a>
+<?php endforeach; ?>
+            </div>
+        </details>
+<?php endif; ?>
         <details class="tools">
             <summary class="tabs__tab<?= $flt['io'] ? ' is-set' : '' ?>"><?= h(smImageOrientations()[$flt['io']] === smImageOrientations()[''] ? t('Ausrichtung') : smImageOrientations()[$flt['io']]) ?> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
             <div class="tools__panel">

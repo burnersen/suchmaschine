@@ -329,6 +329,7 @@ function smUserDelete(int $id, array $me): string
 {
     if ($id === $me['id']) return t('Du kannst dich nicht selbst löschen.');
     smQ('DELETE FROM sessions WHERE user_id = ?', [$id]);
+    smQ('DELETE FROM picsets WHERE user_id = ?', [$id]);
     smQ('DELETE FROM users WHERE id = ?', [$id]);
     return '';
 }

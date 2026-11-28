@@ -104,25 +104,49 @@
     img.referrerPolicy = 'no-referrer';
     var cap = document.createElement('div');
     cap.setAttribute('style', 'position:absolute;left:0;right:0;bottom:0;padding:30px 16px max(12px,env(safe-area-inset-bottom));text-align:center;background:linear-gradient(transparent,rgba(0,0,0,.6));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .3s');
-    function btn(txt, css, fn, title) {
+    /* Symbole werden gezeichnet (SVG), nicht als Schriftzeichen gesetzt: Handys malen Zeichen wie ▶ oder ↗ sonst als bunte Emojis */
+    var NS = 'http://www.w3.org/2000/svg';
+    var ICONS = {
+        prev: ['m15 5-7 7 7 7'], next: ['m9 5 7 7-7 7'], close: ['M6 6l12 12M18 6 6 18'], full: ['M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'],
+        open: ['M9 5H5v14h14v-4M13 5h6v6M19 5l-8 8'], play: ['M8 5.5v13l11-6.5z', 1], pause: ['M7 5h3.5v14H7zM13.5 5H17v14h-3.5z', 1],
+        grid: ['M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'], send: ['M12 16V4M7 9l5-5 5 5M5 14v6h14v-6']
+    };
+    function icon(b, name) {
+        while (b.firstChild) b.removeChild(b.firstChild);
+        var d = ICONS[name], sv = document.createElementNS(NS, 'svg'), pa = document.createElementNS(NS, 'path');
+        sv.setAttribute('viewBox', '0 0 24 24');
+        sv.setAttribute('width', '24');
+        sv.setAttribute('height', '24');
+        sv.setAttribute('style', 'display:block;margin:auto;pointer-events:none');
+        pa.setAttribute('d', d[0]);
+        pa.setAttribute('fill', d[1] ? 'currentColor' : 'none');
+        pa.setAttribute('stroke', d[1] ? 'none' : 'currentColor');
+        pa.setAttribute('stroke-width', '2');
+        pa.setAttribute('stroke-linecap', 'round');
+        pa.setAttribute('stroke-linejoin', 'round');
+        sv.appendChild(pa);
+        b.appendChild(sv);
+    }
+    function btn(name, css, fn, title) {
         var b = document.createElement('button');
         b.type = 'button';
-        b.textContent = txt;
+        icon(b, name);
         b.title = title || '';
-        b.setAttribute('style', 'position:absolute;' + css + ';width:48px;height:48px;border:0;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:24px;line-height:48px;cursor:pointer;transition:opacity .3s');
+        b.setAttribute('aria-label', title || '');
+        b.setAttribute('style', 'position:absolute;' + css + ';width:48px;height:48px;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;cursor:pointer;transition:opacity .3s;-webkit-appearance:none;appearance:none');
         b.addEventListener('click', function (e) { e.stopPropagation(); fn(); });
         box.appendChild(b);
         return b;
     }
     box.appendChild(img);
     box.appendChild(cap);
-    var bPrev = btn('‹', 'left:max(12px,env(safe-area-inset-left));top:50%;margin-top:-24px', function () { go(-1); }, L.prev);
-    var bNext = btn('›', 'right:max(12px,env(safe-area-inset-right));top:50%;margin-top:-24px', function () { go(1); }, L.next);
-    var bClose = btn('×', 'right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top))', close, L.close);
-    var bFull = btn('⛶', 'right:max(70px,calc(env(safe-area-inset-right) + 58px));top:max(12px,env(safe-area-inset-top));font-size:20px', full, L.full);
-    var bOpen = btn('↗', 'right:max(128px,calc(env(safe-area-inset-right) + 116px));top:max(12px,env(safe-area-inset-top));font-size:20px', function () { window.open(list[cur].u, '_blank', 'noopener'); }, L.open);
+    var bPrev = btn('prev', 'left:max(12px,env(safe-area-inset-left));top:50%;margin-top:-24px', function () { go(-1); }, L.prev);
+    var bNext = btn('next', 'right:max(12px,env(safe-area-inset-right));top:50%;margin-top:-24px', function () { go(1); }, L.next);
+    var bClose = btn('close', 'right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top))', close, L.close);
+    var bFull = btn('full', 'right:max(70px,calc(env(safe-area-inset-right) + 58px));top:max(12px,env(safe-area-inset-top))', full, L.full);
+    var bOpen = btn('open', 'right:max(128px,calc(env(safe-area-inset-right) + 116px));top:max(12px,env(safe-area-inset-top))', function () { window.open(list[cur].u, '_blank', 'noopener'); }, L.open);
     /* Diashow: Knopf startet und stoppt, Auswahl = Sekunden pro Bild, nach dem letzten Bild wieder von vorne */
-    var bPlay = btn('▶', 'right:max(186px,calc(env(safe-area-inset-right) + 174px));top:max(12px,env(safe-area-inset-top));font-size:18px', function () { slide(!playing); }, L.play);
+    var bPlay = btn('play', 'right:max(186px,calc(env(safe-area-inset-right) + 174px));top:max(12px,env(safe-area-inset-top))', function () { slide(!playing); }, L.play);
     var sel = document.createElement('select');
     sel.title = L.secs;
     sel.setAttribute('style', 'position:absolute;right:max(244px,calc(env(safe-area-inset-right) + 232px));top:max(16px,calc(env(safe-area-inset-top) + 4px));height:40px;padding:0 6px;border:0;border-radius:20px;background:rgba(0,0,0,.5);color:#fff;font:14px system-ui,sans-serif;transition:opacity .3s');
@@ -132,8 +156,44 @@
     sel.addEventListener('change', function () { try { localStorage.setItem('smBigSecs', sel.value); } catch (e) {} if (playing) next(); });
     sel.addEventListener('click', function (e) { e.stopPropagation(); });
     box.appendChild(sel);
-    var bGrid = btn('▦', 'left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top));font-size:20px', function () { overview(!ovw); }, L.grid);
+    var bGrid = btn('grid', 'left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top))', function () { overview(!ovw); }, L.grid);
     var ctrls = [cap, bPrev, bNext, bClose, bFull, bOpen, bPlay, sel, bGrid];
+    /* „An meine App schicken“: die gefundenen Bildadressen als Sammlung ins eigene Konto. Dort laufen sie randlos im Vollbild,
+       was Safari am iPhone einer Webseite nicht erlaubt. Den Knopf gibt es nur im persönlichen Lesezeichen (mit Konto eingerichtet). */
+    var SEND = __SM_SEND__;
+    if (SEND) {
+        var bSend = btn('send', 'left:max(12px,env(safe-area-inset-left));bottom:max(64px,calc(env(safe-area-inset-bottom) + 56px))', function () {
+            var items = list.slice(0, 400).map(function (it) {
+                var th = it.el && it.el.tagName === 'IMG' ? (it.el.currentSrc || it.el.src || '') : '';
+                return { u: it.u, t: it.t, th: /^https?:/.test(th) && th !== it.u ? th : '' };
+            });
+            var f = document.createElement('form');
+            f.method = 'post';
+            f.action = SEND.url;
+            f.acceptCharset = 'UTF-8';
+            f.style.display = 'none';
+            [['k', SEND.k], ['u', location.href], ['t', document.title], ['list', JSON.stringify(items)]].forEach(function (p) {
+                var i = document.createElement('textarea');
+                i.name = p[0];
+                i.value = p[1];
+                f.appendChild(i);
+            });
+            document.body.appendChild(f);
+            f.submit();
+        }, L.send);
+        var sl = document.createElement('span');
+        sl.textContent = L.send;
+        sl.setAttribute('style', 'font:600 14px system-ui,sans-serif;margin-left:6px;white-space:nowrap');
+        bSend.style.width = 'auto';
+        bSend.style.padding = '0 16px 0 12px';
+        bSend.style.borderRadius = '24px';
+        bSend.style.background = '#4f46e5';
+        bSend.style.display = 'flex';
+        bSend.style.alignItems = 'center';
+        bSend.firstChild.style.margin = '0';
+        bSend.appendChild(sl);
+        ctrls.push(bSend);
+    }
     /* Übersicht: alle Bilder klein im Raster, antippen springt hin */
     var ovw = null;
     function overview(on) {
@@ -175,7 +235,7 @@
     }
     function slide(on) {
         playing = on;
-        bPlay.textContent = on ? '❚❚' : '▶';
+        icon(bPlay, on ? 'pause' : 'play');
         bPlay.title = on ? L.stop : L.play;
         bPlay.style.color = on ? '#7cc4ff' : '#fff';
         if (on) next(); else clearTimeout(slideT);

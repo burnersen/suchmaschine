@@ -926,6 +926,19 @@
             var vt = $$('.grid__item', grid).filter(function (t) { return t.getAttribute('data-i') === lb.getAttribute('data-view'); })[0];
             if (vt) show($$('.grid__item', grid).indexOf(vt));
         }
+        // „Diashow starten“ (Sammlungen, Bilder einer Seite): erstes Bild groß, Diashow an, Vollbild.
+        // Mit ?show=1 (Knopf „Diashow“ in der Übersicht) geht es gleich nach dem Laden los, dann als randloses Ersatz-Vollbild.
+        $$('[data-pics-show]').forEach(function (b) {
+            function start(byUser) {
+                if (!$$('.grid__item', grid).length) return;
+                show(0);
+                slide(true);
+                if (byUser) enterFull(); else pseudo(true);
+            }
+            b.hidden = false;
+            b.addEventListener('click', function () { start(true); });
+            if (b.hasAttribute('data-auto')) window.addEventListener('load', function () { setTimeout(function () { start(false); }, 400); });
+        });
         document.addEventListener('keydown', function (ev) {
             if (lb.hidden || ev.ctrlKey || ev.metaKey || ev.altKey || isTyping(ev.target)) return;
             if (document.querySelector('.overlay:not([hidden])')) return;
