@@ -116,9 +116,11 @@ $combos = $de ? [
         <p><?= h(t('Suchst du hier angemeldet über Brave, brauchst du nichts davon: Bild antippen, dann oben den Vollbild-Knopf (oder Taste F). Daneben startest du die Diashow und wählst, wie viele Sekunden jedes Bild bleibt.')) ?></p>
         <p><?= h(t('Landest du bei einer anderen Suchmaschine (als Gast oder wenn Brave nicht kann), zeigen die ihre Bilder oft nur klein. Dafür gibt es das Lesezeichen „Bilder groß“: einmal pro Gerät einrichten, danach auf der fremden Bilderseite antippen, und die Bilder erscheinen groß auf Schwarz.')) ?></p>
         <p><?= h(t('Im großen Bild: wischen oder tippen blättert, zwei Finger oder Doppeltipp zoomen, der Knopf oben links zeigt alle Bilder als Übersicht. Es beginnt mit dem Bild, das gerade auf dem Bildschirm steht. Lädt die Seite beim Scrollen Bilder nach, kommen die am Ende dazu.')) ?></p>
+        <p><strong><?= h(t('Randlos in der App, auch am iPhone:')) ?></strong> <?= h(t('Safari erlaubt Webseiten am iPhone kein echtes Vollbild, die Leisten bleiben. Tippe darum im großen Bild unten links auf „An meine App“: Die Bildadressen gehen als Sammlung in dein Konto. In der App (Werkzeuge → Bilder groß oder !bilder im Suchfeld) startest du sie randlos und als Diashow. Den Knopf gibt es nur, wenn du das Lesezeichen angemeldet eingerichtet hast.')) ?></p>
+        <p><?= h(t('Im Reiter „Bilder“ gibt es unter „Quelle“ neben Brave auch Wikimedia Commons und Openverse: freie Bilder, kostenlos und ohne dass eine Suche bei Brave gezählt wird.')) ?></p>
         <p><?= h(t('Ohne Lesezeichen, auf jedem Gerät: Bei normalen Seiten (nicht bei fremden Suchmaschinen) holt „Bilder dieser Seite groß“ die Bilder über diesen Server. Das steht im Menü ⋮ an jedem Treffer, im Lesemodus und im Teilen-Menü des Handys, wenn die Suchmaschine als App installiert ist.')) ?></p>
-        <p><a class="btn btn--primary" href="<?= h(smBookmarklet()) ?>" data-bookmarklet title="<?= h(t('In die Lesezeichenleiste ziehen')) ?>">🖼️ <?= h(t('Bilder groß')) ?></a>
-            <button type="button" class="btn" data-copy-text="<?= h(smBookmarklet()) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Lesezeichen-Code kopieren')) ?></button></p>
+        <p><a class="btn btn--primary" href="<?= h(smBookmarklet($me)) ?>" data-bookmarklet title="<?= h(t('In die Lesezeichenleiste ziehen')) ?>">🖼️ <?= h(t('Bilder groß')) ?></a>
+            <button type="button" class="btn" data-copy-text="<?= h(smBookmarklet($me)) ?>" data-done="<?= h(t('Kopiert')) ?>"><?= h(t('Lesezeichen-Code kopieren')) ?></button></p>
 
         <h3><?= h(t('Einmal einrichten')) ?></h3>
         <details class="howto" open><summary><strong><?= h(t('Rechner (Chrome, Edge, Firefox, Safari)')) ?></strong></summary>

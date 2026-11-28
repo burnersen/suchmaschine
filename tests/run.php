@@ -417,6 +417,43 @@ same('Ohne Eintrag gilt der Schlüssel des Projekts', SM_UPDATE_PUBKEY, smUpdPub
 check('Update-Schlüssel im Code ist leer oder gültig', SM_UPDATE_PUBKEY === '' || strlen((string)base64_decode(SM_UPDATE_PUBKEY, true)) === 32);
 
 /* ---------- Aufräumen ---------- */
+/* ---------- Bilder groß: freie Bildquellen, Sammlungen, Bilder einer Seite ---------- */
+$cq = http_build_query(['action' => 'query', 'format' => 'json', 'generator' => 'search', 'gsrsearch' => 'brot', 'gsrnamespace' => 6, 'gsrlimit' => 50,
+    'gsroffset' => 0, 'prop' => 'imageinfo', 'iiprop' => 'url|size|mime|extmetadata', 'iiextmetadatafilter' => 'LicenseShortName|Artist', 'iiurlwidth' => 480, 'uselang' => smLang()]);
+smCacheSet('fetch|https://commons.wikimedia.org/w/api.php?' . $cq, ['continue' => ['gsroffset' => 50], 'query' => ['pages' => [
+    '7' => ['title' => 'File:Zweites_Brot.png', 'index' => 2, 'imageinfo' => [['url' => 'https://upload.wikimedia.org/b.png', 'thumburl' => 'https://upload.wikimedia.org/thumb/b.png', 'descriptionurl' => 'https://commons.wikimedia.org/wiki/File:B.png', 'width' => 800, 'height' => 600, 'thumbwidth' => 480, 'thumbheight' => 360, 'mime' => 'image/png']]],
+    '5' => ['title' => 'File:Erstes Brot.jpg', 'index' => 1, 'imageinfo' => [['url' => 'https://upload.wikimedia.org/a.jpg', 'thumburl' => 'https://upload.wikimedia.org/thumb/a.jpg', 'descriptionurl' => 'https://commons.wikimedia.org/wiki/File:A.jpg', 'width' => 3000, 'height' => 2000, 'mime' => 'image/jpeg',
+        'extmetadata' => ['Artist' => ['value' => '<a href="x">Anna</a>'], 'LicenseShortName' => ['value' => 'CC BY-SA 4.0']]]]],
+    '9' => ['title' => 'File:Vortrag.pdf', 'index' => 3, 'imageinfo' => [['url' => 'https://upload.wikimedia.org/c.pdf', 'mime' => 'application/pdf']]],
+]]], 60);
+$ir = smImgSourceSearch('commons', 'brot', 1);
+same('Wikimedia Commons: Reihenfolge der Quelle, nur Bilder, Urheber und Lizenz im Titel', ['Erstes Brot · Anna (CC BY-SA 4.0)', 'Zweites Brot'], array_column($ir['results'], 'title'));
+same('Wikimedia Commons: Maße, Seite, es gibt mehr', [3000, 'https://commons.wikimedia.org/wiki/File:A.jpg', true], [$ir['results'][0]['w'], $ir['results'][0]['page'], $ir['more']]);
+check('Wikimedia Commons: Vorschaubild läuft über den eigenen Server', strpos($ir['results'][0]['thumb'], 'a=img') !== false && strpos($ir['results'][0]['thumb'], 'thumb%2Fa.jpg') !== false, $ir['results'][0]['thumb']);
+smCacheSet('fetch|https://api.openverse.org/v1/images/?' . http_build_query(['q' => 'brot', 'page_size' => 20, 'page' => 1]), ['page_count' => 3, 'results' => [
+    ['title' => 'Bread', 'url' => 'https://live.staticflickr.com/1.jpg', 'thumbnail' => 'https://api.openverse.org/v1/images/1/thumb/', 'foreign_landing_url' => 'https://www.flickr.com/photos/x/1', 'width' => 1024, 'height' => 768, 'creator' => 'Bob', 'license' => 'by'],
+    ['title' => 'ohne Adresse'],
+]], 60);
+$ir = smImgSourceSearch('openverse', 'brot', 1);
+same('Openverse: Treffer mit Urheber, Lizenz, Herkunft', [['Bread · Bob (BY)'], 'flickr.com', true], [array_column($ir['results'], 'title'), $ir['results'][0]['host'], $ir['more']]);
+$_GET = ['isrc' => 'commons'];
+same('Bildersuche: Quelle aus der Adresse, nur im Reiter Bilder', ['commons', ''], [smSearchFilters('images')['isrc'], smSearchFilters('web')['isrc']]);
+$_GET = [];
+$pl = smPicsetClean([['u' => 'https://example.org/a.jpg', 't' => '<b>Eins</b>', 'th' => 'javascript:alert(1)'], ['u' => 'https://example.org/a.jpg'], ['u' => 'ftp://x/y.jpg'], 'quatsch', ['u' => 'https://example.org/b.png', 'th' => 'https://example.org/t.png']]);
+same('Sammlung: nur http(s), doppelte weg, Titel ohne HTML, Vorschau geprüft', [['https://example.org/a.jpg', 'Eins', ''], ['https://example.org/b.png', '', 'https://example.org/t.png']], array_map(function ($x) { return [$x['u'], $x['t'], $x['th']]; }, $pl));
+$sid = smPicsetCreate(1, 'Katzen - Bing', 'https://www.bing.com/images/search?q=katzen', $pl);
+$ps = smPicsetGet(1, $sid);
+same('Sammlung: anlegen und lesen', ['Katzen - Bing', 2, 2], [$ps['title'] ?? '', (int)($ps['n'] ?? 0), count($ps['list'] ?? [])]);
+same('Sammlung: fremdes Konto sieht sie nicht, leere Liste legt nichts an', [null, ''], [smPicsetGet(2, $sid), smPicsetCreate(1, 'leer', '', [])]);
+[$pe] = smPicsExtract('<html><head><title>Galerie</title><meta property="og:image" content="/og.jpg"></head><body>'
+    . '<img src="/klein.png" width="40" height="40"><img src="data:image/gif;base64,AAAA" data-src="/faul.jpg" alt="Faul">'
+    . '<picture><source srcset="/p-400.webp 400w, /p-1600.webp 1600w"><img src="/p.jpg" alt="Bild"></picture>'
+    . '<a href="/voll.jpg"><img src="/vorschau.jpg"></a><a href="/wiki/Datei:Foto.jpg"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Foto.jpg/500px-Foto.jpg"></a>'
+    . '<img src="/logo-firma.png"></body></html>', 'https://example.org/seite/');
+same('Bilder einer Seite: größte Fassung, nachgeladene, verlinktes Original, Wikimedia-Original, keine Symbole',
+    ['https://example.org/og.jpg', 'https://example.org/faul.jpg', 'https://example.org/p-1600.webp', 'https://example.org/voll.jpg', 'https://upload.wikimedia.org/wikipedia/commons/0/0a/Foto.jpg'], array_column($pe, 'src'));
+same('Bang: !bilder mit Adresse öffnet „Bilder groß“', true, strpos((string)(smBangTarget('!bilder https://example.org/galerie', null)['to'] ?? ''), 'tool=bilder&u=https') !== false);
+
 if (is_dir($tmp)) {
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $f) {
         $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());

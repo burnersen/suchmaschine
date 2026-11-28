@@ -71,6 +71,7 @@ function smToolGroups(): array
             'zeitstempel' => ['🕰️', t('Unix-Zeitstempel'), t('Zeitstempel und Datum hin und her, ISO 8601'), ['app' => ['tools/dev'], 'new' => true, 'kw' => 'unix timestamp zeitstempel epoch iso 8601']],
         ],
         t('Alltag und Zufall') => [
+            'bilder'    => ['🖼️', t('Bilder groß'), t('Bilder jeder Seite randlos und als Diashow, Sammlungen fürs Vorführen'), ['login' => true, 'new' => true, 'kw' => 'bilder groß vollbild diashow slideshow sammlung galerie fotos präsentation']],
             'zufall'    => ['🎲', t('Würfel, Münze, Lotto'), t('Echter Zufall vom Server, Lottozahlen, Karte ziehen, Ja/Nein'), ['kw' => 'würfel münze zufall zufallszahl lotto eurojackpot karte']],
             'wetter'    => ['🌦️', t('Wetter'), t('Vorhersage, Stunden, 7 Tage und Unwetterwarnungen'), ['kw' => 'wetter vorhersage regen warnung dwd']],
             'roemisch'  => ['🏛️', t('Römische Zahlen'), t('Hin und her, von I bis MMMCMXCIX'), ['app' => ['tools/calc'], 'new' => true, 'kw' => 'römische zahlen roman numerals']],
@@ -118,6 +119,12 @@ function smPageTools(?array $me, bool $post): void
     }
     $tool = isset($_GET['tool']) && is_string($_GET['tool']) && smToolInfo($_GET['tool']) !== null ? $_GET['tool'] : '';
     // Ältere Adressen (?a=tools&qr=…, ?a=tools&new=…, ?a=tools&tool=losen) öffnen das passende Werkzeug
+    // „Bilder groß“ ist eine eigene Seite (?a=pics), als Werkzeug nur der Einstieg: !bilder https://… im Suchfeld landet hier
+    if ($tool === 'bilder') {
+        if (!$me) smRedirect(smUrl(['a' => 'login', 'next' => smUrl(['a' => 'pics'])]));
+        smPagePics($me, false);
+        return;
+    }
     if ($tool === '' && isset($_GET['qr']) && is_string($_GET['qr'])) $tool = 'qr';
     if ($tool === '' && isset($_GET['new'])) $tool = 'kurzlinks';
     if (isset($_GET['tool']) && $tool === '' && $_GET['tool'] === 'losen') smRedirect(smUrl(['a' => 'tools']));

@@ -68,6 +68,8 @@ function smSearchFilters(string $tab, ?array $prefs = null): array
         'io'    => $tab === 'images' && isset(smImageOrientations()[$g('io')]) ? $g('io') : '',
         'is'    => $isz,
         'isort' => $isort,
+        // Andere Bildquelle als Brave (Wikimedia Commons, Openverse)
+        'isrc'  => $tab === 'images' && isset(smImgSources()[$g('isrc')]) ? $g('isrc') : '',
         // Eigener Zeitraum, Wortgenau, Sprache und Region gehen mit zu Brave, Videolänge wird danach gefiltert
         'fd'    => $fd,
         'td'    => $td,
@@ -126,7 +128,11 @@ function smPageSearch(?array $me): void
     // Adresse eingefügt (z. B. ein Rezept von Chefkoch): mit Konto gleich in den Lesemodus (Drucken, PDF, nur das Rezept),
     // ohne Konto oder bei einer bloßen Domain direkt zur Seite
     if (!$part && ($_GET['web'] ?? '') !== '1' && ($qu = smQueryUrl($q)) !== null && $qu[0] !== '') {
-        if ($me && $qu[1]) smRedirect(smUrl(['a' => 'read', 'u' => $qu[0]]));
+        // Mit Konto: fragen, was mit dem Link passieren soll (lesen und drucken, Bilder groß, Kurzlink, öffnen)
+        if ($me && $qu[1]) {
+            smRender('share', ['me' => $me, 'prefs' => $prefs, 'u' => $qu[0], 'pasted' => true, 'title' => t('Link') . ' – ' . smSiteName()]);
+            return;
+        }
         smExternalRedirect($qu[0], $q);
     }
 
@@ -166,10 +172,11 @@ function smPageSearch(?array $me): void
         $opt = ['page' => $page, 'freshness' => $fresh, 'exact' => $exact, 'endless' => $prefs['scroll'] === 'endless',
                 'from' => $flt['fd'], 'to' => $flt['td'], 'verb' => $flt['vb'] === '1', 'lr' => $flt['sl']]
             + ($flt['cr'] !== '' ? ['country' => $flt['cr']] : []) + $prefs;
-        $res = smSearch($tab, $apiQ, $opt, $uid);
+        // Freie Bildquelle statt Brave: kostet keine Suche, die Seiten blättert die Quelle selbst
+        $res = $flt['isrc'] !== '' ? smImgSourceSearch($flt['isrc'], $q, $page) : smSearch($tab, $apiQ, $opt, $uid);
         // Rechtschreibhilfe: Brave korrigiert Tippfehler meist selbst („Ergebnisse für …“). Gefragt wird nur, wenn nicht:
         // bei „Wortgenau“ oder „Stattdessen suchen nach“ und wenn kaum etwas gefunden wurde. Das schont das Kontingent.
-        if (!$part && $page === 1 && empty($res['altered']) && ($exact || $flt['vb'] === '1' || count($res['results']) < 3)) {
+        if (!$part && $page === 1 && $flt['isrc'] === '' && empty($res['altered']) && ($exact || $flt['vb'] === '1' || count($res['results']) < 3)) {
             $vars['didyoumean'] = smSpellcheck($q, $me);
         }
         // KI-Antwort von Brave: auf Knopfdruck oder automatisch (der Browser holt sie, die Treffer warten nicht)
@@ -215,12 +222,19 @@ function smPageSearch(?array $me): void
         if ($tab === 'videos' && $flt['vd'] !== '') $res = smVideoDurFilter($res, $flt['vd']);
         if ($tab === 'images') {
             // Alle filtern, dann die gewünschte Seite herausschneiden: 50 pro Seite oder Nachladen, kostet keine weitere Suche
-            $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === '');
+            $moreSrc = $res['more'];
+            $res = smImageFilter($res, $flt['io'], $flt['is'], $flt['isort'] === '' && $flt['isrc'] === '');
             $all = $res['results'];
             $pg = (int)($vars['page'] ?? $page);
-            $res['results'] = array_slice($all, ($pg - 1) * 50, 50);
-            $res['more'] = count($all) > $pg * 50;
-            $res['img_first'] = ($pg - 1) * 50;
+            if ($flt['isrc'] !== '') {
+                // Freie Quelle: Sie liefert schon genau diese Seite
+                $res['more'] = $moreSrc;
+                $res['img_first'] = 0;
+            } else {
+                $res['results'] = array_slice($all, ($pg - 1) * 50, 50);
+                $res['more'] = count($all) > $pg * 50;
+                $res['img_first'] = ($pg - 1) * 50;
+            }
         }
     } catch (SmSearchExhausted $e) {
         // Brave kann gerade nicht (kein Key, Limit, Kontingent, Störung): sofort zur eigenen Suchmaschine, ohne Zwischenstopp

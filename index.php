@@ -22,7 +22,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 date_default_timezone_set('Europe/Berlin');
 
-define('SM_VERSION', '3.6.0');
+define('SM_VERSION', '3.7.0');
 define('SM_ROOT', __DIR__);
 define('SM_APP', SM_ROOT . '/app');
 defined('SM_DATA_DIR') || define('SM_DATA_DIR', SM_ROOT . '/data');   // die Tests nehmen einen eigenen Ordner
@@ -40,7 +40,7 @@ if (PHP_VERSION_ID < 80000) {
 foreach ([
     'lang', 'util', 'db', 'auth',                          // Grundlagen: Sprache, Helfer, Datenbank, Konten
     'brave', 'providers', 'extras', 'plans', 'filters', 'domains', 'bangs',   // Suchen: Brave Search, Ausweich-Suchmaschine, Vorschläge/Rechtschreibung/KI-Antwort, Filter, Domain-Listen, Bangs und Linsen
-    'instant', 'instant_more', 'qr', 'imgproxy', 'reader',                // Sofort-Antworten, QR-Codes, Bild-Proxy, Lesemodus
+    'instant', 'instant_more', 'qr', 'imgproxy', 'reader', 'pics',        // Sofort-Antworten, QR-Codes, Bild-Proxy, Lesemodus, freie Bildquellen und Sammlungen
     'net', 'shortlinks', 'tools_api',                      // Werkzeuge: sicherer Abruf, Kurzlinks und Schnipsel, Schnittstelle der Werkzeug-Apps
     'prefs', 'look', 'branding', 'backup', 'update',       // Einstellungen, Aussehen, Logo, Sicherung, Update
     'serve', 'router',                                     // Dateien ausliefern, Ablauf

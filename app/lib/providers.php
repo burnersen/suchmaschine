@@ -754,7 +754,7 @@ function smFallbackName(?array $me = null, ?string $tpl = null): string
  * Lesezeichen „Bilder groß“ (app/assets/bookmarklet.js) als javascript:-Adresse. Für Bildersuchen anderer Suchmaschinen:
  * sammelt dort die Originalbilder und zeigt sie randlos im Vollbild. Kommentare fallen weg, sonst bleibt der Code lesbar.
  */
-function smBookmarklet(): string
+function smBookmarklet(?array $me = null): string
 {
     $js = (string)file_get_contents(SM_APP . '/assets/bookmarklet.js');
     $js = preg_replace('~/\*.*?\*/~s', '', $js);
@@ -764,7 +764,10 @@ function smBookmarklet(): string
               'close' => t('Schließen'), 'full' => t('Vollbild (Taste F)'), 'open' => t('Bild in Originalgröße'),
               'broken' => t('Dieses Bild lässt die Seite nicht laden. Weiter mit dem Pfeil.'),
               'play' => t('Diashow starten (Taste S)'), 'stop' => t('Diashow anhalten (Taste S)'), 'secs' => t('Sekunden pro Bild'),
-              'grid' => t('Übersicht (Taste G)')];
+              'grid' => t('Übersicht (Taste G)'), 'send' => t('An meine App')];
+    // Mit Konto: Knopf „An meine App“, der die Bildadressen mit dem persönlichen Schlüssel als Sammlung ins Konto schickt
+    $send = $me ? ['url' => smOrigin() . '?a=picsin', 'k' => smReadKey((int)$me['id'])] : null;
+    $js = str_replace('__SM_SEND__', json_encode($send, JSON_UNESCAPED_SLASHES), $js);
     $js = str_replace('__SM_TEXTS__', json_encode($texts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $js);
     return 'javascript:' . rawurlencode($js);
 }

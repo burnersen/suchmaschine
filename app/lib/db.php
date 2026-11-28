@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 8);
+define('SM_SCHEMA', 9);
 
 function smFatal(string $msg): void
 {
@@ -184,6 +184,12 @@ function smMigrate(PDO $pdo, int $from): void
             $p['sort_web'] = 'rel';
             $upd->execute([json_encode($p, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $u['id']]);
         }
+    }
+    if ($from < 9) {
+        // 3.7: Sammlungen (Bilderlisten im Konto, nur Adressen und Titel). n = Anzahl, data = JSON-Liste, src = Seite, von der sie stammt
+        $pdo->exec("CREATE TABLE IF NOT EXISTS picsets (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, title TEXT NOT NULL, src TEXT NOT NULL DEFAULT '',
+            created INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, data TEXT NOT NULL)");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS picsets_user ON picsets (user_id, created)');
     }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();

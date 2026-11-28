@@ -7,7 +7,7 @@ $lens = $lens ?? '';
 $flt = $flt ?? smSearchFilters($tab, $prefs);
 $base = ['q' => $q, 't' => $tab !== 'web' ? $tab : null, 'f' => $flt['f_q'] ?: null, 'xf' => $flt['xf'] ?: null, 'exact' => $exact ? '1' : null, 'ft' => $ft ?: null, 'l' => $lens ?: null,
          'sort' => $flt['sort_q'] ?: null, 'dl' => $flt['dl'] ?: null,
-         'io' => $flt['io'] ?: null, 'is' => $flt['is'] ?: null, 'isort' => $flt['isort'] ?: null,
+         'io' => $flt['io'] ?: null, 'is' => $flt['is'] ?: null, 'isort' => $flt['isort'] ?: null, 'isrc' => ($flt['isrc'] ?? '') ?: null,
          'fd' => $flt['fd'] ?: null, 'td' => $flt['td'] ?: null, 'vb' => $flt['vb'] ?: null, 'sl' => $flt['sl'] ?: null, 'cr' => $flt['cr'] ?: null,
          'vd' => $flt['vd'] ?: null];
 // Ein Auswahlmenü in der Filterleiste: Adressparameter, Werte => Bezeichnung, Beschriftung ohne Auswahl

@@ -55,6 +55,8 @@ function smRun(): void
     // Lesezeichen „Lesen & Drucken“: Seite aus dem Browser hochladen (kommt von der fremden Seite, darum ohne Formular-Prüfung,
     // erlaubt nur mit dem persönlichen Schlüssel des Kontos)
     if ($a === 'readin' && $post) smServeReadIn();
+    // Lesezeichen „Bilder groß“, Knopf „An meine App schicken“: Bildadressen als Sammlung ins Konto (ebenfalls nur mit dem persönlichen Schlüssel)
+    if ($a === 'picsin' && $post) smServePicsIn();
 
     $me = smUser();
 
@@ -193,7 +195,7 @@ function smRun(): void
             smPageRead($me, $post);
             return;
         case 'pics':
-            smPagePics($me);
+            smPagePics($me, $post);
             return;
         default:
             smPageSearch($me);
