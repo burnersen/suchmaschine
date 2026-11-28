@@ -320,6 +320,8 @@
         if (el && el.tagName === 'IMG') {
             if (el.parentNode && el.parentNode.classList && el.parentNode.classList.contains('fav')) el.remove();
             else if (el.closest('.grid__item')) el.closest('.grid__item').remove();
+            // Vorschaubild eines Treffers lädt nicht: ganz weg, damit der Text die volle Breite bekommt statt neben einem grauen Kasten zu stehen
+            else if (el.classList.contains('res__thumb') || el.classList.contains('news__img')) el.remove();
             else if (!el.hasAttribute('data-lb-img')) el.style.visibility = 'hidden';
         }
     }, true);

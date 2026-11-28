@@ -1220,6 +1220,10 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .resmenu:not([open]) .resmenu__btn { opacity: 1; }
 .resmenu__btn:hover, .resmenu[open] .resmenu__btn { color: var(--accent); border-color: var(--accent); }
 @media (pointer: coarse) { .resmenu__btn { width: 40px; height: 40px; } .resmenu__btn svg { width: 22px; height: 22px; } }
+/* Am Handy ist der Knopf größer: mehr Platz lassen, sonst liegt er über dem Vorschaubild. In der Trefferliste steht er immer ganz rechts. */
+@media (pointer: coarse) { .has-menu > .news__link, .has-menu > .video__link { padding-right: 48px; } }
+@media (max-width: 640px) { .res__top > .resmenu { margin-left: auto; } }
+.sbox input { text-overflow: ellipsis; }
 .alert--warn { background: color-mix(in srgb, #f9ab00 14%, var(--bg)); border: 1px solid color-mix(in srgb, #f9ab00 45%, transparent); color: var(--text); }
 
 /* ---------- 3.0: Gäste wählen ihre Suchmaschine auf der Startseite ---------- */
