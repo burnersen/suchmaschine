@@ -800,6 +800,7 @@
             function ready() {
                 if (settled || cur !== i) return;
                 settled = true;
+                waiting = false;
                 clearTimeout(sharpT);
                 lb.classList.remove('is-loading');
                 if (!playing) return;
@@ -809,6 +810,7 @@
             }
             clearTimeout(sharpT);
             clearTimeout(slideT);
+            waiting = !!full;
             if (full) {
                 lb.classList.toggle('is-loading', playing);
                 var hi = new Image();
@@ -824,7 +826,7 @@
             }
             wake();
         }
-        var sharpT = 0;
+        var sharpT = 0, waiting = false;   // waiting: das Original des gezeigten Bildes lädt noch
         /* Diashow: läuft nur, wenn man sie startet. Nach dem letzten Bild geht es von vorne los. Sekunden werden im Browser gemerkt. */
         var playBtn = $('[data-lb-play]', lb), secsSel = $('[data-lb-secs]', lb), slideT = 0, playing = false;
         var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
@@ -833,7 +835,7 @@
             $('[data-lb-secs-wrap]', lb).hidden = false;
             secsSel.value = store('sm.slide') || '5';
             if (!secsSel.value) secsSel.value = '5';
-            secsSel.addEventListener('change', function () { store('sm.slide', secsSel.value); if (playing) slideNext(true); });
+            secsSel.addEventListener('change', function () { store('sm.slide', secsSel.value); if (playing && !waiting) slideNext(true); });
             playBtn.addEventListener('click', function () { slide(!playing); });
         }
         function slideNext(restart) {
@@ -852,7 +854,10 @@
             playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
             playBtn.setAttribute('aria-label', playBtn.getAttribute(playing ? 'data-label-off' : 'data-label-on'));
             playBtn.title = playBtn.getAttribute('aria-label');
-            if (playing) slideNext(); else clearTimeout(slideT);
+            // Lädt das Original noch, startet die Uhr erst, wenn es da ist (siehe ready() in show)
+            if (playing && waiting) lb.classList.add('is-loading');
+            else if (playing) slideNext();
+            else { clearTimeout(slideT); lb.classList.remove('is-loading'); }
         }
 
         function hide(fromBack) {
