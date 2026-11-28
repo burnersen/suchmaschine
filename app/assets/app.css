@@ -1314,3 +1314,15 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
     .foot__keys, .foot__sep:has(+ .foot__keys) { display: none !important; }
 }
 
+/* ---------- 3.6: Lesen-Knopf am Treffer, „Bilder dieser Seite“ ---------- */
+.res__read { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--line-2); }
+.res__read svg { width: 19px; height: 19px; }
+.res__read:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+@media (pointer: coarse) { .res__read { width: 40px; height: 40px; } .res__read svg { width: 21px; height: 21px; } }
+@media (max-width: 640px) { .res__top > .res__read { margin-left: auto; } .res__top > .res__read + .resmenu { margin-left: 0; } }
+@media print { .res__read { display: none !important; } }
+.pics__title { font-size: 22px; margin: 6px 0 2px; }
+.pics__title small { font-size: 14px; font-weight: 400; }
+.pics__sub { margin: 0 0 10px; overflow-wrap: anywhere; }
+.reader__arch { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+

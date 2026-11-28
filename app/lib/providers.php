@@ -763,7 +763,8 @@ function smBookmarklet(): string
     $texts = ['none' => t('Auf dieser Seite habe ich keine großen Bilder gefunden.'), 'prev' => t('Vorheriges Bild'), 'next' => t('Nächstes Bild'),
               'close' => t('Schließen'), 'full' => t('Vollbild (Taste F)'), 'open' => t('Bild in Originalgröße'),
               'broken' => t('Dieses Bild lässt die Seite nicht laden. Weiter mit dem Pfeil.'),
-              'play' => t('Diashow starten (Taste S)'), 'stop' => t('Diashow anhalten (Taste S)'), 'secs' => t('Sekunden pro Bild')];
+              'play' => t('Diashow starten (Taste S)'), 'stop' => t('Diashow anhalten (Taste S)'), 'secs' => t('Sekunden pro Bild'),
+              'grid' => t('Übersicht (Taste G)')];
     $js = str_replace('__SM_TEXTS__', json_encode($texts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $js);
     return 'javascript:' . rawurlencode($js);
 }

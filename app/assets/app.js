@@ -731,6 +731,27 @@
     if (grid) {
         var tiles = $$('.grid__item', grid);
         sizeTiles(tiles);
+        // „Bilder dieser Seite“: Die Maße kennt erst der Browser. Nach dem Laden bekommt jede Kachel ihr Seitenverhältnis,
+        // winzige Bilder (Symbole, Zählpixel) fallen weg.
+        if (grid.hasAttribute('data-grid-measure')) {
+            tiles.forEach(function (a) {
+                var im = $('img', a);
+                if (!im) return;
+                function fit() {
+                    if (!im.naturalWidth) return;
+                    if (im.naturalWidth < 160 && im.naturalHeight < 160) { a.remove(); return; }
+                    a.setAttribute('data-w', im.naturalWidth);
+                    a.setAttribute('data-h', im.naturalHeight);
+                    a.setAttribute('data-size', im.naturalWidth + ' × ' + im.naturalHeight + ' px');
+                    sizeTiles([a]);
+                }
+                if (im.complete) fit(); else im.addEventListener('load', fit);
+            });
+            $$('[data-pics-start]').forEach(function (b) {
+                b.hidden = false;
+                b.addEventListener('click', function () { var first = $('.grid__item', grid); if (first) first.click(); });
+            });
+        }
 
         var lb = $('[data-lightbox]');
         var cur = -1;

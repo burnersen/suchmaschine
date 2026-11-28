@@ -3,7 +3,10 @@
 $target = $prefs['newtab'] ? ' target="_blank"' : '';
 $rel = ' rel="noopener noreferrer"';
 $imgOn = smImgProxyOn();
-$host = smHost((string)parse_url($u, PHP_URL_HOST));
+// Archiv-Kopie (web.archive.org): Quelle und „Original öffnen“ zeigen auf die eigentliche Seite
+$arch = smArchiveOrig($u);
+$orig = $arch !== '' ? $arch : $u;
+$host = smHost((string)parse_url($orig, PHP_URL_HOST));
 $data = null;
 if ($r && $r['ok']) {
     $date = $r['date'] !== '' && ($ts = strtotime($r['date'])) ? smDate($ts) : '';
@@ -17,13 +20,16 @@ if ($r && $r['ok']) {
         }
         $blocks[] = $b;
     }
-    $data = ['title' => $r['title'], 'meta' => $meta, 'source' => t('Quelle: %s', $u),
+    $data = ['title' => $r['title'], 'meta' => $meta, 'source' => t('Quelle: %s', $orig) . ($arch !== '' ? ' (' . t('Archiv-Kopie von web.archive.org') . ')' : ''),
              'note' => t('Abgerufen am %s · nur zum privaten Gebrauch · Rechte beim Urheber', smDate(time())), 'blocks' => $blocks];
 }
 ?>
 <main class="page reader">
     <div class="reader__bar">
-        <a class="btn btn--small" href="<?= h($u) ?>"<?= $rel . $target ?>><?= h(t('Original öffnen')) ?> ↗</a>
+        <a class="btn btn--small" href="<?= h($orig) ?>"<?= $rel . $target ?>><?= h(t('Original öffnen')) ?> ↗</a>
+<?php if ($imgOn && $arch === ''): ?>
+        <a class="btn btn--small" href="<?= h(smUrl(['a' => 'pics', 'u' => $u])) ?>"><?= h(t('Bilder groß')) ?></a>
+<?php endif; ?>
 <?php if ($data): ?>
         <button type="button" class="btn btn--small<?= ($r['kind'] ?? '') === 'recipe' ? ' btn--primary' : '' ?>" data-print><?= h(($r['kind'] ?? '') === 'recipe' ? t('Rezept drucken') : t('Drucken')) ?></button>
         <button type="button" class="btn btn--small btn--primary" data-pdf-open hidden><?= h(t('Als PDF speichern')) ?></button>
@@ -55,6 +61,13 @@ if ($r && $r['ok']) {
 <?php if ($why !== 'paywall' && $why !== 'blocked' && empty($h)): ?>
         <br><?= h(t('Mit dem Lesezeichen „Lesen & Drucken“ klappt es meist trotzdem, weil dann dein Browser die fertige Seite mitschickt.')) ?>
         <a href="<?= h(smUrl(['a' => 'help'])) ?>#lesen"><?= h(t('So richtest du es ein')) ?></a>
+<?php endif; ?>
+<?php if ($why !== 'paywall' && $arch === '' && empty($h)): /* Bezahlartikel: gar nicht erst versuchen */ ?>
+        <p class="reader__arch"><a class="btn btn--small" href="<?= h(smUrl(['a' => 'read', 'u' => smArchiveUrl($u)])) ?>"><?= h(t('Archiv-Kopie versuchen')) ?></a>
+            <small class="muted"><?= h(t('Holt die Fassung, die web.archive.org öffentlich gespeichert hat. Gibt es dort keine, bleibt es bei dieser Meldung.')) ?></small></p>
+<?php endif; ?>
+<?php if ($arch !== ''): ?>
+        <br><?= h(t('Bei web.archive.org liegt keine lesbare Kopie dieser Seite.')) ?>
 <?php endif; ?>
     </div>
 <?php else: ?>

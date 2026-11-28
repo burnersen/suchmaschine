@@ -192,6 +192,9 @@ function smRun(): void
         case 'read':
             smPageRead($me, $post);
             return;
+        case 'pics':
+            smPagePics($me);
+            return;
         default:
             smPageSearch($me);
             smAutoUpdate();
