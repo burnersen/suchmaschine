@@ -14,14 +14,18 @@ $flash = smFlash();
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
+<?php if (($tc = smThemeColor()) !== null): ?>
+<meta name="theme-color" content="<?= h($tc) ?>">
+<?php else: ?>
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1f1f1f" media="(prefers-color-scheme: dark)">
+<?php endif; ?>
 <title><?= h($title ?? $site) ?></title>
 <link rel="icon" href="<?= h($logo !== '' ? $logo : smAsset('icon.svg')) ?>"<?= $logo === '' ? ' type="image/svg+xml"' : '' ?>>
 <link rel="apple-touch-icon" href="<?= h(smAppIconUrl(180)) ?>">
 <link rel="icon" type="image/png" sizes="192x192" href="<?= h(smAppIconUrl(192)) ?>">
 <meta name="apple-mobile-web-app-title" content="<?= h(trim(smHasUsersSafe() ? smSetting('site_name') : '') !== '' ? smSetting('site_name') : t('Suchmaschine')) ?>">
-<link rel="manifest" href="<?= h(smUrl(['a' => 'manifest', 'v' => smAppIconCustom() ? smSetting('appicon_v') : SM_VERSION])) ?>">
+<link rel="manifest" crossorigin="use-credentials" href="<?= h(smUrl(['a' => 'manifest', 'v' => smAppIconCustom() ? smSetting('appicon_v') : SM_VERSION, 'th' => smThemeColor() === '#1f1f1f' ? 'dark' : null])) ?>">
 <?php if (!empty($osToken)): ?>
 <link rel="search" type="application/opensearchdescription+xml" title="<?= h($site) ?> (<?= h($me['name'] ?? '') ?>)" href="<?= h(smUrl(['a' => 'opensearch', 'k' => $osToken])) ?>">
 <?php else: ?>
@@ -41,7 +45,7 @@ $flash = smFlash();
 <?php endforeach; ?>
 </head>
 <?php $tick = false; try { $tick = smHasUsersSafe() && smBangDue(); } catch (Throwable $e) {} ?>
-<body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?><?= $tick ? ' data-tick="' . h(smUrl(['a' => 'bangtick'])) . '"' : '' ?>>
+<body class="<?= $home ? 'is-home' : ($bare ? 'is-bare' : 'is-page') ?>"<?= smPrefs($me ?? null)['newtab'] ? ' data-newtab' : '' ?><?= $tick ? ' data-tick="' . h(smUrl(['a' => 'bangtick'])) . '"' : '' ?><?= empty($offline) ? ' data-sw="' . h(smUrl(['a' => 'sw'])) . '"' : '' ?>>
 <div class="progress" aria-hidden="true"></div>
 <?php if (!$bare): ?>
 <header class="top<?= isset($q) ? ' top--results' : '' ?>">

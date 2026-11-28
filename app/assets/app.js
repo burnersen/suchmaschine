@@ -13,6 +13,31 @@
 
     function plainClick(ev) { return ev.button === 0 && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && !ev.altKey; }
 
+    /* ---------- Zurück-Taste: schließt erst, was gerade offen ist (Bildvorschau, QR-Code, Tastenkürzel), statt die Seite zu verlassen ----------
+       Beim Öffnen kommt ein Eintrag in den Verlauf des Browsers. „Zurück“ (Taste oder Wischen am Handy) nimmt ihn wieder weg
+       und schließt dabei. Wird über den Knopf geschlossen, geht der Eintrag von selbst wieder weg. */
+    var layers = [], layerSkip = 0, canPush = !!(window.history && history.pushState);
+    function layerOpen(closeFn) {
+        if (!canPush || layers.indexOf(closeFn) >= 0) return;
+        try { history.pushState({ smLayer: layers.length + 1 }, ''); layers.push(closeFn); } catch (e) {}
+    }
+    function layerClosed(closeFn) {
+        var i = layers.lastIndexOf(closeFn);
+        if (i < 0) return;
+        layers.splice(i, 1);
+        layerSkip++;
+        history.back();
+    }
+    if (canPush) {
+        window.addEventListener('popstate', function () {
+            if (layerSkip > 0) { layerSkip--; return; }
+            var f = layers.pop();
+            if (f) f();
+        });
+        // Seite neu geladen, während etwas offen war: der übrig gebliebene Eintrag soll kein zweites „Zurück“ kosten
+        try { if (history.state && history.state.smLayer) { layerSkip++; history.back(); } } catch (e) {}
+    }
+
     // Ladeanzeige bei Formularen und internen Links
     $$('form[data-busy], form[data-search]').forEach(function (f) {
         f.addEventListener('submit', function (ev) {
@@ -320,6 +345,8 @@
         if (el && el.tagName === 'IMG') {
             if (el.parentNode && el.parentNode.classList && el.parentNode.classList.contains('fav')) el.remove();
             else if (el.closest('.grid__item')) el.closest('.grid__item').remove();
+            // Vorschaubild eines Treffers lädt nicht: ganz weg, damit der Text die volle Breite bekommt statt neben einem grauen Kasten zu stehen
+            else if (el.classList.contains('res__thumb') || el.classList.contains('news__img')) el.remove();
             else if (!el.hasAttribute('data-lb-img')) el.style.visibility = 'hidden';
         }
     }, true);
@@ -337,8 +364,39 @@
             document.cookie = 'sm_theme=' + next + '; path=' + path + '; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
             if (path !== '/') document.cookie = 'sm_theme=; path=/; max-age=0';   // alter Cookie von Version 1.4 und früher
             label();
+            themeColor();
         });
     });
+
+    /* ---------- Statusleiste des Handys in der Farbe der Seite (theme-color), auch bei eigenen Farben und nach dem Umschalten ---------- */
+    function themeColor() {
+        var bg = '';
+        try { bg = getComputedStyle(root).getPropertyValue('--bg').trim(); } catch (e) {}
+        if (!/^#[0-9a-f]{3,8}$/i.test(bg)) return;
+        $$('meta[name="theme-color"]').forEach(function (m) {
+            m.removeAttribute('media');
+            // Solange die Bildvorschau offen ist, bleibt die Leiste schwarz: dann nur merken, was danach gilt
+            if (m.hasAttribute('data-orig') && m.getAttribute('content') === '#000000') m.setAttribute('data-orig', bg);
+            else { m.setAttribute('content', bg); if (m.hasAttribute('data-orig')) m.setAttribute('data-orig', bg); }
+        });
+    }
+    themeColor();
+    window.addEventListener('load', themeColor);   // das Stylesheet mit dem eigenen Aussehen kann später fertig sein
+    if (window.matchMedia) {
+        var mq = matchMedia('(prefers-color-scheme: dark)');
+        if (mq.addEventListener) mq.addEventListener('change', themeColor); else if (mq.addListener) mq.addListener(themeColor);
+    }
+
+    /* ---------- App: Service Worker (Seite „Keine Verbindung“, schneller Start), nur über https ---------- */
+    var swUrl = body.getAttribute('data-sw');
+    if (swUrl && 'serviceWorker' in navigator && window.isSecureContext) {
+        window.addEventListener('load', function () { navigator.serviceWorker.register(swUrl).catch(function () {}); });
+    }
+    // Seite „Keine Verbindung“: von selbst neu laden, sobald das Netz zurück ist
+    if ($('[data-offline]')) {
+        window.addEventListener('online', function () { location.reload(); });
+        $$('[data-offline-retry]').forEach(function (a) { a.addEventListener('click', function (ev) { ev.preventDefault(); loading(true); location.reload(); }); });
+    }
 
     /* ---------- Reiter (Einstellungen, Verwaltung): der aktive ist immer zu sehen, Schatten zeigen, dass man wischen kann ---------- */
     $$('.subnav').forEach(function (bar) {
@@ -685,6 +743,11 @@
         function show(i) {
             tiles = $$('.grid__item', grid);
             if (i < 0 || i >= tiles.length) return;
+            if (lb.hidden || layers.indexOf(hideBack) < 0) {
+                // War die Großansicht über die Adresse (?view=…) geöffnet: erst zur Rasteradresse, damit „Zurück“ dort landet
+                if (/[?&]view=/.test(location.search) && canPush) history.replaceState(null, '', lb.getAttribute('data-grid-url'));
+                layerOpen(hideBack);
+            }
             cur = i;
             var a = tiles[i];
             img.src = a.getAttribute('data-img');
@@ -748,16 +811,18 @@
             if (playing) slideNext(); else clearTimeout(slideT);
         }
 
-        function hide() {
+        function hide(fromBack) {
             slide(false);
             if (isFull()) exitFull();
             lb.hidden = true;
             body.style.overflow = '';
             themeDark(false);
-            // War die Großansicht über die Adresse (?view=…) geöffnet: zurück zur Rasteradresse
+            // Ohne Verlaufs-Eintrag (sehr alter Browser) und über die Adresse (?view=…) geöffnet: zurück zur Rasteradresse
             if (/[?&]view=/.test(location.search) && window.history && history.replaceState) history.replaceState(null, '', lb.getAttribute('data-grid-url'));
+            if (fromBack !== true) layerClosed(hideBack);
             if (tiles[cur]) tiles[cur].focus();
         }
+        function hideBack() { hide(true); }
 
         /* Statusleiste schwarz, solange die Vorschau offen ist: Als App auf dem Startbildschirm (iPad, iPhone) färbt das System
            den Streifen oben nach theme-color. Sonst bleibt dort beim Vollbild ein grauer oder weißer Rand. */
@@ -911,11 +976,14 @@
         body.classList.add('has-overlay');
         var c = $('[data-overlay-close]', o);
         if (c) c.focus();
+        layerOpen(overlayBack);
     }
-    function closeOverlays() {
+    function overlayBack() { closeOverlays(true); }
+    function closeOverlays(fromBack) {
         var any = false;
         $$('.overlay:not([hidden])').forEach(function (o) { o.hidden = true; any = true; });
         body.classList.remove('has-overlay');
+        if (any && fromBack !== true) layerClosed(overlayBack);
         if (any && lastFocus && lastFocus.focus) lastFocus.focus();
         return any;
     }

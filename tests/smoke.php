@@ -100,7 +100,7 @@ check('Einrichten', $st === 303 && strpos($loc, 'a=admin') !== false, 'HTTP ' . 
 
 $pages = [
     '', '?a=help', '?a=tools', '?a=settings', '?a=admin', '?q=2%2B3*4', '?q=10+km+in+meilen', '?q=feiertage+2026', '?q=w%C3%BCrfel', '?q=passwort',
-    '?q=timer+5+min', '?q=stoppuhr', '?q=kw', '?q=m%C3%BCnze', '?q=qr+hallo', '?a=asset&f=app.css', '?a=asset&f=app.js', '?a=manifest', '?a=opensearch',
+    '?q=timer+5+min', '?q=stoppuhr', '?q=kw', '?q=m%C3%BCnze', '?q=qr+hallo', '?a=asset&f=app.css', '?a=asset&f=app.js', '?a=manifest', '?a=sw', '?a=offline', '?a=opensearch',
     '?a=appicon&s=192', '?a=qr&d=hallo', '?a=export',
 ];
 foreach (array_keys(smokeSettingsTabs()) as $t) $pages[] = '?a=settings&tab=' . $t;

@@ -11,6 +11,8 @@ function smRun(): void
     if ($a === 'asset') smServeAsset();
     if ($a === 'opensearch') smServeOpenSearch();
     if ($a === 'manifest') smServeManifest();
+    if ($a === 'sw') smServeSw();
+    if ($a === 'offline') smServeOffline();
     if ($a === 'logo') smServeLogo();
     if ($a === 'appicon') smServeAppIcon();
     if ($a === 'look') smServeLook();

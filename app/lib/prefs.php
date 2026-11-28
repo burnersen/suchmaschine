@@ -13,7 +13,7 @@ function smPrefs(?array $me): array
         'newtab'      => !empty($p['newtab']),
         'history'     => !isset($p['history']) || !empty($p['history']),
         'scroll'      => in_array($p['scroll'] ?? '', ['pages', 'endless'], true) ? $p['scroll'] : (smSetting('scroll') === 'endless' ? 'endless' : 'pages'),
-        'sort_web'    => in_array($p['sort_web'] ?? '', ['date', 'rel'], true) ? $p['sort_web'] : (smSetting('sort_web') === 'rel' ? 'rel' : 'date'),
+        'sort_web'    => in_array($p['sort_web'] ?? '', ['date', 'rel'], true) ? $p['sort_web'] : (smSetting('sort_web') === 'date' ? 'date' : 'rel'),
         'sort_news'   => in_array($p['sort_news'] ?? '', ['date', 'rel'], true) ? $p['sort_news'] : (smSetting('sort_news') === 'rel' ? 'rel' : 'date'),
         'sort_videos' => in_array($p['sort_videos'] ?? '', ['date', 'rel'], true) ? $p['sort_videos'] : (smSetting('sort_videos') === 'rel' ? 'rel' : 'date'),
         'news_fresh'  => smNewsFreshOk($p['news_fresh'] ?? '') ? $p['news_fresh'] : (smNewsFreshOk(smSetting('news_fresh')) ? smSetting('news_fresh') : 'pd'),
@@ -55,7 +55,7 @@ function smTierDays(string $f): int
 function smSortPrefsFromPost(): array
 {
     return [
-        'sort_web'    => ($_POST['sort_web'] ?? '') === 'rel' ? 'rel' : 'date',
+        'sort_web'    => ($_POST['sort_web'] ?? '') === 'date' ? 'date' : 'rel',
         'sort_news'   => ($_POST['sort_news'] ?? '') === 'rel' ? 'rel' : 'date',
         'sort_videos' => ($_POST['sort_videos'] ?? '') === 'rel' ? 'rel' : 'date',
         'news_fresh'  => smNewsFreshOk($_POST['news_fresh'] ?? '') ? (string)$_POST['news_fresh'] : 'pd',

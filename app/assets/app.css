@@ -1220,6 +1220,10 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .resmenu:not([open]) .resmenu__btn { opacity: 1; }
 .resmenu__btn:hover, .resmenu[open] .resmenu__btn { color: var(--accent); border-color: var(--accent); }
 @media (pointer: coarse) { .resmenu__btn { width: 40px; height: 40px; } .resmenu__btn svg { width: 22px; height: 22px; } }
+/* Am Handy ist der Knopf größer: mehr Platz lassen, sonst liegt er über dem Vorschaubild. In der Trefferliste steht er immer ganz rechts. */
+@media (pointer: coarse) { .has-menu > .news__link, .has-menu > .video__link { padding-right: 48px; } }
+@media (max-width: 640px) { .res__top > .resmenu { margin-left: auto; } }
+.sbox input { text-overflow: ellipsis; }
 .alert--warn { background: color-mix(in srgb, #f9ab00 14%, var(--bg)); border: 1px solid color-mix(in srgb, #f9ab00 45%, transparent); color: var(--text); }
 
 /* ---------- 3.0: Gäste wählen ihre Suchmaschine auf der Startseite ---------- */
@@ -1283,4 +1287,25 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .lightbox:not(.is-full) .lightbox__secs select { background: var(--bg-2); color: var(--text); border: 1px solid var(--line); }
 .lightbox.is-full .lightbox__secs { transition: opacity .35s; }
 .lightbox.is-full.is-idle .lightbox__secs { opacity: 0; }
+
+/* ---------- 3.5: Feinschliff am Handy ---------- */
+@media (max-width: 640px) {
+    /* Beschreibungen kurz halten, damit mehr Treffer auf den Bildschirm passen */
+    .res__desc { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    /* Bilder: immer mindestens zwei nebeneinander, auch breite Querformate */
+    .grid__item { max-width: calc(50% - 3px); }
+    /* Fußzeile: ohne Trennpunkte, die am Zeilenende lose hängen */
+    .foot { gap: 0 18px; }
+    .foot__sep { display: none; }
+}
+@media (pointer: coarse) {
+    /* Kleine Links groß genug für den Finger */
+    .block__more { padding: 9px 0; margin: 4px 0 0; }
+    .res__links { gap: 0 24px; }
+    .res__links a { padding: 7px 0; }
+}
+/* Tastenkürzel nur, wo es eine Tastatur gibt */
+@media (hover: none) and (pointer: coarse) {
+    .foot__keys, .foot__sep:has(+ .foot__keys) { display: none !important; }
+}
 

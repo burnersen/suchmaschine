@@ -233,7 +233,7 @@ Die Rechte an den Inhalten bleiben bei den jeweiligen Seiten. Wer ein PDF weiter
 
 ## Neueste zuerst und Links
 
-- **Neueste zuerst** ist Standard bei „Alle“ und bei News. Jedes Konto stellt das unter *Einstellungen → Suche* für sich um, der Administrator legt unter *Verwaltung → Einstellungen* den Standard für alle fest. In der Trefferliste lässt es sich jederzeit über „Sortierung“ umschalten.
+- **Neueste zuerst** ist Standard bei News und Videos, „Alle“ zeigt die besten Treffer zuerst (Relevanz). Jedes Konto stellt das unter *Einstellungen → Suche* für sich um, der Administrator legt unter *Verwaltung → Einstellungen* den Standard für alle fest. In der Trefferliste lässt es sich jederzeit über „Sortierung“ umschalten.
 - **News aus den letzten 24 Stunden.** Am Ende der Liste geht es automatisch mit der letzten Woche weiter, dann mit dem letzten Monat und dem letzten Jahr. Gibt es gar keine aktuellen News, wird gleich erweitert. Zeitraum und Erweitern sind pro Konto einstellbar.
 - **Neuer Tab überall:** „Links in neuem Tab öffnen“ gilt für jeden Link nach draußen, auch im Wetter, in der Kurzinfo und in nachgeladenen Treffern.
 - **Bangs ohne Aufblitzen:** Die Zwischenseite ist leer und hat die Farbe der Seite. Nur wenn das Ziel hängt, erscheint nach 2 Sekunden ein Knopf „Weiter“.

@@ -186,7 +186,7 @@ Any page can be read without ads, printed or saved as PDF (accounts only): **pas
 
 ## Newest first and links
 
-- **Newest first** is the default for "All" and news. Every account can change it under *Settings → Search*, the administrator sets the default for everyone. Switch any time with "Sorting" above the results.
+- **Newest first** is the default for news and videos, "All" shows the best matches first (relevance). Every account can change it under *Settings → Search*, the administrator sets the default for everyone. Switch any time with "Sorting" above the results.
 - **News from the last 24 hours.** At the end of the list it continues with the last week, then the last month and the last year. If there is no recent news at all, the range widens right away. Range and widening are per account.
 - **New tab everywhere:** "Open links in a new tab" applies to every outgoing link, including weather, overview panel and loaded results.
 - **Bangs without flashing:** the redirect page is empty and uses the page colours; a "Continue" button only appears after 2 seconds if the target hangs.
