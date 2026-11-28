@@ -78,12 +78,21 @@ function smServeManifest(): void
     header('Cache-Control: no-cache');
     $name = smSiteName();
     $n = smHasUsersSafe() ? trim(smSetting('site_name')) : '';
+    // Startbildschirm und Leiste der App in den Farben des gewählten Designs (dunkel nur, wenn es fest auf dunkel steht)
+    $bg = smThemeColor() ?? '#ffffff';
+    $sc = function (string $label, array $params): array {
+        return ['name' => $label, 'url' => './' . ($params ? '?' . http_build_query($params) : ''),
+                'icons' => [['src' => smAppIconUrl(192), 'sizes' => '192x192', 'type' => 'image/png']]];
+    };
     echo json_encode([
         'id' => './', 'name' => $name, 'short_name' => $n !== '' ? mb_substr($n, 0, 12) : t('Suchmaschine'),
         'start_url' => './', 'scope' => './', 'display' => 'standalone',
+        // Langer Druck auf das App-Symbol: direkt zu Bildern, News, Werkzeugen und zum Scanner
+        'shortcuts' => [$sc(t('Bilder suchen'), ['t' => 'images']), $sc(t('News suchen'), ['t' => 'news']),
+                        $sc(t('Werkzeuge'), ['a' => 'tools']), $sc(t('QR-Code scannen'), ['a' => 'tools', 'tool' => 'scanner'])],
         // Am Handy im Teilen-Menü: geteilte Adressen landen bei den Kurzlinks
         'share_target' => ['action' => './', 'method' => 'GET', 'params' => ['title' => 'share_title', 'text' => 'share_text', 'url' => 'share_url']],
-        'lang' => smLang(), 'background_color' => '#ffffff', 'theme_color' => '#ffffff',
+        'lang' => smLang(), 'background_color' => $bg, 'theme_color' => $bg,
         // PNG-Symbole: Startbildschirme von Android und iPhone nehmen kein SVG
         'icons' => [
             ['src' => smAppIconUrl(192), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
@@ -91,6 +100,46 @@ function smServeManifest(): void
             ['src' => smAppIconUrl(512), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
         ],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**
+ * Farbe für die Statusleiste des Handys (theme-color): Hintergrund des fest gewählten Designs, bei „automatisch“ null
+ * (dann gibt es je eine Angabe für hell und dunkel). Eigene Farben aus „Aussehen“ setzt app.js nach dem Laden genau.
+ */
+function smThemeColor(): ?string
+{
+    $t = smTheme();
+    return $t === 'dark' ? '#1f1f1f' : ($t === 'light' ? '#ffffff' : null);
+}
+
+/**
+ * ?a=sw: Service Worker der App (app/assets/sw.js). Zeigt ohne Netz die Seite „Keine Verbindung“ und hält Aussehen,
+ * Skripte und Symbole auf dem Gerät. Die Adresse liegt im Ordner der Suchmaschine, damit er nur für sie gilt.
+ */
+function smServeSw(): void
+{
+    $js = (string)file_get_contents(SM_APP . '/assets/sw.js');
+    $first = [smAsset('app.css'), smAsset('app.js'), smUrl(['a' => 'asset', 'f' => 'icon.svg']), smLookUrl(smLook(null))];
+    $js = strtr($js, [
+        '__SM_VERSION__' => SM_VERSION,
+        '__SM_OFFLINE__' => smUrl(['a' => 'offline']),
+        '__SM_FIRST__'   => json_encode($first, JSON_UNESCAPED_SLASHES),
+    ]);
+    smHeaders();
+    // Der Service Worker ruft Seiten und Dateien der Suchmaschine selbst ab, dafür braucht er connect-src
+    header("Content-Security-Policy: default-src 'none'; connect-src 'self'");
+    header('Content-Type: text/javascript; charset=utf-8');
+    header('Cache-Control: no-cache');
+    header('Service-Worker-Allowed: ' . smBase());
+    echo $js;
+    exit;
+}
+
+/** ?a=offline: Seite „Keine Verbindung“, die der Service Worker auf dem Gerät ablegt (für alle gleich, nichts Persönliches) */
+function smServeOffline(): void
+{
+    smRender('offline', ['title' => t('Keine Verbindung') . ' – ' . smSiteName(), 'bare' => true, 'me' => null, 'offline' => true]);
     exit;
 }
 

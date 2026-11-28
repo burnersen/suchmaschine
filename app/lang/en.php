@@ -1816,4 +1816,10 @@ return [
     'Entschlüsseln geht nur über HTTPS.' => 'Decryption only works over HTTPS.',
     'Der Token steht hinter dem #. Diesen Teil schickt der Browser nie an den Server, er landet also in keinem Zugriffsprotokoll. Die alte Form mit ?token=… geht weiterhin.' => 'The token is after the #. Browsers never send this part to the server, so it never ends up in an access log. The old form with ?token=… still works.',
     'Gut zu wissen: Bei der Such-Adresse mit ?token=… steht der Token in den Zugriffsprotokollen des Webservers (Apache, nginx, Hoster). Wer das nicht möchte, meldet sich einmal mit der Login-Adresse oben an (danach bleibt der Browser 365 Tage angemeldet) und nimmt als Browser-Suche die Adresse ohne Token. Bei eigenem Server kann man Query-Strings auch aus den Protokollen heraushalten, z. B. nginx: log_format mit $uri statt $request_uri.' => 'Good to know: with the search address using ?token=… the token ends up in the web server access logs (Apache, nginx, host). If you do not want that, sign in once with the login address above (the browser then stays signed in for 365 days) and use the address without token as browser search. On your own server you can also keep query strings out of the logs, e.g. nginx: log_format with $uri instead of $request_uri.',
+    // 3.5: App (Schnellzugriffe, Seite ohne Netz)
+    'Bilder suchen' => 'Search images',
+    'News suchen' => 'Search news',
+    'QR-Code scannen' => 'Scan QR code',
+    'Keine Verbindung' => 'No connection',
+    'Gerade ist kein Internet da. Sobald die Verbindung zurück ist, geht es von selbst weiter.' => 'There is no internet right now. As soon as the connection is back, this continues by itself.',
 ];

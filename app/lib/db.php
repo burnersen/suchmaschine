@@ -2,7 +2,7 @@
 /* Suchmaschine – Datenordner, Datenbank (SQLite), Einstellungen, Cache, Zähler */
 defined('SM_VERSION') || exit;
 
-define('SM_SCHEMA', 7);
+define('SM_SCHEMA', 8);
 
 function smFatal(string $msg): void
 {
@@ -172,6 +172,19 @@ function smMigrate(PDO $pdo, int $from): void
         // „Kosten pro Suche“ und „Stichtag“ gibt es nicht mehr (1 Request = 1 Suche, das Reset-Datum meldet Brave selbst)
         $pdo->exec("DELETE FROM settings WHERE k IN ('p_brave_cost', 'p_brave_start')");
     }
+    if ($from >= 1 && $from < 8) {
+        // 3.5: „Alle“ zeigt wieder die besten Treffer zuerst (Relevanz). „Neueste zuerst“ mit dem Start bei 24 Stunden brachte
+        // dort oft nur ein, zwei Treffer. Einmalig für die Installation und alle Konten umstellen, News und Videos bleiben,
+        // und wer es anders mag, stellt es in den Einstellungen wieder um.
+        $pdo->exec("UPDATE settings SET v = 'rel' WHERE k = 'sort_web'");
+        $upd = $pdo->prepare('UPDATE users SET prefs = ? WHERE id = ?');
+        foreach ($pdo->query('SELECT id, prefs FROM users')->fetchAll(PDO::FETCH_ASSOC) as $u) {
+            $p = json_decode((string)$u['prefs'], true);
+            if (!is_array($p) || ($p['sort_web'] ?? '') !== 'date') continue;
+            $p['sort_web'] = 'rel';
+            $upd->execute([json_encode($p, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $u['id']]);
+        }
+    }
     $pdo->exec('PRAGMA user_version = ' . SM_SCHEMA);
     $pdo->commit();
 }
@@ -193,7 +206,7 @@ function smDefaults(): array
         'site_name'     => '',      // leer = „Suchmaschine ohne Werbung“ in der Sprache des Besuchers
         'accent'        => 'blue',
         'scroll'        => 'pages', // pages = Seitenweise, endless = endlos scrollen
-        'sort_web'      => 'date',  // Sortierung bei „Alle“: date = neueste zuerst, rel = Relevanz
+        'sort_web'      => 'rel',   // Sortierung bei „Alle“: rel = Relevanz, date = neueste zuerst
         'sort_news'     => 'date',  // Sortierung bei News
         'sort_videos'   => 'date',  // Sortierung bei Videos
         'news_fresh'    => 'pd',    // erste Zeitstufe bei „Neueste zuerst“ (Alle, News, Videos): pd, pw, pm, py oder all

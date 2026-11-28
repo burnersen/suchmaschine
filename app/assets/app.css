@@ -1288,3 +1288,24 @@ html.has-js [data-calc] .keypad__nojs { display: none; }
 .lightbox.is-full .lightbox__secs { transition: opacity .35s; }
 .lightbox.is-full.is-idle .lightbox__secs { opacity: 0; }
 
+/* ---------- 3.5: Feinschliff am Handy ---------- */
+@media (max-width: 640px) {
+    /* Beschreibungen kurz halten, damit mehr Treffer auf den Bildschirm passen */
+    .res__desc { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    /* Bilder: immer mindestens zwei nebeneinander, auch breite Querformate */
+    .grid__item { max-width: calc(50% - 3px); }
+    /* Fußzeile: ohne Trennpunkte, die am Zeilenende lose hängen */
+    .foot { gap: 0 18px; }
+    .foot__sep { display: none; }
+}
+@media (pointer: coarse) {
+    /* Kleine Links groß genug für den Finger */
+    .block__more { padding: 9px 0; margin: 4px 0 0; }
+    .res__links { gap: 0 24px; }
+    .res__links a { padding: 7px 0; }
+}
+/* Tastenkürzel nur, wo es eine Tastatur gibt */
+@media (hover: none) and (pointer: coarse) {
+    .foot__keys, .foot__sep:has(+ .foot__keys) { display: none !important; }
+}
+
