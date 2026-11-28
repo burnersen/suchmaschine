@@ -9,12 +9,12 @@
     var old = document.getElementById('sm-big');
     if (old) { old.remove(); return; }
     var seen = {}, list = [];
-    function add(u, t, el) {
+    function add(u, t, el, th) {
         if (!u || typeof u !== 'string' || u.indexOf('data:') === 0) return;
         try { u = new URL(u, location.href).href; } catch (e) { return; }
         if (!/^https?:/.test(u) || seen[u] || /\.svg(\?|#|$)/i.test(u)) return;
         seen[u] = 1;
-        list.push({ u: u, t: (t || '').trim().slice(0, 200), el: el || null });
+        list.push({ u: u, t: (t || '').trim().slice(0, 200), el: el || null, th: th || '' });
     }
     function attrJson(el, name) { try { return JSON.parse(el.getAttribute(name)); } catch (e) { return null; } }
     function unwrap(u) {
@@ -43,8 +43,21 @@
         });
         return b;
     }
+    var gFound = false;
     function collect() {
         var n0 = list.length;
+        /* Google-Bildersuche: Im Raster stehen nur kleine Vorschauen. Die Adressen der Originale liegen in den Daten der Seite,
+           jeweils direkt hinter der Vorschau: ["Vorschau",Höhe,Breite],["Original",Höhe,Breite]. Die werden hier herausgelesen. */
+        if (/(^|\.)google\.[a-z.]+$/.test(location.hostname)) {
+            var re = /\["(https:\/\/encrypted-tbn\d\.gstatic\.com\/images\?q[^"]+)",\d+,\d+\]\s*,\s*\["(https?:\/\/[^"]+)",\d+,\d+\]/g;
+            var un = function (x) { try { return JSON.parse('"' + x + '"'); } catch (e) { return x; } };
+            Array.prototype.forEach.call(document.scripts, function (sc) {
+                var tx = sc.textContent || '', m;
+                if (tx.length < 200 || tx.indexOf('encrypted-tbn') < 0) return;
+                re.lastIndex = 0;
+                while ((m = re.exec(tx))) { add(un(m[2]), '', null, un(m[1])); gFound = true; }
+            });
+        }
         /* Bing (und Suchmaschinen, die Bing-Bilder zeigen): Original steht im Attribut m als murl */
         document.querySelectorAll('a.iusc[m], [m*="murl"]').forEach(function (a) { var m = attrJson(a, 'm'); if (m) add(m.murl, m.t, a); });
         /* Links mit dem Original in der Adresse (Google imgurl, Bing mediaurl, Proxys mit u=) */
@@ -55,6 +68,7 @@
             if (box && box.contains(img)) return;
             var b = bestSrc(img), u = b[0];
             if (!u) return;
+            if (gFound && /gstatic\.com\/images\?q/.test(u)) return;
             var inner = /external-content\.duckduckgo\.com|\/iu\/\?u=|imgs\.search\.brave\.com/.test(u) ? unwrap(u) : '';
             if (inner && !/tse\d*\.(mm\.)?bing\.net|th\.bing\.com/.test(inner)) u = inner;
             var r = img.getBoundingClientRect();
@@ -164,7 +178,7 @@
     if (SEND) {
         var bSend = btn('send', 'left:max(12px,env(safe-area-inset-left));bottom:max(64px,calc(env(safe-area-inset-bottom) + 56px))', function () {
             var items = list.slice(0, 400).map(function (it) {
-                var th = it.el && it.el.tagName === 'IMG' ? (it.el.currentSrc || it.el.src || '') : '';
+                var th = it.th || (it.el && it.el.tagName === 'IMG' ? (it.el.currentSrc || it.el.src || '') : '');
                 return { u: it.u, t: it.t, th: /^https?:/.test(th) && th !== it.u ? th : '' };
             });
             var f = document.createElement('form');
@@ -206,7 +220,7 @@
             var t = document.createElement('img');
             t.loading = 'lazy';
             t.referrerPolicy = 'no-referrer';
-            t.src = it.el && it.el.tagName === 'IMG' && (it.el.currentSrc || it.el.src) ? (it.el.currentSrc || it.el.src) : it.u;
+            t.src = it.th || (it.el && it.el.tagName === 'IMG' && (it.el.currentSrc || it.el.src) ? (it.el.currentSrc || it.el.src) : it.u);
             t.setAttribute('style', 'width:100%;height:104px;object-fit:cover;border-radius:6px;cursor:pointer;background:#222;outline:' + (i === cur ? '3px solid #7cc4ff' : '0'));
             t.addEventListener('click', function (e) { e.stopPropagation(); overview(false); show(i); });
             ovw.appendChild(t);
