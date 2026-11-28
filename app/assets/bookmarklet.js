@@ -1,6 +1,7 @@
 /* Suchmaschine – Lesezeichen „Bilder groß“ (Bookmarklet).
    Läuft auf einer fremden Seite (z. B. Bing- oder DuckDuckGo-Bildersuche), sammelt die Bilder in der größten Fassung,
-   die die Seite verrät, und zeigt sie randlos auf Schwarz: Pfeile, Wischen, F = Vollbild, S = Diashow, Esc = schließen.
+   die die Seite verrät, und zeigt sie randlos auf Schwarz: Pfeile, Wischen, F = Vollbild, S = Diashow, G = Übersicht,
+   Zoomen mit zwei Fingern, Doppeltipp oder Mausrad, Esc = schließen. Es beginnt mit dem Bild, das gerade zu sehen ist.
    Schickt nichts irgendwohin und lädt nichts nach außer den Bildern selbst.
    Wird beim Ausliefern zu einer javascript:-Adresse (ganze Kommentarzeilen fallen weg, darum keine Kommentare hinter Code). */
 (function () {
@@ -8,12 +9,12 @@
     var old = document.getElementById('sm-big');
     if (old) { old.remove(); return; }
     var seen = {}, list = [];
-    function add(u, t) {
+    function add(u, t, el) {
         if (!u || typeof u !== 'string' || u.indexOf('data:') === 0) return;
         try { u = new URL(u, location.href).href; } catch (e) { return; }
-        if (!/^https?:/.test(u) || seen[u]) return;
+        if (!/^https?:/.test(u) || seen[u] || /\.svg(\?|#|$)/i.test(u)) return;
         seen[u] = 1;
-        list.push({ u: u, t: (t || '').trim().slice(0, 200) });
+        list.push({ u: u, t: (t || '').trim().slice(0, 200), el: el || null });
     }
     function attrJson(el, name) { try { return JSON.parse(el.getAttribute(name)); } catch (e) { return null; } }
     function unwrap(u) {
@@ -22,37 +23,84 @@
             return p.get('imgurl') || p.get('mediaurl') || p.get('u') || p.get('url') || '';
         } catch (e) { return ''; }
     }
-    function bestSrc(img) {
-        var best = img.currentSrc || img.src, bw = img.naturalWidth || 0;
-        (img.getAttribute('srcset') || '').split(',').forEach(function (c) {
-            var m = c.trim().split(/\s+/), w = parseInt(m[1], 10) || 0;
+    function fromSet(set, best, bw) {
+        (set || '').split(',').forEach(function (c) {
+            var m = c.trim().split(/\s+/), w = parseFloat(m[1]) || 0;
+            if (/x$/.test(m[1] || '')) w = w * 1000;
             if (m[0] && w > bw) { bw = w; best = m[0]; }
         });
         return [best, bw];
     }
-    /* Bing (und Suchmaschinen, die Bing-Bilder zeigen): Original steht im Attribut m als murl */
-    document.querySelectorAll('a.iusc[m], [m*="murl"]').forEach(function (a) { var m = attrJson(a, 'm'); if (m) add(m.murl, m.t); });
-    /* Links mit dem Original in der Adresse (Google imgurl, Bing mediaurl, Proxys mit u=) */
-    document.querySelectorAll('a[href*="imgurl="], a[href*="mediaurl="]').forEach(function (a) { add(unwrap(a.href), a.title); });
-    /* Links direkt auf Bilddateien */
-    document.querySelectorAll('a[href]').forEach(function (a) {
-        if (/\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(a.href)) add(a.href, a.title || a.textContent);
-    });
-    /* Bilder auf der Seite: größte Fassung aus srcset, Vorschauen über Proxys ausgepackt, kleine Symbole nicht */
-    document.querySelectorAll('img').forEach(function (img) {
-        var b = bestSrc(img), u = b[0];
-        var inner = /external-content\.duckduckgo\.com|\/iu\/\?u=|imgs\.search\.brave\.com/.test(u) ? unwrap(u) : '';
-        if (inner && !/tse\d*\.(mm\.)?bing\.net|th\.bing\.com/.test(inner)) u = inner;
-        if (Math.max(b[1], img.naturalWidth || 0, img.naturalHeight || 0) >= 160) add(u, img.alt);
-    });
+    function bestSrc(img) {
+        var lazy = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original') || '';
+        var cur = img.currentSrc || img.src || '';
+        var b = [cur && cur.indexOf('data:') !== 0 ? cur : lazy, img.naturalWidth || 0];
+        b = fromSet(img.getAttribute('srcset'), b[0], b[1]);
+        b = fromSet(img.getAttribute('data-srcset'), b[0], b[1]);
+        var pic = img.parentNode && img.parentNode.tagName === 'PICTURE' ? img.parentNode : null;
+        if (pic) pic.querySelectorAll('source').forEach(function (so) {
+            if (!/avif|jxl/i.test(so.type || '')) b = fromSet(so.getAttribute('srcset') || so.getAttribute('data-srcset'), b[0], b[1]);
+        });
+        return b;
+    }
+    function collect() {
+        var n0 = list.length;
+        /* Bing (und Suchmaschinen, die Bing-Bilder zeigen): Original steht im Attribut m als murl */
+        document.querySelectorAll('a.iusc[m], [m*="murl"]').forEach(function (a) { var m = attrJson(a, 'm'); if (m) add(m.murl, m.t, a); });
+        /* Links mit dem Original in der Adresse (Google imgurl, Bing mediaurl, Proxys mit u=) */
+        document.querySelectorAll('a[href*="imgurl="], a[href*="mediaurl="]').forEach(function (a) { add(unwrap(a.href), a.title, a); });
+        /* Bilder auf der Seite: größte Fassung aus srcset und <picture>, nachgeladene (data-src), Vorschauen über Proxys ausgepackt, kleine Symbole nicht.
+           Führt ein Bild als Link zu einer Bilddatei, zählt die. */
+        document.querySelectorAll('img').forEach(function (img) {
+            if (box && box.contains(img)) return;
+            var b = bestSrc(img), u = b[0];
+            if (!u) return;
+            var inner = /external-content\.duckduckgo\.com|\/iu\/\?u=|imgs\.search\.brave\.com/.test(u) ? unwrap(u) : '';
+            if (inner && !/tse\d*\.(mm\.)?bing\.net|th\.bing\.com/.test(inner)) u = inner;
+            var r = img.getBoundingClientRect();
+            if (Math.max(b[1], img.naturalWidth || 0, img.naturalHeight || 0, r.width, r.height) < 160) return;
+            var a = img.closest ? img.closest('a[href]') : null;
+            if (a && /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(a.href) && !/\/[^\/?#]*:[^\/?#]*$/.test(a.pathname)) u = a.href;
+            add(u, img.alt || img.title, img);
+        });
+        /* Links direkt auf Bilddateien (nicht auf Seiten über ein Bild wie „Datei:Name.jpg“ bei Wikis) */
+        document.querySelectorAll('a[href]').forEach(function (a) {
+            if (/\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(a.href) && !/\/[^\/?#]*:[^\/?#]*$/.test(a.pathname)) add(a.href, a.title || a.textContent, a);
+        });
+        /* Große Hintergrundbilder (Galerien, die ohne <img> arbeiten) */
+        var n = 0;
+        document.querySelectorAll('div, a, li, figure, span, section').forEach(function (el) {
+            if (n > 4000 || (box && box.contains(el))) return;
+            n++;
+            var r = el.getBoundingClientRect();
+            if (r.width < 160 || r.height < 120) return;
+            var m = /url\(["']?([^"')]+)["']?\)/.exec(getComputedStyle(el).backgroundImage || '');
+            if (m) add(m[1], el.title || el.getAttribute('aria-label'), el);
+        });
+        return list.length - n0;
+    }
+    var box = null;
+    collect();
     if (!list.length) { alert(L.none); return; }
 
     var cur = 0, startX = 0, startY = 0, idle = 0, slideT = 0, playing = false;
-    var box = document.createElement('div');
+    /* Anfangen mit dem Bild, das gerade am nächsten an der Bildschirmmitte steht */
+    (function () {
+        var best = 1e9, mid = window.innerHeight / 2;
+        list.forEach(function (it, i) {
+            if (!it.el || !it.el.getBoundingClientRect) return;
+            var r = it.el.getBoundingClientRect();
+            if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return;
+            var d = Math.abs((r.top + r.bottom) / 2 - mid);
+            if (d < best) { best = d; cur = i; }
+        });
+    })();
+    box = document.createElement('div');
     box.id = 'sm-big';
     box.setAttribute('style', 'position:fixed;inset:0;z-index:2147483647;background:#000;display:flex;align-items:center;justify-content:center;touch-action:none;font:14px/1.4 system-ui,sans-serif;color:#fff');
     var img = document.createElement('img');
-    img.setAttribute('style', 'max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;display:block');
+    img.setAttribute('style', 'max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;display:block;transform-origin:0 0;will-change:transform');
+    img.draggable = false;
     img.referrerPolicy = 'no-referrer';
     var cap = document.createElement('div');
     cap.setAttribute('style', 'position:absolute;left:0;right:0;bottom:0;padding:30px 16px max(12px,env(safe-area-inset-bottom));text-align:center;background:linear-gradient(transparent,rgba(0,0,0,.6));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .3s');
@@ -84,7 +132,43 @@
     sel.addEventListener('change', function () { try { localStorage.setItem('smBigSecs', sel.value); } catch (e) {} if (playing) next(); });
     sel.addEventListener('click', function (e) { e.stopPropagation(); });
     box.appendChild(sel);
-    var ctrls = [cap, bPrev, bNext, bClose, bFull, bOpen, bPlay, sel];
+    var bGrid = btn('▦', 'left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top));font-size:20px', function () { overview(!ovw); }, L.grid);
+    var ctrls = [cap, bPrev, bNext, bClose, bFull, bOpen, bPlay, sel, bGrid];
+    /* Übersicht: alle Bilder klein im Raster, antippen springt hin */
+    var ovw = null;
+    function overview(on) {
+        if (ovw) { ovw.remove(); ovw = null; }
+        if (!on) { wake(); return; }
+        slide(false);
+        ovw = document.createElement('div');
+        ovw.setAttribute('style', 'position:absolute;inset:0;z-index:2;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:#000;padding:max(68px,calc(env(safe-area-inset-top) + 64px)) 8px max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px;align-content:start');
+        list.forEach(function (it, i) {
+            var t = document.createElement('img');
+            t.loading = 'lazy';
+            t.referrerPolicy = 'no-referrer';
+            t.src = it.el && it.el.tagName === 'IMG' && (it.el.currentSrc || it.el.src) ? (it.el.currentSrc || it.el.src) : it.u;
+            t.setAttribute('style', 'width:100%;height:104px;object-fit:cover;border-radius:6px;cursor:pointer;background:#222;outline:' + (i === cur ? '3px solid #7cc4ff' : '0'));
+            t.addEventListener('click', function (e) { e.stopPropagation(); overview(false); show(i); });
+            ovw.appendChild(t);
+        });
+        ovw.addEventListener('click', function (e) { e.stopPropagation(); });
+        box.insertBefore(ovw, bPrev);
+        box.appendChild(bGrid);
+        box.appendChild(bClose);
+        var c = ovw.children[cur];
+        if (c && c.scrollIntoView) c.scrollIntoView({ block: 'center' });
+    }
+    /* Zoomen: zwei Finger, Doppeltipp oder Doppelklick. Vergrößert lässt sich das Bild mit dem Finger oder der Maus verschieben. */
+    var z = 1, zx = 0, zy = 0, pinch = 0, pz = 1, panX = 0, panY = 0, lastTap = 0, moved = false, fails = 0;
+    function zoomSet(s, x, y) {
+        var w = box.clientWidth, h = box.clientHeight;
+        z = Math.max(1, Math.min(6, s));
+        zx = z === 1 ? 0 : Math.min(0, Math.max(w - w * z, x));
+        zy = z === 1 ? 0 : Math.min(0, Math.max(h - h * z, y));
+        img.style.transform = z === 1 ? '' : 'translate(' + zx + 'px,' + zy + 'px) scale(' + z + ')';
+    }
+    function zoomAt(s, cx, cy) { zoomSet(s, cx - (cx - zx) / z * Math.max(1, Math.min(6, s)), cy - (cy - zy) / z * Math.max(1, Math.min(6, s))); }
+    function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
     function next() {
         clearTimeout(slideT);
         if (playing) slideT = setTimeout(function () { show(cur + 1); }, (parseInt(sel.value, 10) || 5) * 1000);
@@ -98,9 +182,17 @@
     }
 
     function show(i) {
+        /* Am Ende angekommen: nachsehen, ob die Seite inzwischen mehr Bilder geladen hat */
+        if (i >= list.length) collect();
         cur = (i + list.length) % list.length;
         var it = list[cur];
-        img.onerror = function () { cap.textContent = (cur + 1) + ' / ' + list.length + ' · ' + L.broken; };
+        zoomSet(1, 0, 0);
+        /* Lädt ein Bild nicht, kommt gleich das nächste (höchstens so oft, wie es Bilder gibt) */
+        img.onerror = function () {
+            if (list.length > 1 && fails < list.length) { fails++; list.splice(cur, 1); show(cur >= list.length ? 0 : cur); return; }
+            cap.textContent = (cur + 1) + ' / ' + list.length + ' · ' + L.broken;
+        };
+        img.onload = function () { fails = 0; };
         img.src = it.u;
         cap.textContent = (cur + 1) + ' / ' + list.length + (it.t ? ' · ' + it.t : '');
         var pre = new Image();
@@ -134,7 +226,11 @@
     function key(e) {
         if (e.key === 'ArrowRight' || e.key === ' ') go(1);
         else if (e.key === 'ArrowLeft') go(-1);
+        else if (e.key === 'Escape' && ovw) overview(false);
         else if (e.key === 'Escape' && !(document.fullscreenElement || document.webkitFullscreenElement)) close();
+        else if (e.key === 'g' || e.key === 'G') overview(!ovw);
+        else if (e.key === '+' || e.key === '=') zoomAt(z * 1.5, box.clientWidth / 2, box.clientHeight / 2);
+        else if (e.key === '-') zoomAt(z / 1.5, box.clientWidth / 2, box.clientHeight / 2);
         else if (e.key === 'f' || e.key === 'F') full();
         else if (e.key === 's' || e.key === 'S') slide(!playing);
         else return;
@@ -142,10 +238,58 @@
         e.stopPropagation();
     }
     box.addEventListener('mousemove', wake);
-    box.addEventListener('click', function (e) { if (e.target === box || e.target === img) { var r = box.getBoundingClientRect(); go(e.clientX > r.width / 2 ? 1 : -1); } });
-    box.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; startY = e.touches[0].clientY; wake(); }, { passive: true });
+    /* Einmal tippen oder klicken blättert (rechte Hälfte vor, linke zurück), aber erst nach kurzem Warten: kommt ein zweiter Tipp, wird gezoomt */
+    var tapT = 0, lastTouch = 0;
+    function tapNav(x) {
+        clearTimeout(tapT);
+        tapT = setTimeout(function () { go(x > box.clientWidth / 2 ? 1 : -1); }, 280);
+    }
+    box.addEventListener('click', function (e) {
+        if (Date.now() - lastTouch < 700) return;
+        if ((e.target !== box && e.target !== img) || moved || z > 1) { moved = false; return; }
+        tapNav(e.clientX);
+    });
+    box.addEventListener('dblclick', function (e) {
+        if (Date.now() - lastTouch < 700 || e.target !== img) return;
+        clearTimeout(tapT);
+        zoomAt(z > 1 ? 1 : 2.5, e.clientX, e.clientY);
+    });
+    box.addEventListener('wheel', function (e) {
+        if (ovw) return;
+        e.preventDefault();
+        zoomAt(z * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX, e.clientY);
+    }, { passive: false });
+    box.addEventListener('mousedown', function (e) { if (z > 1 && e.target === img) { panX = e.clientX - zx; panY = e.clientY - zy; pinch = -1; e.preventDefault(); } });
+    box.addEventListener('mousemove', function (e) { if (pinch === -1) { moved = true; zoomSet(z, e.clientX - panX, e.clientY - panY); } });
+    window.addEventListener('mouseup', function () { if (pinch === -1) pinch = 0; });
+    box.addEventListener('touchstart', function (e) {
+        if (ovw) return;
+        wake();
+        if (e.touches.length === 2) { pinch = dist(e.touches); pz = z; return; }
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        panX = startX - zx; panY = startY - zy;
+    }, { passive: true });
+    box.addEventListener('touchmove', function (e) {
+        if (ovw) return;
+        if (e.touches.length === 2 && pinch > 0) {
+            zoomAt(pz * dist(e.touches) / pinch, (e.touches[0].clientX + e.touches[1].clientX) / 2, (e.touches[0].clientY + e.touches[1].clientY) / 2);
+        } else if (z > 1 && e.touches.length === 1) {
+            zoomSet(z, e.touches[0].clientX - panX, e.touches[0].clientY - panY);
+        }
+    }, { passive: true });
     box.addEventListener('touchend', function (e) {
-        var dx = e.changedTouches[0].clientX - startX, dy = e.changedTouches[0].clientY - startY;
+        if (ovw) return;
+        lastTouch = Date.now();
+        if (pinch > 0) { if (!e.touches.length) pinch = 0; return; }
+        var t = e.changedTouches[0], dx = t.clientX - startX, dy = t.clientY - startY, now = lastTouch;
+        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+            if (e.target !== img && e.target !== box) return;
+            /* Doppeltipp: hinein und wieder heraus */
+            if (now - lastTap < 320) { clearTimeout(tapT); zoomAt(z > 1 ? 1 : 2.5, t.clientX, t.clientY); lastTap = 0; }
+            else { lastTap = now; if (z === 1) tapNav(t.clientX); }
+            return;
+        }
+        if (z > 1) return;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1);
         else if (dy > 90) close();
     });
@@ -153,5 +297,5 @@
     var ov = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
     document.body.appendChild(box);
-    show(0);
+    show(cur);
 })();

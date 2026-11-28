@@ -8,6 +8,7 @@ $host = smHost((string)parse_url($u, PHP_URL_HOST));
     <div class="share__acts">
 <?php if ($me): ?>
         <a class="btn btn--primary btn--wide" href="<?= h(smUrl(['a' => 'read', 'u' => $u])) ?>">📖 <?= h(t('Ohne Werbung lesen und drucken')) ?></a>
+        <a class="btn btn--wide" href="<?= h(smUrl(['a' => 'pics', 'u' => $u])) ?>">🖼️ <?= h(t('Bilder dieser Seite groß ansehen')) ?></a>
 <?php else: ?>
         <a class="btn btn--primary btn--wide" href="<?= h(smUrl(['a' => 'login', 'next' => smUrl(['a' => 'read', 'u' => $u])])) ?>">📖 <?= h(t('Anmelden und ohne Werbung lesen')) ?></a>
 <?php endif; ?>

@@ -17,6 +17,9 @@ $full = $direct ? $r['url'] : substr(smOrigin(), 0, -strlen(smBase())) . $r['url
 <?php endif; ?>
 <?php if ($me): ?>
                     <a href="<?= h(smUrl(['a' => 'read', 'u' => $r['url']])) ?>" class="resmenu__read"><?= h(t('Ohne Werbung lesen')) ?></a>
+<?php if ($direct && smImgProxyOn()): ?>
+                    <a href="<?= h(smUrl(['a' => 'pics', 'u' => $r['url']])) ?>"><?= h(t('Bilder dieser Seite groß')) ?></a>
+<?php endif; ?>
                     <a href="<?= h(smToolUrl('down', ['url' => $full])) ?>"><?= h(t('Erreichbar? Seite prüfen')) ?></a>
 <?php endif; ?>
 <?php if ($direct): ?>

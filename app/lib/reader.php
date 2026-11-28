@@ -76,7 +76,8 @@ function smReadPage(string $url, ?string $html = null): array
             $out['why'] = 'fetch';
             return $out;
         }
-        if ($r['status'] === 401 || $r['status'] === 402 || $r['status'] === 403) { $out['why'] = 'blocked'; return $out; }
+        if ($r['status'] === 402) { $out['why'] = 'paywall'; return $out; }   // „Zahlung erforderlich“: Bezahlinhalt, nichts weiter versuchen
+        if ($r['status'] === 401 || $r['status'] === 403) { $out['why'] = 'blocked'; return $out; }
         if ($r['status'] !== 200) { $out['why'] = 'status'; return $out; }
         if ($r['type'] !== '' && strpos($r['type'], 'html') === false) { $out['why'] = 'type'; return $out; }
         $html = $r['body'];
